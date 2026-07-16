@@ -70,12 +70,12 @@
 
   function pull(level, done) {
     api("GET", level, null, function (err, res) {
-      if (err || !res || !res.data) { if (done) done(err); return; }
+      if (err || !res || !res.blob) { if (done) done(err); return; }
       var serverTs = res.updatedAt || 0;
       if (serverTs > syncTs(level)) {
         try {
-          Object.keys(res.data).forEach(function (k) {
-            if (k.indexOf(level + ".") === 0) localStorage.setItem(k, res.data[k]);
+          Object.keys(res.blob).forEach(function (k) {
+            if (k.indexOf(level + ".") === 0) localStorage.setItem(k, res.blob[k]);
           });
         } catch (e) {}
         setSyncTs(level, serverTs);
@@ -90,7 +90,7 @@
     var data = gatherKeys(level);
     var h = blobHash(data);
     if (h === lastPushedHash) { if (done) done(null, false); return; }
-    api("PUT", level, { data: data }, function (err, res) {
+    api("PUT", level, data, function (err, res) {
       if (err) { if (done) done(err); return; }
       lastPushedHash = h;
       if (res && res.updatedAt) setSyncTs(level, res.updatedAt);
