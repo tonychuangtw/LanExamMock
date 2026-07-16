@@ -781,3 +781,8 @@ input[type="number"]:focus {
 #vb-type-q .zh { margin-top: 6px; opacity: 0.85; }
 #vb-type-q .ex { margin-top: 8px; font-style: italic; opacity: 0.9; }
 #vb-type-next { margin-top: 10px; }
+
+/* ---- cloud sync ---- */
+.sync-ui { display: flex; align-items: center; gap: 6px; }
+.sync-chip { font-weight: 700; }
+.sync-status { font-size: 0.75rem; opacity: 0.7; }
