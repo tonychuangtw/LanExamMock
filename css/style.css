@@ -680,6 +680,11 @@ input[type="number"]:focus {
 .wr-grade-orig { text-decoration: line-through; opacity: 0.75; }
 .wr-grade-err { color: var(--danger, #d33); }
 
+/* ---- speaking recorder ---- */
+.sp-rec-live { font-style: italic; opacity: 0.8; font-size: 0.92rem; margin: 10px 0 0; }
+#sp-rec-edit .wr-draft { margin-top: 6px; }
+#sp-send { margin-top: 8px; }
+
 /* ---- speed reading ---- */
 .sr-heading { margin-top: 30px; }
 .sr-timer { font-weight: 700; font-variant-numeric: tabular-nums; }

@@ -1933,6 +1933,13 @@ if (typeof document !== 'undefined') {
       });
       h += "</ul>";
     }
+    if (Array.isArray(f.upgrades) && f.upgrades.length) {
+      h += "<h4>Phrase upgrades</h4><ul>";
+      f.upgrades.forEach(function (u) {
+        h += '<li><span class="wr-grade-orig">' + esc(u.original || "") + "</span> \u2192 <strong>" + esc(u.better || "") + "</strong></li>";
+      });
+      h += "</ul>";
+    }
     return h;
   }
 
@@ -2077,6 +2084,7 @@ if (typeof document !== 'undefined') {
       $("sp-phrases").classList.add("hidden");
       spTimer.pause();
       spTimer.set(CFG.spSecs);
+      spRecNewTask(p.question + " (" + p.bullets.join("; ") + ")");
     });
     $("sp-start").addEventListener("click", function () { spTimer.start(); });
     $("sp-reset").addEventListener("click", function () { spTimer.pause(); spTimer.set(CFG.spSecs); });
@@ -2087,6 +2095,140 @@ if (typeof document !== 'undefined') {
       li.textContent = ph;
       ul.appendChild(li);
     });
+  }
+
+  /* ---------- §6.1 口說錄音 → 逐字稿 → AI 批改 ---------- */
+  var spRec = { on: false, engine: null, finalText: "", t0: 0, secs: 0, question: "" };
+
+  function spRecSupported() {
+    return typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+  }
+
+  function spRecNewTask(question) {
+    spRec.question = question;
+    var box = $("sp-rec-box");
+    if (!box) return;
+    if (!spRecSupported()) { box.classList.add("hidden"); return; }
+    spRecStop(true);
+    spRec.finalText = "";
+    $("sp-rec-live").textContent = "";
+    $("sp-rec-live").classList.add("hidden");
+    $("sp-rec-edit").classList.add("hidden");
+    $("sp-feedback").classList.add("hidden");
+    $("sp-rec-btn").textContent = "\ud83c\udf99 Start recording";
+    box.classList.remove("hidden");
+  }
+
+  function spRecStop(silent) {
+    spRec.on = false;
+    if (spRec.engine) { try { spRec.engine.stop(); } catch (e) {} spRec.engine = null; }
+  }
+
+  function spRecToggle() {
+    var btn = $("sp-rec-btn");
+    if (spRec.on) {
+      spRec.secs = Math.round((Date.now() - spRec.t0) / 1000);
+      spRecStop();
+      btn.textContent = "\ud83c\udf99 Record again";
+      var text = spRec.finalText.trim();
+      if (!text) { alert("Nothing was transcribed — check the microphone permission and try again."); return; }
+      $("sp-transcript").value = text;
+      spRecUpdateStats();
+      $("sp-rec-edit").classList.remove("hidden");
+      return;
+    }
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var eng = new SR();
+    eng.lang = "en-GB";
+    eng.continuous = true;
+    eng.interimResults = true;
+    eng.onresult = function (ev) {
+      var interim = "";
+      for (var i = ev.resultIndex; i < ev.results.length; i++) {
+        if (ev.results[i].isFinal) spRec.finalText += ev.results[i][0].transcript + " ";
+        else interim += ev.results[i][0].transcript;
+      }
+      var live = $("sp-rec-live");
+      live.textContent = (spRec.finalText + interim).slice(-200);
+      live.classList.remove("hidden");
+    };
+    /* iOS/Safari 常自行結束辨識——還在錄音狀態就自動重啟 */
+    eng.onend = function () {
+      if (spRec.on && spRec.engine === eng) {
+        try { eng.start(); } catch (e) {}
+      }
+    };
+    eng.onerror = function (ev) {
+      if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+        spRecStop();
+        $("sp-rec-btn").textContent = "\ud83c\udf99 Start recording";
+        alert("Microphone access was blocked. Allow the microphone for this site and try again.");
+      }
+    };
+    spRec.engine = eng;
+    spRec.on = true;
+    spRec.finalText = "";
+    spRec.t0 = Date.now();
+    try { eng.start(); } catch (e) {}
+    btn.textContent = "\u23f9 Stop recording";
+    $("sp-rec-edit").classList.add("hidden");
+    $("sp-feedback").classList.add("hidden");
+  }
+
+  function spRecUpdateStats() {
+    var words = countWords($("sp-transcript").value);
+    var wpm = spRec.secs > 0 ? Math.round(words / (spRec.secs / 60)) : 0;
+    $("sp-rec-stats").textContent = fmtSecs(spRec.secs) + " \u00b7 " + words + " words \u00b7 ~" + wpm + " wpm";
+  }
+
+  function spSendForFeedback() {
+    var transcript = $("sp-transcript").value.trim();
+    if (countWords(transcript) < 15) { alert("The transcript is too short to grade — speak for longer first."); return; }
+    var token = null;
+    try { token = sessionStorage.getItem("sync.token"); } catch (e) {}
+    if (!token) { alert("Sign in with Google first — AI feedback needs your account."); return; }
+    var btn = $("sp-send");
+    var out = $("sp-feedback");
+    btn.disabled = true;
+    btn.textContent = "\u23f3 Grading\u2026 (up to 90s)";
+    out.classList.add("hidden");
+    var words = countWords(transcript);
+    var wpm = spRec.secs > 0 ? Math.round(words / (spRec.secs / 60)) : 0;
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://claudebot500.tailfcf67f.ts.net/api/speak");
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.timeout = 100000;
+    function done(err, feedback) {
+      btn.disabled = false;
+      btn.textContent = "\ud83e\udd16 Send for AI feedback";
+      out.innerHTML = err ? '<p class="wr-grade-err">' + esc(err) + "</p>" : renderGradeFeedback(feedback);
+      out.classList.remove("hidden");
+    }
+    xhr.onload = function () {
+      var data = null;
+      try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status === 200 && data && data.feedback) done(null, data.feedback);
+      else if (xhr.status === 401) done("Session expired — sign in again, then retry.");
+      else if (xhr.status === 429) done("Too many requests — wait a minute and retry.");
+      else done("Grading failed (" + (data && data.error ? data.error : xhr.status) + "). Try again later.");
+    };
+    xhr.onerror = function () { done("Network error — check your connection and try again."); };
+    xhr.ontimeout = function () { done("Grading timed out — try again."); };
+    xhr.send(JSON.stringify({
+      level: LEVEL,
+      question: spRec.question,
+      transcript: transcript,
+      secs: spRec.secs,
+      wpm: wpm
+    }));
+  }
+
+  function initSpeakRec() {
+    if (!$("sp-rec-btn")) return;
+    $("sp-rec-btn").addEventListener("click", spRecToggle);
+    $("sp-send").addEventListener("click", spSendForFeedback);
+    $("sp-transcript").addEventListener("input", spRecUpdateStats);
   }
 
   /* ================= §7 字彙卡 (Leitner) ================= */
@@ -2788,6 +2930,7 @@ if (typeof document !== 'undefined') {
     safeInit("listening", initListening);
     safeInit("writing", initWriting);
     safeInit("speaking", initSpeaking);
+    safeInit("speakrec", initSpeakRec);
     safeInit("vocab", initVocab);
     safeInit("progress", initProgress);
   }

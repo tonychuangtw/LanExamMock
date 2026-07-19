@@ -338,6 +338,22 @@
         <button id="sp-reset" class="ghost-btn small">Reset</button>
       </div>
     </div>
+    <div id="sp-rec-box" class="card hidden">
+      <h3>🎙 Record &amp; AI feedback</h3>
+      <p class="hint">Speak your long turn — it's transcribed on your device, then an AI examiner grades the transcript (sign-in required). Pronunciation isn't scored, everything else is.</p>
+      <div class="timer-row">
+        <button id="sp-rec-btn" class="primary-btn small">🎙 Start recording</button>
+      </div>
+      <p id="sp-rec-live" class="sp-rec-live hidden"></p>
+      <div id="sp-rec-edit" class="hidden">
+        <p class="hint">Check the transcript — fix anything the recogniser got wrong, then send.</p>
+        <textarea id="sp-transcript" class="wr-draft"></textarea>
+        <p id="sp-rec-stats" class="hint"></p>
+        <button id="sp-send" class="primary-btn small">🤖 Send for AI feedback</button>
+      </div>
+      <div id="sp-feedback" class="wr-grade hidden"></div>
+    </div>
+
     <div id="sp-phrases" class="card hidden">
       <h3>High-scoring phrases (discourse markers &amp; hedging)</h3>
       <ul id="sp-phrase-list"></ul>
