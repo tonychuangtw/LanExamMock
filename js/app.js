@@ -1685,11 +1685,92 @@ if (typeof document !== 'undefined') {
       });
       body.appendChild(fb);
 
+      var gb = document.createElement("button");
+      gb.className = "primary-btn small wr-ai-btn";
+      gb.textContent = "\ud83e\udd16 AI grade my essay";
+      var gradeOut = document.createElement("div");
+      gradeOut.className = "wr-grade hidden";
+      gb.addEventListener("click", function () {
+        var essay = ta.value.trim();
+        if (countWords(essay) < 10) { alert("Write your draft first (at least a few sentences)."); return; }
+        var token = null;
+        try { token = sessionStorage.getItem("sync.token"); } catch (e) {}
+        if (!token) { alert("Sign in with Google first — AI grading needs your account."); return; }
+        var isIelts = typeof p.part !== "number";
+        gb.disabled = true;
+        gb.textContent = "\u23f3 Grading\u2026 (up to 90s)";
+        gradeOut.classList.add("hidden");
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "https://claudebot500.tailfcf67f.ts.net/api/grade");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+        xhr.timeout = 100000;
+        function done(err, feedback) {
+          gb.disabled = false;
+          gb.textContent = "\ud83e\udd16 AI grade my essay";
+          if (err) {
+            gradeOut.innerHTML = '<p class="wr-grade-err">' + esc(err) + "</p>";
+          } else {
+            gradeOut.innerHTML = renderGradeFeedback(feedback);
+          }
+          gradeOut.classList.remove("hidden");
+        }
+        xhr.onload = function () {
+          var data = null;
+          try { data = JSON.parse(xhr.responseText); } catch (e) {}
+          if (xhr.status === 200 && data && data.feedback) done(null, data.feedback);
+          else if (xhr.status === 401) done("Session expired — sign in again, then retry.");
+          else if (xhr.status === 429) done("Too many requests — wait a minute and retry.");
+          else done("Grading failed (" + (data && data.error ? data.error : xhr.status) + "). Try again later.");
+        };
+        xhr.onerror = function () { done("Network error — check your connection and try again."); };
+        xhr.ontimeout = function () { done("Grading timed out — try again."); };
+        xhr.send(JSON.stringify({
+          level: LEVEL,
+          exam: isIelts ? "ielts" : "cambridge",
+          task: p.task,
+          essay: essay,
+          chart: p.chart || undefined,
+          targetLength: p.length
+        }));
+      });
+      body.appendChild(gb);
+      body.appendChild(gradeOut);
+
       head.addEventListener("click", function () { body.classList.toggle("hidden"); });
       wrap.appendChild(head);
       wrap.appendChild(body);
       list.appendChild(wrap);
     });
+  }
+
+  function renderGradeFeedback(f) {
+    var h = '<h4>\ud83e\udd16 AI feedback</h4>';
+    if (Array.isArray(f.scores)) {
+      h += '<table class="wr-grade-scores"><tbody>';
+      f.scores.forEach(function (s) {
+        h += "<tr><td>" + esc(s.criterion || "") + "</td><td><strong>" + esc(String(s.score)) + "</strong> / " + esc(String(s.max)) + "</td><td>" + esc(s.comment || "") + "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+    if (f.overall) h += '<p class="wr-grade-overall">' + esc(f.overall) + "</p>";
+    if (Array.isArray(f.improvements) && f.improvements.length) {
+      h += "<h4>Improvements</h4><ul>";
+      f.improvements.forEach(function (im) {
+        h += "<li><strong>" + esc(im.issue || "") + "</strong> — " + esc(im.fix || "") +
+          (im.example ? '<br><em>e.g. ' + esc(im.example) + "</em>" : "") + "</li>";
+      });
+      h += "</ul>";
+    }
+    if (Array.isArray(f.corrections) && f.corrections.length) {
+      h += "<h4>Corrections</h4><ul>";
+      f.corrections.forEach(function (c) {
+        h += '<li><span class="wr-grade-orig">' + esc(c.original || "") + "</span> \u2192 <strong>" + esc(c.corrected || "") + "</strong>" +
+          (c.reason ? " <span class='muted'>(" + esc(c.reason) + ")</span>" : "") + "</li>";
+      });
+      h += "</ul>";
+    }
+    return h;
   }
 
   function fallbackCopy(text) {
