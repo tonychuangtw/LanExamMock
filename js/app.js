@@ -1066,6 +1066,169 @@ if (typeof document !== 'undefined') {
     $("rd-congrats-home").addEventListener("click", rdBackToPicker);
   }
 
+  /* ================= §4.6 Speed reading（WPM 訓練） ================= */
+  var SR_TARGET = { ket: 90, pet: 110, fce: 140, cae: 170, cpe: 200 };
+  var SR_QN = 3;
+  var sr = { set: null, words: 0, t0: 0, ms: 0, qs: [], answers: [] };
+  var srTicker = null;
+
+  function srKey() { return LEVEL + ".speedread"; }
+  function srTargetWpm() { return SR_TARGET[LEVEL] || 150; }
+
+  function srShow(id) {
+    ["rd-picker", "sr-read", "sr-quiz", "sr-result"].forEach(function (x) {
+      $(x).classList.toggle("hidden", x !== id);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function srStopTicker() {
+    if (srTicker) { clearInterval(srTicker); srTicker = null; }
+  }
+
+  function startSpeed() {
+    var pool = rdPool("mc").concat(rdPool("tfng"));
+    if (!pool.length) { alert("The reading banks haven't loaded. Please try again later."); return; }
+    sr.set = pool[Math.floor(Math.random() * pool.length)];
+    sr.words = countWords(sr.set.text);
+    sr.qs = shuffle(sr.set.questions).slice(0, SR_QN);
+    sr.answers = [];
+    var area = $("sr-passage");
+    area.innerHTML = "";
+    var head = document.createElement("div");
+    head.className = "card";
+    head.innerHTML = "<h3>" + esc(sr.set.title) + "</h3><p class='hint'>" + sr.words +
+      " words · target ~" + srTargetWpm() + " wpm at this level · you'll answer " + SR_QN + " questions from memory</p>";
+    area.appendChild(head);
+    var passage = document.createElement("div");
+    passage.className = "card rd-passage";
+    passage.innerHTML = sr.set.text.split(/\n+/).map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("");
+    area.appendChild(passage);
+    sr.t0 = Date.now();
+    srStopTicker();
+    srTicker = setInterval(function () {
+      $("sr-timer").textContent = fmtSecs(Math.round((Date.now() - sr.t0) / 1000));
+    }, 500);
+    $("sr-timer").textContent = "0:00";
+    srShow("sr-read");
+  }
+
+  function srFinishReading() {
+    sr.ms = Date.now() - sr.t0;
+    srStopTicker();
+    if (sr.ms < 5000) { alert("That was too quick — actually read the passage first."); sr.t0 = Date.now() - sr.ms; srTicker = setInterval(function () { $("sr-timer").textContent = fmtSecs(Math.round((Date.now() - sr.t0) / 1000)); }, 500); return; }
+    var qarea = $("sr-qarea");
+    qarea.innerHTML = "";
+    sr.qs.forEach(function (q, qi) {
+      var card = document.createElement("div");
+      card.className = "card rd-q";
+      card.innerHTML = "<p><strong>" + (qi + 1) + ".</strong> " + esc(q.q) + "</p>";
+      q.options.forEach(function (opt, oi) {
+        var b = document.createElement("button");
+        b.className = "option-btn";
+        b.innerHTML = "<strong>" + LETTERS[oi] + "</strong>&nbsp; " + esc(opt);
+        b.addEventListener("click", function () {
+          card.querySelectorAll(".option-btn").forEach(function (x) { x.classList.remove("selected"); });
+          b.classList.add("selected");
+          sr.answers[qi] = oi;
+        });
+        card.appendChild(b);
+      });
+      qarea.appendChild(card);
+    });
+    $("sr-quiz-info").textContent = "⏱ " + fmtSecs(Math.round(sr.ms / 1000)) + " · " + sr.words + " words";
+    srShow("sr-quiz");
+  }
+
+  function srSubmit() {
+    for (var i = 0; i < sr.qs.length; i++) {
+      if (sr.answers[i] === undefined) { alert("Answer all " + SR_QN + " questions first."); return; }
+    }
+    var score = 0;
+    var reviewHtml = "";
+    sr.qs.forEach(function (q, qi) {
+      var ok = sr.answers[qi] === q.answer;
+      if (ok) score++;
+      reviewHtml +=
+        '<div class="review-item ' + (ok ? "ok" : "bad") + '">' +
+        '<div class="review-verdict">' + (ok ? "✓" : "✗") + " Question " + (qi + 1) + "</div>" +
+        "<p>" + esc(q.q) + "</p>" +
+        '<div class="review-ans"><strong>Your answer: </strong>' + esc(q.options[sr.answers[qi]]) + "</div>" +
+        '<div class="review-ans"><strong>Correct answer: </strong>' + esc(q.options[q.answer]) + "</div>" +
+        '<div class="expl">' + esc(q.explanation || "") + "</div></div>";
+    });
+    var wpm = Math.round(sr.words / (sr.ms / 60000));
+    var acc = Math.round(100 * score / sr.qs.length);
+    var target = srTargetWpm();
+    var hist = loadJSON(srKey(), []);
+    hist.push({ t: Date.now(), wpm: wpm, acc: acc, words: sr.words });
+    while (hist.length > 50) hist.shift();
+    saveJSON(srKey(), hist);
+    try { actBump("a", sr.qs.length); if (score) actBump("c", score); } catch (e) {}
+
+    var fast = wpm >= target, good = acc >= 67;
+    var verdict, cls;
+    if (fast && good) { verdict = "🎯 On exam pace with solid comprehension — excellent."; cls = "ok"; }
+    else if (fast && !good) { verdict = "💨 Fast, but comprehension dropped. Slow down slightly — speed only counts if you retain the ideas."; cls = "warn"; }
+    else if (!fast && good) { verdict = "🐢 Good comprehension — now push the pace. Try previewing questions and reading in phrase chunks."; cls = "warn"; }
+    else { verdict = "📚 Keep practising: aim for steady chunks of 3–4 words per eye stop, and don't re-read sentences."; cls = "bad"; }
+    $("sr-wpm").textContent = wpm + " wpm";
+    var vEl = $("sr-res-verdict");
+    vEl.className = "verdict-text " + cls;
+    vEl.textContent = "Comprehension " + score + "/" + sr.qs.length + " (" + acc + "%) · target " + target + " wpm · " + verdict;
+    $("sr-history").innerHTML = reviewHtml + srHistoryHtml(hist);
+    srShow("sr-result");
+    renderSrStats();
+  }
+
+  function srHistoryHtml(hist) {
+    if (!hist.length) return "";
+    var best = 0, i;
+    for (i = 0; i < hist.length; i++) if (hist[i].wpm > best) best = hist[i].wpm;
+    var recent = hist.slice(-10);
+    var avg = Math.round(recent.reduce(function (a, h) { return a + h.wpm; }, 0) / recent.length);
+    var h = '<div class="card"><h3>History</h3><p class="hint">Best ' + best + " wpm · last " + recent.length + " avg " + avg + " wpm</p>";
+    hist.slice(-8).reverse().forEach(function (e) {
+      var d = new Date(e.t);
+      h += '<p class="sr-hist-row">' + (d.getMonth() + 1) + "/" + d.getDate() + " · <strong>" + e.wpm + " wpm</strong> · " + e.acc + "% · " + e.words + " words</p>";
+    });
+    return h + "</div>";
+  }
+
+  function renderSrStats() {
+    var el = $("sr-stats");
+    if (!el) return;
+    var hist = loadJSON(srKey(), []);
+    if (!hist.length) { el.classList.add("hidden"); return; }
+    var recent = hist.slice(-10);
+    var avg = Math.round(recent.reduce(function (a, h) { return a + h.wpm; }, 0) / recent.length);
+    var accAvg = Math.round(recent.reduce(function (a, h) { return a + h.acc; }, 0) / recent.length);
+    var best = 0;
+    for (var i = 0; i < hist.length; i++) if (hist[i].wpm > best) best = hist[i].wpm;
+    el.innerHTML = "<strong>Your pace:</strong> last " + recent.length + " avg <strong>" + avg +
+      " wpm</strong> @ " + accAvg + "% comprehension · best " + best + " wpm · target " + srTargetWpm() + " wpm";
+    el.classList.remove("hidden");
+  }
+
+  function srQuit(fromRead) {
+    if (!confirm("Quit this speed-reading session?")) return;
+    srStopTicker();
+    srShow("rd-picker");
+    renderSrStats();
+  }
+
+  function initSpeedReading() {
+    if (!$("sr-start")) return;
+    $("sr-start").addEventListener("click", startSpeed);
+    $("sr-done").addEventListener("click", srFinishReading);
+    $("sr-submit").addEventListener("click", srSubmit);
+    $("sr-quit").addEventListener("click", srQuit);
+    $("sr-quiz-quit").addEventListener("click", srQuit);
+    $("sr-again").addEventListener("click", startSpeed);
+    $("sr-home").addEventListener("click", function () { srShow("rd-picker"); renderSrStats(); });
+    renderSrStats();
+  }
+
   /* ================= §4.8 Listening 模擬考 ================= */
   var LS_LABELS = { monologue: "Monologue", dialogue: "Dialogue" };
   var ls = { set: null, answers: [], playsUsed: 0, playing: false, queue: [], drillMode: false };
@@ -2621,6 +2784,7 @@ if (typeof document !== 'undefined') {
     safeInit("tabs", initTabs);
     safeInit("uoe", initUoe);
     safeInit("reading", initReading);
+    safeInit("speedreading", initSpeedReading);
     safeInit("listening", initListening);
     safeInit("writing", initWriting);
     safeInit("speaking", initSpeaking);

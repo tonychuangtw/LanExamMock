@@ -131,6 +131,15 @@
           <strong>Matching headings</strong><span>IELTS-style — pick the best heading for each paragraph</span>
         </button>
       </div>
+
+      <h2 class="sr-heading">⚡ Speed reading</h2>
+      <p class="hint">Read a passage against the clock, then answer questions from memory. Trains exam-pace reading.</p>
+      <div class="mode-grid rd-grid">
+        <button class="mode-btn" id="sr-start">
+          <strong>Start a timed read</strong><span>Words-per-minute + comprehension check</span>
+        </button>
+      </div>
+      <div id="sr-stats" class="card hidden"></div>
     </div>
 
     <div id="rd-quiz" class="hidden">
@@ -170,6 +179,36 @@
         <p id="rd-congrats-text" class="verdict-text ok"></p>
         <button id="rd-congrats-home" class="primary-btn">Back to menu</button>
       </div>
+    </div>
+
+    <div id="sr-read" class="hidden">
+      <div class="quiz-topbar">
+        <button id="sr-quit" class="ghost-btn">← Quit</button>
+        <span id="sr-timer" class="sr-timer">0:00</span>
+      </div>
+      <div id="sr-passage"></div>
+      <button id="sr-done" class="primary-btn">I've finished reading</button>
+    </div>
+
+    <div id="sr-quiz" class="hidden">
+      <div class="quiz-topbar">
+        <button id="sr-quiz-quit" class="ghost-btn">← Quit</button>
+        <span id="sr-quiz-info"></span>
+      </div>
+      <p class="hint">The passage is hidden — answer from memory.</p>
+      <div id="sr-qarea"></div>
+      <button id="sr-submit" class="primary-btn">Submit answers</button>
+    </div>
+
+    <div id="sr-result" class="hidden">
+      <div class="card center">
+        <h2>Speed reading results</h2>
+        <p id="sr-wpm" class="big-score"></p>
+        <p id="sr-res-verdict" class="verdict-text"></p>
+        <button id="sr-again" class="primary-btn">Train again</button>
+        <button id="sr-home" class="ghost-btn">Back to menu</button>
+      </div>
+      <div id="sr-history"></div>
     </div>
   </section>
 

@@ -680,6 +680,11 @@ input[type="number"]:focus {
 .wr-grade-orig { text-decoration: line-through; opacity: 0.75; }
 .wr-grade-err { color: var(--danger, #d33); }
 
+/* ---- speed reading ---- */
+.sr-heading { margin-top: 30px; }
+.sr-timer { font-weight: 700; font-variant-numeric: tabular-nums; }
+.sr-hist-row { margin: 4px 0; font-size: 0.92rem; }
+
 /* ---- font size control ---- */
 .fs-row { display: flex; align-items: center; gap: 14px; margin: 10px 0 4px; }
 .fs-row .ghost-btn { min-width: 56px; }
