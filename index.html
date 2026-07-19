@@ -17,6 +17,8 @@
       var m = document.querySelector('meta[name="theme-color"]');
       if (m) m.setAttribute("content", bgs[t]);
     }
+    var fs = parseInt(localStorage.getItem("cpe_fontsize"), 10);
+    if (fs && fs >= 85 && fs <= 150) document.documentElement.style.fontSize = fs + "%";
   } catch (e) {}
 })();
 </script>
@@ -434,6 +436,12 @@
 <div id="theme-sheet" class="theme-sheet hidden" role="dialog" aria-label="Choose theme">
   <h3>Choose a theme</h3>
   <div id="theme-grid" class="theme-grid"></div>
+  <h3>Text size</h3>
+  <div class="fs-row">
+    <button id="fs-minus" class="ghost-btn small" aria-label="Smaller text">A−</button>
+    <span id="fs-val">100%</span>
+    <button id="fs-plus" class="ghost-btn small" aria-label="Larger text">A＋</button>
+  </div>
 </div>
 
 <script src="js/chart.js"></script>

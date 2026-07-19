@@ -158,9 +158,11 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
-  font-size: 16px;
   line-height: 1.65;
 }
+html { font-size: 16px; }
+/* body inherits from html so the root font-size scale reaches non-rem text too */
+body { font-size: 1rem; }
 body { transition: background 0.35s ease, color 0.35s ease; }
 
 /* ---- header ---- */
@@ -677,6 +679,11 @@ input[type="number"]:focus {
 .wr-grade-overall { font-weight: 600; margin: 10px 0; }
 .wr-grade-orig { text-decoration: line-through; opacity: 0.75; }
 .wr-grade-err { color: var(--danger, #d33); }
+
+/* ---- font size control ---- */
+.fs-row { display: flex; align-items: center; gap: 14px; margin: 10px 0 4px; }
+.fs-row .ghost-btn { min-width: 56px; }
+#fs-val { min-width: 52px; text-align: center; font-weight: 600; }
 
 /* ---- theme sheet ---- */
 .sheet-backdrop {

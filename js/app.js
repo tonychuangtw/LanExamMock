@@ -2582,6 +2582,28 @@ if (typeof document !== 'undefined') {
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") closeSheet();
     });
+
+    /* text size: 85–150% in 10% steps, global like the theme */
+    var K_FS = "cpe_fontsize";
+    var fsMinus = $("fs-minus"), fsPlus = $("fs-plus"), fsVal = $("fs-val");
+    if (fsMinus && fsPlus && fsVal) {
+      function fsGet() {
+        var v = 100;
+        try { v = parseInt(localStorage.getItem(K_FS), 10) || 100; } catch (e) {}
+        return Math.min(150, Math.max(85, v));
+      }
+      function fsApply(v) {
+        v = Math.min(150, Math.max(85, v));
+        document.documentElement.style.fontSize = (v === 100 ? "" : v + "%");
+        try { localStorage.setItem(K_FS, String(v)); } catch (e) {}
+        fsVal.textContent = v + "%";
+        fsMinus.disabled = v <= 85;
+        fsPlus.disabled = v >= 150;
+      }
+      fsApply(fsGet());
+      fsMinus.addEventListener("click", function () { fsApply(fsGet() - 10); });
+      fsPlus.addEventListener("click", function () { fsApply(fsGet() + 10); });
+    }
   }
 
   /* ================= §9 Init（防護式啟動） ================= */
