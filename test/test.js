@@ -14,6 +14,18 @@ function check(name, cond) {
 
 /* ---------- per-level requirements ---------- */
 const LEVEL_SPECS = {
+  ket: {
+    p4min: 1, p4max: 3,
+    min: { part1: 2, part2: 2, part3: 2, part4: 2, writing: 2, speaking: 2, vocab: 5 },
+    essayTexts: null, // KET writing is a short email/story, no input texts
+    reading: { gaps: 5, minMc: 12, minGap: 12, minMatch: 8, minLis: 12 }
+  },
+  pet: {
+    p4min: 1, p4max: 4,
+    min: { part1: 2, part2: 2, part3: 2, part4: 2, writing: 2, speaking: 2, vocab: 5 },
+    essayTexts: null, // PET writing is an email/article/story, no input texts
+    reading: { gaps: 5, minMc: 12, minGap: 12, minMatch: 8, minLis: 12 }
+  },
   fce: {
     p4min: 2, p4max: 5,
     min: { part1: 2, part2: 2, part3: 2, part4: 2, writing: 2, speaking: 2, vocab: 5 },

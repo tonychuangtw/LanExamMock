@@ -10,6 +10,26 @@
 
   /* -------- 每級設定（app.js 透過 window.LEVELS 讀取） -------- */
   var LEVELS = {
+    ket: {
+      id: "ket", badge: "A2",
+      exam: "A2 Key", title: "KET Prep", subtitle: "Cambridge A2 Key · ≈ IELTS 2.5–3.5",
+      ielts: "2.5–3.5",
+      desc: "Elementary. Simple everyday English — greetings, shopping, travel and daily routines. The first step on the Cambridge ladder.",
+      timerMin: 25,
+      wordGuide: "Writing target length at this level: email 25+ words (Part 2 story: about 35 words)",
+      p4min: 1, p4max: 3,
+      spSecs: 45, spLabel: "Long turn — draw a task card and speak for 45 seconds"
+    },
+    pet: {
+      id: "pet", badge: "B1",
+      exam: "B1 Preliminary", title: "PET Prep", subtitle: "Cambridge B1 Preliminary · ≈ IELTS 4.0–5.0",
+      ielts: "4.0–5.0",
+      desc: "Intermediate. Practical English for work, study and travel — you can deal with most everyday situations independently.",
+      timerMin: 30,
+      wordGuide: "Writing target length at this level: about 100 words (both Part 1 email and Part 2 article/story)",
+      p4min: 1, p4max: 4,
+      spSecs: 60, spLabel: "Long turn — draw a task card and speak for 1 minute"
+    },
     fce: {
       id: "fce", badge: "B2",
       exam: "B2 First", title: "FCE Prep", subtitle: "Cambridge B2 First · ≈ IELTS 5.5–6.5",
