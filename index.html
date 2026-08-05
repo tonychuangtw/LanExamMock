@@ -43,6 +43,8 @@
   </button>
 </header>
 
+<button id="daily-banner" class="daily-banner hidden" type="button" aria-label="Daily 25 practice"></button>
+
 <main id="main">
 
   <!-- ===== Tab 1: Use of English ===== -->
@@ -432,6 +434,24 @@
         <h2>Review complete!</h2>
         <p id="mb-congrats-text"></p>
         <button id="mb-congrats-home" class="primary-btn">Back to Progress</button>
+      </div>
+    </div>
+
+    <div id="d25-drill" class="hidden">
+      <div class="exam-top">
+        <button id="d25-drill-quit" class="ghost-btn">Quit</button>
+        <span id="d25-drill-progress" class="exam-progress"></span>
+      </div>
+      <div id="d25-drill-area"></div>
+      <div id="d25-drill-feedback"></div>
+    </div>
+
+    <div id="d25-congrats" class="hidden">
+      <div class="card congrats-card">
+        <div class="congrats-emoji">🎯</div>
+        <h2>Daily 25 complete!</h2>
+        <p id="d25-congrats-text"></p>
+        <button id="d25-congrats-home" class="primary-btn">Back to Progress</button>
       </div>
     </div>
   </section>

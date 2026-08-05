@@ -72,6 +72,50 @@ function shuffle(arr) {
   return a;
 }
 
+/* ---------- Daily 25：種子化亂數與組卷（純函式，供測試） ---------- */
+
+/** 字串種子 → 決定性亂數產生器（mulberry32 變形）。同種子必產生同序列。 */
+function d25Rng(seedStr) {
+  var h = 1779033703;
+  for (var i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return function () {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+/** 由 arr 決定性挑出 n 個不重複元素（不改動原陣列） */
+function d25Pick(arr, n, rng) {
+  var a = arr.slice();
+  var out = [];
+  while (out.length < n && a.length) {
+    out.push(a.splice(Math.floor(rng() * a.length), 1)[0]);
+  }
+  return out;
+}
+
+/** 每日 25 題的類別配額：UoE 各 part 3 題 + 閱讀 6 + 聽力 4 = 22（另混入至多 3 題到期錯題湊 25）。
+ *  弱點加權：rated = [{key,n,acc}]；答過 ≥10 題的類別中，正確率最低 +2、最高 −2（不低於 1）；
+ *  差距 <10 個百分點就不加權（與 K12Review 同規則）。 */
+function d25Counts(rated) {
+  var counts = { part1: 3, part2: 3, part3: 3, part4: 3, rmc: 6, lis: 4 };
+  var eligible = (rated || []).filter(function (r) { return r.n >= 10 && counts[r.key] != null; });
+  if (eligible.length >= 2) {
+    eligible.sort(function (a, b) { return a.acc - b.acc; });
+    var weak = eligible[0], strong = eligible[eligible.length - 1];
+    if (strong.acc - weak.acc >= 10) {
+      counts[weak.key] += 2;
+      counts[strong.key] = Math.max(1, counts[strong.key] - 2);
+    }
+  }
+  return counts;
+}
+
 /* Node export（測試用） */
 if (typeof module !== 'undefined') {
   module.exports = {
@@ -80,7 +124,10 @@ if (typeof module !== 'undefined') {
     countWords: countWords,
     leitnerIsDue: leitnerIsDue,
     leitnerReview: leitnerReview,
-    shuffle: shuffle
+    shuffle: shuffle,
+    d25Rng: d25Rng,
+    d25Pick: d25Pick,
+    d25Counts: d25Counts
   };
 }
 
@@ -568,7 +615,7 @@ if (typeof document !== 'undefined') {
     drill.queue = cfg.items.slice();
     drill.total = cfg.items.length;
     drill.mastered = 0;
-    $(cfg.prefix + "-summary").classList.add("hidden");
+    $(cfg.summaryId || cfg.prefix + "-summary").classList.add("hidden");
     $(cfg.prefix + "-drill").classList.remove("hidden");
     renderDrillItem();
   }
@@ -594,6 +641,7 @@ if (typeof document !== 'undefined') {
       $(p + "-congrats").classList.remove("hidden");
       $(p + "-congrats-text").textContent = "You have re-answered all " + drill.total +
         " mistake" + (drill.total > 1 ? "s" : "") + " correctly. Great work — keep this momentum going!";
+      if (drill.onComplete) drill.onComplete();
       dropConfetti($(p + "-congrats"));
       window.scrollTo(0, 0);
       return;
@@ -1586,7 +1634,7 @@ if (typeof document !== 'undefined') {
   }
 
   function renderMbDrillItem(e, done) {
-    var area = $("mb-drill-area");
+    var area = $((drill && drill.prefix ? drill.prefix : "mb") + "-drill-area");
     area.innerHTML = "";
     var p = e.payload;
 
@@ -2577,19 +2625,152 @@ if (typeof document !== 'undefined') {
     else { switchTab("tab-listening"); var b = document.querySelector("#ls-picker .mode-btn[data-lkind]"); if (b) b.click(); }
   }
 
-  function dailyState() {
-    var today = todayStr();
-    var act = loadJSON(K_ACT(), {})[today] || { a: 0, c: 0, v: 0 };
-    var mbDue = mbDueEntries().length;
-    var st = getVocabState();
-    var now = Date.now();
-    var vocabDue = VOCAB.filter(function (c) { return leitnerIsDue(st[c.front], now); }).length;
-    var mockToday = loadJSON(K_MOCK(), []).some(function (m) { return todayStr(m.date) === today; });
-    return {
-      mb: { due: mbDue, done: mbDue === 0 },
-      weak: { done: mockToday },
-      vocab: { due: vocabDue, done: vocabDue === 0 || act.v >= 20, reviewed: act.v }
-    };
+  /* ================= Daily 25 — K12 式每日任務 =================
+   * 每天 25 題：UoE 12（弱點加權）＋閱讀 6＋聽力 4＋到期錯題至多 3。
+   * 種子 = 日期|級數 → 同一天永遠同一組題；答錯排回隊尾重做到全對（精熟迴圈）。
+   * 紀錄存 <level>.daily25，連續天數沿用 <level>.streak，皆隨雲端同步。 */
+  var K_D25 = function () { return LEVEL + ".daily25"; };
+  var d25 = null;
+
+  function d25TodayRec() { return loadJSON(K_D25(), {})[todayStr()]; }
+
+  function d25SaveRec(rec) {
+    var all = loadJSON(K_D25(), {});
+    all[todayStr()] = rec;
+    var days = Object.keys(all).sort();
+    while (days.length > 90) delete all[days.shift()];
+    saveJSON(K_D25(), all);
+  }
+
+  function d25Compose() {
+    var rng = d25Rng(todayStr() + "|" + LEVEL);
+    var stats = loadJSON(K_STATS, {});
+    var rated = ["part1", "part2", "part3", "part4", "rmc", "lis"].map(function (k) {
+      var s = stats[k] || { attempted: 0, correct: 0 };
+      return { key: k, n: s.attempted, acc: s.attempted ? Math.round(100 * s.correct / s.attempted) : 0 };
+    });
+    var counts = d25Counts(rated);
+    var entries = [];
+    PARTS.forEach(function (p) {
+      d25Pick(QUESTIONS[p] || [], counts[p], rng).forEach(function (q) {
+        entries.push({ kind: "uoe", stat: p, payload: { part: p, q: q } });
+      });
+    });
+    var mcSets = d25Pick(rdPool("mc"), 2, rng);
+    var readQs = [];
+    mcSets.forEach(function (s) {
+      var per = Math.ceil(counts.rmc / mcSets.length);
+      d25Pick(s.questions, Math.min(per, s.questions.length), rng).forEach(function (q) {
+        readQs.push({ kind: "rmc", stat: "rmc", payload: { title: s.title, text: s.text, q: q } });
+      });
+    });
+    entries = entries.concat(readQs.slice(0, counts.rmc));
+    var lsSets = window.LISTENING || [];
+    if (lsSets.length && counts.lis) {
+      var set = d25Pick(lsSets, 1, rng)[0];
+      d25Pick(set.questions, Math.min(counts.lis, set.questions.length), rng).forEach(function (q) {
+        entries.push({ kind: "lis", stat: "lis", payload: { title: set.title, kind: set.kind, script: set.script, q: q } });
+      });
+    }
+    // 到期錯題混入（最多 3 題）；不足就用備用 UoE 題補滿 25
+    var due = mbDueEntries().slice(0, 3);
+    due.forEach(function (e) { entries.push(e); });
+    var spareParts = ["part1", "part2", "part3"];
+    for (var si = 0; entries.length < 25 && si < spareParts.length; si++) {
+      var pool = (QUESTIONS[spareParts[si]] || []).filter(function (q) {
+        return !entries.some(function (e) { return e.kind === "uoe" && e.payload.q === q; });
+      });
+      var extra = d25Pick(pool, 1, rng)[0];
+      if (extra) entries.push({ kind: "uoe", stat: spareParts[si], payload: { part: spareParts[si], q: extra } });
+    }
+    entries = d25Pick(entries, entries.length, rng);   // 決定性打散出題順序
+    entries.forEach(function (e, i) { e.d25i = i; });
+    return entries;
+  }
+
+  function startDaily25() {
+    var rec = d25TodayRec();
+    if (rec && rec.done) { switchTab("tab-progress"); return; }
+    var entries = d25Compose();
+    if (entries.length < 10) { alert("Not enough questions available at this level yet."); return; }
+    mbReviewedThisSession = {};
+    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now() };
+    switchTab("tab-progress");
+    startDrillGeneric({
+      prefix: "d25",
+      summaryId: "mb-summary",
+      items: entries,
+      render: function (e, done) {
+        renderMbDrillItem(e, function (ok, txt) {
+          if (d25 && !d25.seen[e.d25i]) {
+            d25.seen[e.d25i] = true;
+            if (ok) d25.firstOk++;
+            if (e.stat) { try { recordResult(e.stat, ok); } catch (err) {} }
+          }
+          done(ok, txt);
+        });
+      },
+      correctText: mbCorrectText,
+      explText: mbExplText,
+      onComplete: d25Complete
+    });
+  }
+
+  function d25Complete() {
+    if (!d25) return;
+    var ms = Date.now() - d25.t0;
+    d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms, finishedAt: Date.now() });
+    var s = checkStreak(true);
+    var mins = Math.max(1, Math.round(ms / 60000));
+    var perfect = d25.firstOk === d25.firstTotal;
+    $("d25-congrats-text").innerHTML =
+      "<strong>" + d25.firstOk + " / " + d25.firstTotal + "</strong> right on the first try" +
+      (perfect ? " — a perfect run! 🏅" : " — and you mastered every question in the redo loop.") +
+      "<br>About " + mins + " min · 🔥 " + s.current + "-day streak" +
+      (s.best > s.current ? " (best " + s.best + ")" : "") +
+      "<br>Come back tomorrow — a fresh set of 25 arrives at midnight.";
+    d25 = null;
+    renderDailyBanner();
+  }
+
+  function initDaily25() {
+    renderDailyBanner();
+    var banner = $("daily-banner");
+    if (banner) banner.addEventListener("click", function () {
+      var rec = d25TodayRec();
+      if (rec && rec.done) switchTab("tab-progress");
+      else startDaily25();
+    });
+    $("d25-drill-quit").addEventListener("click", function () {
+      if (!confirm("Quit today's Daily 25? Your progress in this run won't be saved.")) return;
+      mbStopAudio();
+      d25 = null;
+      $("d25-drill").classList.add("hidden");
+      $("mb-summary").classList.remove("hidden");
+      renderProgress();
+    });
+    $("d25-congrats-home").addEventListener("click", function () {
+      $("d25-congrats").classList.add("hidden");
+      $("mb-summary").classList.remove("hidden");
+      renderProgress();
+    });
+  }
+
+  function renderDailyBanner() {
+    var el = $("daily-banner");
+    if (!el) return;
+    el.classList.remove("hidden");
+    var rec = d25TodayRec();
+    var s = loadJSON(K_STREAK(), { current: 0 });
+    if (rec && rec.done) {
+      el.innerHTML = "🎯 Daily 25 &nbsp;✅ " + rec.firstOk + "/" + rec.total + " today" +
+        (s.current ? " &nbsp;·&nbsp; 🔥 " + s.current + " day" + (s.current === 1 ? "" : "s") : "");
+      el.classList.add("done");
+    } else {
+      el.innerHTML = "🎯 <strong>Daily 25</strong> — start today's mission" +
+        (s.current ? " &nbsp;·&nbsp; 🔥 " + s.current + " day" + (s.current === 1 ? "" : "s") + " — keep it alive!" : "");
+      el.classList.remove("done");
+    }
   }
 
   function checkStreak(allDone) {
@@ -2614,32 +2795,37 @@ if (typeof document !== 'undefined') {
   function renderDaily() {
     var el = $("pg-daily");
     if (!el) return;
-    var d = dailyState();
-    var allDone = d.mb.done && d.weak.done && d.vocab.done;
-    var s = checkStreak(allDone);
+    var rec = d25TodayRec();
+    var s = checkStreak(!!(rec && rec.done));
+    var hist = loadJSON(K_D25(), {});
     var wk = weakestArea();
 
-    var html = "<h3>Today's session" +
+    var html = "<h3>🎯 Daily 25" +
       '<span class="streak-tag">🔥 ' + s.current + " day" + (s.current === 1 ? "" : "s") +
       (s.best > s.current ? " · best " + s.best : "") + "</span></h3>";
-    html += dailyRow(d.mb.done, "Clear due mistakes",
-      d.mb.done ? "Nothing due — book is clear" : d.mb.due + " item" + (d.mb.due > 1 ? "s" : "") + " due for spaced review",
-      "daily-mb", "Review");
-    html += dailyRow(d.weak.done, "One targeted mock",
-      wk && wk.acc >= 0 ? "Weakest area: " + wk.area.label + " (" + wk.acc + "%)" : (wk ? "Not yet practised: " + wk.area.label : ""),
-      "daily-weak", "Start");
-    html += dailyRow(d.vocab.done, "Vocabulary review",
-      d.vocab.done ? "Done for today" : d.vocab.due + " cards due (20 reviews count as done)" + (d.vocab.reviewed ? " · " + d.vocab.reviewed + " reviewed" : ""),
-      "daily-vocab", "Review");
-    html += allDone
-      ? "<p class='verdict-text ok daily-done-msg'>🎉 All done today — streak safe!</p>"
-      : "<p class='hint'>Finish all three to keep your streak. ~15 minutes total.</p>";
+    if (rec && rec.done) {
+      html += "<p class='verdict-text ok daily-done-msg'>✅ Done today — <strong>" +
+        rec.firstOk + " / " + rec.total + "</strong> right first try · about " +
+        Math.max(1, Math.round(rec.ms / 60000)) + " min. See you tomorrow!</p>";
+    } else {
+      html += "<p>Your mission today: <strong>25 questions</strong> mixed from Use of English, Reading and Listening" +
+        (wk && wk.acc >= 0 && wk.acc < 100 ? ", tuned toward your weakest area (" + esc(wk.area.label) + ")" : "") +
+        ". Wrong answers go back in the queue until you master every one.</p>" +
+        '<button id="d25-start" class="primary-btn">Start today\'s mission</button>';
+    }
+    var dots = "";
+    for (var i = 6; i >= 0; i--) {
+      var dkey = todayStr(Date.now() - i * DAY_MS);
+      var r = hist[dkey];
+      dots += '<span class="d25-dot' + (r && r.done ? " on" : "") + '" title="' + dkey +
+        (r && r.done ? " · " + r.firstOk + "/" + r.total : "") + '">' + (r && r.done ? "✓" : "·") + "</span>";
+    }
+    html += '<div class="d25-week">' + dots + "</div>";
+    html += "<p class='hint'>Same set all day — a fresh 25 arrives at midnight. Due mistake-book items are mixed in automatically.</p>";
     el.innerHTML = html;
 
-    var b;
-    if ((b = $("daily-mb"))) b.addEventListener("click", startMbDrill);
-    if ((b = $("daily-weak")) && wk) b.addEventListener("click", function () { startWeakArea(wk.area); });
-    if ((b = $("daily-vocab"))) b.addEventListener("click", function () { switchTab("tab-vocab"); });
+    var b = $("d25-start");
+    if (b) b.addEventListener("click", startDaily25);
   }
 
   function renderMastery() {
@@ -2933,6 +3119,7 @@ if (typeof document !== 'undefined') {
     safeInit("speakrec", initSpeakRec);
     safeInit("vocab", initVocab);
     safeInit("progress", initProgress);
+    safeInit("daily25", initDaily25);
   }
 
   /* 主題為全域功能：不等選級數，載入即啟用（含級數選擇畫面）。 */

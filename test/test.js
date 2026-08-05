@@ -424,6 +424,44 @@ const sh = logic.shuffle(orig);
 check("shuffle preserves elements", sh.slice().sort().join() === "1,2,3,4,5");
 check("shuffle does not mutate input", orig.join() === "1,2,3,4,5");
 
+/* ---------- Daily 25 pure logic ---------- */
+{
+  const seq = (seed, n) => { const r = logic.d25Rng(seed); return Array.from({ length: n }, () => r()); };
+  check("d25Rng deterministic (same seed same sequence)",
+    seq("2026-08-05|fce", 10).join() === seq("2026-08-05|fce", 10).join());
+  check("d25Rng different seeds diverge",
+    seq("2026-08-05|fce", 5).join() !== seq("2026-08-06|fce", 5).join());
+  check("d25Rng outputs in [0,1)", seq("x|y", 100).every(v => v >= 0 && v < 1));
+
+  const pool = Array.from({ length: 30 }, (_, i) => i);
+  const p1 = logic.d25Pick(pool, 8, logic.d25Rng("s1"));
+  const p2 = logic.d25Pick(pool, 8, logic.d25Rng("s1"));
+  check("d25Pick deterministic", p1.join() === p2.join());
+  check("d25Pick distinct items", new Set(p1).size === 8);
+  check("d25Pick does not mutate pool", pool.length === 30);
+  check("d25Pick caps at pool size", logic.d25Pick([1, 2, 3], 10, logic.d25Rng("s")).length === 3);
+
+  const sum = c => c.part1 + c.part2 + c.part3 + c.part4 + c.rmc + c.lis;
+  const base = logic.d25Counts([]);
+  check("d25Counts base allocation is 22 (3×4 UoE + 6 reading + 4 listening)",
+    sum(base) === 22 && base.rmc === 6 && base.lis === 4);
+  const boosted = logic.d25Counts([
+    { key: "part1", n: 20, acc: 40 }, { key: "rmc", n: 20, acc: 90 }
+  ]);
+  check("d25Counts boosts weakest +2 and trims strongest -2",
+    boosted.part1 === 5 && boosted.rmc === 4 && sum(boosted) === 22);
+  const close = logic.d25Counts([
+    { key: "part1", n: 20, acc: 80 }, { key: "rmc", n: 20, acc: 85 }
+  ]);
+  check("d25Counts skips boost when spread <10pts", sum(close) === 22 && close.part1 === 3);
+  const few = logic.d25Counts([{ key: "part1", n: 5, acc: 10 }]);
+  check("d25Counts ignores areas with <10 attempts", few.part1 === 3);
+  const floor = logic.d25Counts([
+    { key: "part2", n: 30, acc: 30 }, { key: "part3", n: 30, acc: 95 }
+  ]);
+  check("d25Counts never trims a category below 1", floor.part3 >= 1 && floor.part2 === 5);
+}
+
 /* ---------- report ---------- */
 Object.keys(totals).forEach(level => {
   const t = totals[level];
