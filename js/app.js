@@ -229,6 +229,8 @@ if (typeof document !== 'undefined') {
         if (panel) panel.classList.add("active");
         try { lsStopAudio(); } catch (e) {}
         if (btn.dataset.tab === "tab-progress") { try { renderProgress(); } catch (e) {} }
+        if (btn.dataset.tab === "tab-daily") { try { renderDaily(); } catch (e) {} }
+        if (btn.dataset.tab === "tab-review") { try { rvRenderHome(); } catch (e) {} }
         if (btn.dataset.tab === "tab-vocab") { try { renderVocabStatus(); } catch (e) {} }
       });
     });
@@ -1692,7 +1694,11 @@ if (typeof document !== 'undefined') {
   }
 
   function renderMbDrillItem(e, done) {
-    var area = $((drill && drill.prefix ? drill.prefix : "mb") + "-drill-area");
+    renderMbDrillItemInto($((drill && drill.prefix ? drill.prefix : "mb") + "-drill-area"), e, done);
+  }
+
+  /* 把單一錯題本型條目（uoe/rmc/rtfng/rgap/rhead/rmatch/lis）畫進指定容器；Daily 與 Review Test 共用 */
+  function renderMbDrillItemInto(area, e, done) {
     area.innerHTML = "";
     var p = e.payload;
 
@@ -2707,21 +2713,15 @@ if (typeof document !== 'undefined') {
     saveJSON(K_D25(), all);
   }
 
-  function d25Compose() {
-    var rng = d25Rng(todayStr() + "|" + LEVEL);
-    var stats = loadJSON(K_STATS, {});
-    var rated = ["part1", "part2", "part3", "part4", "rmc", "lis"].map(function (k) {
-      var s = stats[k] || { attempted: 0, correct: 0 };
-      return { key: k, n: s.attempted, acc: s.attempted ? Math.round(100 * s.correct / s.attempted) : 0 };
-    });
-    var counts = d25Counts(rated);
+  /* 依配額組出 UoE＋閱讀（3 篇×2，同篇共用 gid）＋聽力（同錄音共用 gid）的基本題組。
+   * 只吃 rng 與 counts → 同種子同配額必出同一組（Review Test 重組舊日題目也用它）。 */
+  function d25ComposeBase(rng, counts) {
     var entries = [];
     PARTS.forEach(function (p) {
       d25Pick(QUESTIONS[p] || [], counts[p], rng).forEach(function (q) {
         entries.push({ kind: "uoe", stat: p, payload: { part: p, q: q } });
       });
     });
-    // 閱讀 3 篇、每篇約 2 題；同篇題目共用 gid，洗牌後仍連續出現
     var mcSets = d25Pick(rdPool("mc"), Math.min(3, Math.max(1, Math.ceil(counts.rmc / 2))), rng);
     var rNeed = counts.rmc;
     mcSets.forEach(function (s, si) {
@@ -2739,6 +2739,17 @@ if (typeof document !== 'undefined') {
         entries.push({ kind: "lis", stat: "lis", gid: "l0", payload: { title: set.title, kind: set.kind, script: set.script, q: q } });
       });
     }
+    return entries;
+  }
+
+  function d25Compose() {
+    var rng = d25Rng(todayStr() + "|" + LEVEL);
+    var stats = loadJSON(K_STATS, {});
+    var rated = ["part1", "part2", "part3", "part4", "rmc", "lis"].map(function (k) {
+      var s = stats[k] || { attempted: 0, correct: 0 };
+      return { key: k, n: s.attempted, acc: s.attempted ? Math.round(100 * s.correct / s.attempted) : 0 };
+    });
+    var entries = d25ComposeBase(rng, d25Counts(rated));
     // 到期錯題混入（最多 2 題）；不足就用備用 UoE 題補滿 20
     var due = mbDueEntries().slice(0, 2);
     due.forEach(function (e) { entries.push(e); });
@@ -2805,18 +2816,50 @@ if (typeof document !== 'undefined') {
     }
   }
 
+  /* 把當天題目存成輕量參照（Review Test 依此精確重組當日題組）；錯題本混入的條目不存 */
+  function d25Refs(entries) {
+    var mcSets = rdPool("mc");
+    var L = window.LISTENING || [];
+    var refs = [];
+    entries.forEach(function (e) {
+      if (e.key) return;   // 錯題本條目
+      if (e.kind === "uoe") {
+        var qi = (QUESTIONS[e.payload.part] || []).indexOf(e.payload.q);
+        if (qi >= 0) refs.push({ k: e.payload.part, i: qi });
+      } else if (e.kind === "rmc") {
+        for (var s = 0; s < mcSets.length; s++) {
+          if (mcSets[s].title !== e.payload.title) continue;
+          var ri = mcSets[s].questions.indexOf(e.payload.q);
+          if (ri >= 0) refs.push({ k: "rmc", s: s, q: ri });
+          break;
+        }
+      } else if (e.kind === "lis") {
+        for (var t = 0; t < L.length; t++) {
+          if (L[t].title !== e.payload.title) continue;
+          var li = L[t].questions.indexOf(e.payload.q);
+          if (li >= 0) refs.push({ k: "lis", s: t, q: li });
+          break;
+        }
+      }
+    });
+    return refs;
+  }
+
   function startDaily25() {
     var rec = d25TodayRec();
-    if (rec && rec.done) { switchTab("tab-progress"); return; }
+    if (rec && rec.done) { switchTab("tab-daily"); return; }
     var entries = d25Compose();
     if (entries.length < 10) { alert("Not enough questions available at this level yet."); return; }
+    var prev = d25TodayRec() || {};
+    prev.refs = d25Refs(entries);
+    d25SaveRec(prev);
     mbReviewedThisSession = {};
     d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now(),
             rush: 0, rushStreak: 0, slowdown: false, passSeen: {}, lisPlayed: {} };
-    switchTab("tab-progress");
+    switchTab("tab-daily");
     startDrillGeneric({
       prefix: "d25",
-      summaryId: "mb-summary",
+      summaryId: "daily-home",
       items: entries,
       render: function (e, done) {
         renderMbDrillItem(e, function (ok, txt) {
@@ -2848,8 +2891,9 @@ if (typeof document !== 'undefined') {
   function d25Complete() {
     if (!d25) return;
     var ms = Date.now() - d25.t0;
+    var prevRec = d25TodayRec() || {};
     d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
-                 rushed: d25.rush || 0, finishedAt: Date.now() });
+                 rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs });
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
     var perfect = d25.firstOk === d25.firstTotal;
@@ -2869,7 +2913,7 @@ if (typeof document !== 'undefined') {
     var banner = $("daily-banner");
     if (banner) banner.addEventListener("click", function () {
       var rec = d25TodayRec();
-      if (rec && rec.done) switchTab("tab-progress");
+      if (rec && rec.done) switchTab("tab-daily");
       else startDaily25();
     });
     $("d25-drill-quit").addEventListener("click", function () {
@@ -2877,13 +2921,13 @@ if (typeof document !== 'undefined') {
       mbStopAudio();
       d25 = null;
       $("d25-drill").classList.add("hidden");
-      $("mb-summary").classList.remove("hidden");
-      renderProgress();
+      $("daily-home").classList.remove("hidden");
+      renderDaily();
     });
     $("d25-congrats-home").addEventListener("click", function () {
       $("d25-congrats").classList.add("hidden");
-      $("mb-summary").classList.remove("hidden");
-      renderProgress();
+      $("daily-home").classList.remove("hidden");
+      renderDaily();
     });
   }
 
@@ -2961,6 +3005,209 @@ if (typeof document !== 'undefined') {
     if (b) b.addEventListener("click", startDaily25);
   }
 
+  /* ================= Review Test — 挑日期＋錯題出 100 分考卷 =================
+   * 題源：所選日期的 Daily 20 題目（新紀錄有 rec.refs 可精確重組；舊紀錄無 refs
+   * 則以中性配額＋當日種子近似重組）＋錯題本隨機抽題。真隨機組卷（每次不同），
+   * 同篇文章/同段錄音的題目連續出現；每題等分、滿分 100。答錯照樣進錯題本。 */
+  var K_RV = function () { return LEVEL + ".review_tests"; };
+  var RV_TOTAL = 20, RV_MB_SHARE = 6;
+  var rv = null;
+
+  function rvDecodeRef(r) {
+    if (r.k === "rmc") {
+      var s = rdPool("mc")[r.s];
+      if (!s || !s.questions[r.q]) return null;
+      return { kind: "rmc", stat: "rmc", payload: { title: s.title, text: s.text, q: s.questions[r.q] } };
+    }
+    if (r.k === "lis") {
+      var set = (window.LISTENING || [])[r.s];
+      if (!set || !set.questions[r.q]) return null;
+      return { kind: "lis", stat: "lis", payload: { title: set.title, kind: set.kind, script: set.script, q: set.questions[r.q] } };
+    }
+    var q = (QUESTIONS[r.k] || [])[r.i];
+    if (!q) return null;
+    return { kind: "uoe", stat: r.k, payload: { part: r.k, q: q } };
+  }
+
+  function rvEntriesForDate(date) {
+    var rec = loadJSON(K_D25(), {})[date];
+    if (rec && rec.refs && rec.refs.length) {
+      return rec.refs.map(rvDecodeRef).filter(Boolean);
+    }
+    return d25ComposeBase(d25Rng(date + "|" + LEVEL), d25Counts([]));
+  }
+
+  function rvCompose(dates, includeMb) {
+    var seen = {}, pool = [], items = [];
+    dates.forEach(function (d) {
+      rvEntriesForDate(d).forEach(function (e) {
+        var k = mbKey(e.kind, e.payload);
+        if (seen[k]) return;
+        seen[k] = true;
+        pool.push({ kind: e.kind, stat: e.stat, payload: e.payload, src: d });
+      });
+    });
+    if (includeMb) {
+      shuffle(mbLoad()).forEach(function (m) {
+        if (items.length >= RV_MB_SHARE || seen[m.key]) return;
+        seen[m.key] = true;
+        items.push({ kind: m.kind, key: m.key, payload: m.payload, src: "mb" });
+      });
+    }
+    shuffle(pool).slice(0, Math.max(0, RV_TOTAL - items.length)).forEach(function (e) { items.push(e); });
+    // 同篇文章/同段錄音共用 gid（跨日期也合併），洗牌後仍連續出現
+    items.forEach(function (e) {
+      if (e.kind === "rmc" || e.kind === "rtfng") e.gid = "r|" + e.payload.title;
+      else if (e.kind === "lis") e.gid = "l|" + e.payload.title;
+      else e.gid = null;
+    });
+    return d25Blocks(items, Math.random);
+  }
+
+  function rvRenderHome() {
+    var el = $("rv-days");
+    if (!el) return;
+    var all = loadJSON(K_D25(), {});
+    var days = Object.keys(all).sort().reverse().slice(0, 21);
+    if (!days.length) {
+      el.innerHTML = "<p class='hint'>No Daily 20 records yet — finish a daily mission first, then come back to test it.</p>";
+    } else {
+      el.innerHTML = days.map(function (d) {
+        var r = all[d];
+        var sub = r && r.done ? "✅ " + r.firstOk + "/" + r.total : "started, not finished";
+        return '<label class="rv-day"><input type="checkbox" value="' + d + '"> <span>' + d +
+          '</span><span class="rv-day-sub">' + sub + "</span></label>";
+      }).join("");
+    }
+    rvRenderHistory();
+  }
+
+  function rvRenderHistory() {
+    var el = $("rv-history");
+    if (!el) return;
+    var hist = loadJSON(K_RV(), []);
+    var html = "<h3>Past tests</h3>";
+    if (!hist.length) {
+      html += "<p class='hint'>No review tests taken yet.</p>";
+    } else {
+      hist.slice(-8).reverse().forEach(function (h) {
+        html += "<p><strong>" + h.score + " / 100</strong> · " + h.correct + "/" + h.n + " correct · " +
+          esc(h.date) + " · " + h.days.length + " day" + (h.days.length === 1 ? "" : "s") + " tested" +
+          (h.rushed ? " · ⚡" + h.rushed + " rushed" : "") + "</p>";
+      });
+    }
+    el.innerHTML = html;
+  }
+
+  function rvSrc(e) { return e.src === "mb" ? "mistake book" : e.src; }
+
+  function rvStart() {
+    var days = Array.prototype.slice.call(document.querySelectorAll("#rv-days input:checked"))
+      .map(function (c) { return c.value; });
+    var includeMb = $("rv-mb").checked;
+    if (!days.length && !includeMb) { alert("Pick at least one day, or include mistake-book questions."); return; }
+    var items = rvCompose(days, includeMb);
+    if (items.length < 5) { alert("Not enough questions from that selection — pick more days."); return; }
+    mbReviewedThisSession = {};
+    rv = { items: items, idx: 0, correct: 0, rushed: 0, t0: Date.now(), days: days, reviewHtml: "" };
+    $("rv-home").classList.add("hidden");
+    $("rv-summary").classList.add("hidden");
+    $("rv-quiz").classList.remove("hidden");
+    rvRenderItem();
+    window.scrollTo(0, 0);
+  }
+
+  function rvRenderItem() {
+    audioStopAll();
+    var e = rv.items[rv.idx];
+    $("rv-progress").textContent = "Question " + (rv.idx + 1) + " / " + rv.items.length;
+    $("rv-feedback").innerHTML = "";
+    var shownAt = Date.now();
+    renderMbDrillItemInto($("rv-area"), e, function (ok, txt) {
+      audioStopAll();
+      if (ok) rv.correct++;
+      else if (Date.now() - shownAt < 2500) rv.rushed++;
+      if (e.stat) { try { recordResult(e.stat, ok); } catch (err) {} }
+      if (!ok && e.src !== "mb" && (e.kind === "uoe" || e.kind === "rmc" || e.kind === "lis")) {
+        try { mbAdd(e.kind, e.payload); } catch (err) {}
+      }
+      rv.reviewHtml +=
+        '<div class="review-item ' + (ok ? "ok" : "bad") + '">' +
+        '<div class="review-verdict">' + (ok ? "✓" : "✗") + " Question " + (rv.idx + 1) +
+        ' <span class="rv-src-tag">(from ' + esc(rvSrc(e)) + ")</span></div>" +
+        '<div class="review-ans"><strong>Your answer: </strong>' + esc(txt) + "</div>" +
+        '<div class="review-ans"><strong>Correct answer: </strong>' + esc(mbCorrectText(e)) + "</div>" +
+        (ok ? "" : '<div class="expl">' + esc(mbExplText(e)) + "</div>") +
+        "</div>";
+      $("rv-area").querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
+      var fb = $("rv-feedback");
+      fb.innerHTML = ok
+        ? '<div class="review-item ok"><div class="review-verdict">✓ Correct</div></div>'
+        : '<div class="review-item bad"><div class="review-verdict">✗ Wrong</div>' +
+          '<div class="review-ans"><strong>Correct answer: </strong>' + esc(mbCorrectText(e)) + "</div>" +
+          '<div class="expl">' + esc(mbExplText(e)) + "</div></div>";
+      var btn = document.createElement("button");
+      btn.className = "primary-btn";
+      btn.textContent = rv.idx + 1 < rv.items.length ? "Next question" : "Finish";
+      btn.addEventListener("click", function () {
+        rv.idx++;
+        if (rv.idx >= rv.items.length) rvFinish();
+        else { rvRenderItem(); window.scrollTo(0, 0); }
+      });
+      fb.appendChild(btn);
+      btn.focus();
+    });
+  }
+
+  function rvFinish() {
+    audioStopAll();
+    var n = rv.items.length;
+    var score = Math.round(100 * rv.correct / n);
+    var hist = loadJSON(K_RV(), []);
+    hist.push({ ts: Date.now(), date: todayStr(), days: rv.days, n: n, correct: rv.correct,
+                score: score, rushed: rv.rushed, ms: Date.now() - rv.t0 });
+    if (hist.length > 30) hist = hist.slice(-30);
+    saveJSON(K_RV(), hist);
+    var v = verdictFor(score);
+    $("rv-quiz").classList.add("hidden");
+    $("rv-summary").classList.remove("hidden");
+    $("rv-score").textContent = score + " / 100";
+    $("rv-verdict").className = "verdict-text " + v.cls;
+    $("rv-verdict").textContent = v.text;
+    $("rv-meta").textContent = rv.correct + " / " + n + " correct · about " +
+      Math.max(1, Math.round((Date.now() - rv.t0) / 60000)) + " min" +
+      (rv.rushed ? " · ⚡ " + rv.rushed + " rushed answer" + (rv.rushed > 1 ? "s" : "") : "") +
+      (rv.days.length ? " · days: " + rv.days.map(function (d) { return d.slice(5); }).join(", ") : "");
+    $("rv-review").innerHTML = rv.reviewHtml;
+    rv = null;
+    window.scrollTo(0, 0);
+  }
+
+  function initReview() {
+    if (!$("rv-start")) return;
+    $("rv-start").addEventListener("click", rvStart);
+    $("rv-last7").addEventListener("click", function () {
+      var cut = todayStr(Date.now() - 6 * DAY_MS);
+      document.querySelectorAll("#rv-days input").forEach(function (c) { c.checked = c.value >= cut; });
+    });
+    $("rv-none").addEventListener("click", function () {
+      document.querySelectorAll("#rv-days input").forEach(function (c) { c.checked = false; });
+    });
+    $("rv-quit").addEventListener("click", function () {
+      if (!confirm("Quit this review test? The attempt won't be scored.")) return;
+      audioStopAll();
+      rv = null;
+      $("rv-quiz").classList.add("hidden");
+      $("rv-home").classList.remove("hidden");
+      rvRenderHome();
+    });
+    $("rv-home-btn").addEventListener("click", function () {
+      $("rv-summary").classList.add("hidden");
+      $("rv-home").classList.remove("hidden");
+      rvRenderHome();
+    });
+  }
+
   function renderMastery() {
     var el = $("pg-mastery");
     if (!el) return;
@@ -3024,7 +3271,6 @@ if (typeof document !== 'undefined') {
   }
 
   function renderProgress() {
-    try { renderDaily(); } catch (e) {}
     renderMistakeCard();
     try { renderWeakness(); } catch (e) {}
     try { renderMastery(); } catch (e) {}
@@ -3253,6 +3499,7 @@ if (typeof document !== 'undefined') {
     safeInit("vocab", initVocab);
     safeInit("progress", initProgress);
     safeInit("daily25", initDaily25);
+    safeInit("review", initReview);
   }
 
   /* 主題為全域功能：不等選級數，載入即啟用（含級數選擇畫面）。 */

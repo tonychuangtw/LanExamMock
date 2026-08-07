@@ -885,3 +885,22 @@ input[type="number"]:focus {
   pointer-events: none; opacity: 0.45;
 }
 .lock-chip { font-weight: 600; margin: 4px; }
+
+/* ---- 9 個頁籤：窄螢幕改可橫向滑動 ---- */
+.tab-bar { overflow-x: auto; scrollbar-width: none; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { flex: 1 0 auto; min-width: 62px; padding-left: 6px; padding-right: 6px; }
+
+/* ---- Review Test ---- */
+#rv-days { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 10px; }
+.rv-day {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
+  cursor: pointer; font-size: 0.92rem;
+}
+.rv-day input { accent-color: var(--accent); }
+.rv-day .rv-day-sub { color: var(--muted); font-size: 0.8rem; margin-left: auto; }
+.rv-quick { display: flex; gap: 8px; margin: 8px 0; }
+.rv-mb-row { display: flex; align-items: center; gap: 8px; margin: 10px 0 14px; font-size: 0.92rem; cursor: pointer; }
+.rv-mb-row input { accent-color: var(--accent); }
+.rv-src-tag { color: var(--muted); font-size: 0.78rem; }
