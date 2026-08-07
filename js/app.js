@@ -346,7 +346,52 @@ if (typeof document !== 'undefined') {
     renderUoeItemInto(item, $("uoe-question"), $("uoe-answer-area"), submitAnswer);
     addGuessToggle($("uoe-answer-area"));
     addSkipButton($("uoe-answer-area"));
+    if (quiz.idx > 0) addUoePrevButton($("uoe-answer-area"));
     quiz.qStart = Date.now();
+  }
+
+  /* 考試中的「上一題」：唯讀回顧已作答題目，只顯示自己的答案（未交卷前不揭示正解） */
+  function addUoePrevButton(container) {
+    var b = document.createElement("button");
+    b.className = "ghost-btn skip-btn";
+    b.textContent = "← Previous (view only)";
+    b.addEventListener("click", function () { showUoeReview(quiz.idx - 1); });
+    container.appendChild(b);
+  }
+
+  function showUoeReview(j) {
+    var item = quiz.items[j];
+    $("uoe-progress").textContent = "🔎 Reviewing question " + (j + 1) + " / " + quiz.items.length + " (read-only)";
+    var aBox = $("uoe-answer-area");
+    renderUoeItemInto(item, $("uoe-question"), aBox, function () {});
+    aBox.querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
+    if (item.part === "part1" && typeof quiz.answers[j] === "number") {
+      var opt = aBox.querySelectorAll(".option-btn")[quiz.answers[j]];
+      if (opt) opt.classList.add("selected");
+    }
+    var note = document.createElement("p");
+    note.className = "hint";
+    note.textContent = "Your answer: " + userAnsText(item, quiz.answers[j]) +
+      " — answers are locked; scoring comes after you finish the mock.";
+    aBox.appendChild(note);
+    var nav = document.createElement("div");
+    if (j > 0) {
+      var pb = document.createElement("button");
+      pb.className = "ghost-btn small";
+      pb.textContent = "← Previous";
+      pb.addEventListener("click", function () { showUoeReview(j - 1); });
+      nav.appendChild(pb);
+    }
+    var rb = document.createElement("button");
+    rb.className = "primary-btn";
+    rb.textContent = "Return →";
+    rb.addEventListener("click", function () {
+      if (j + 1 < quiz.idx) showUoeReview(j + 1);
+      else renderQuestion();
+    });
+    nav.appendChild(rb);
+    aBox.appendChild(nav);
+    window.scrollTo(0, 0);
   }
 
   /* 信心標記：按下 = 這題是猜的；猜對也會進錯題本（抓「假會」） */
@@ -635,6 +680,8 @@ if (typeof document !== 'undefined') {
     drill.queue = cfg.items.slice();
     drill.total = cfg.items.length;
     drill.mastered = 0;
+    drill.snaps = [];          // 已作答題目快照（HTML），供「← Previous」唯讀回顧
+    drill.answeredState = false;
     $(cfg.summaryId || cfg.prefix + "-summary").classList.add("hidden");
     $(cfg.prefix + "-drill").classList.remove("hidden");
     renderDrillItem();
@@ -669,9 +716,94 @@ if (typeof document !== 'undefined') {
     }
     $(p + "-drill-progress").textContent = "Mastered " + drill.mastered + " / " + drill.total +
       " · " + drill.queue.length + " in queue";
-    $(p + "-drill-feedback").innerHTML = "";
+    var fb = $(p + "-drill-feedback");
+    fb.innerHTML = "";
+    drill.answeredState = false;
     drill.render(drill.queue[0], drillAnswered);
+    if (drill.snaps.length) {
+      var pb = document.createElement("button");
+      pb.className = "ghost-btn small";
+      pb.textContent = "← Previous";
+      pb.addEventListener("click", function () { drillShowSnap(drill.snaps.length - 1); });
+      fb.appendChild(pb);
+    }
     window.scrollTo(0, 0);
+  }
+
+  /* 唯讀回顧第 j 題快照；「Return →」逐步走回最新狀態（仿 K12Review 上一題機制） */
+  function drillShowSnap(j) {
+    var p = drill.prefix;
+    audioStopAll();
+    var area = $(p + "-drill-area"), fb = $(p + "-drill-feedback");
+    var s = drill.snaps[j];
+    area.innerHTML = '<p class="hint lock-chip">🔎 Reviewing an answered question (read-only)</p>' + s.q;
+    fb.innerHTML = s.f;
+    area.querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
+    fb.querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
+    var nav = document.createElement("div");
+    if (j > 0) {
+      var pb = document.createElement("button");
+      pb.className = "ghost-btn small";
+      pb.textContent = "← Previous";
+      pb.addEventListener("click", function () { drillShowSnap(j - 1); });
+      nav.appendChild(pb);
+    }
+    var rb = document.createElement("button");
+    rb.className = "primary-btn";
+    rb.textContent = "Return →";
+    rb.addEventListener("click", function () {
+      var lastLive = drill.answeredState ? drill.snaps.length - 1 : drill.snaps.length;
+      if (j + 1 < lastLive) drillShowSnap(j + 1);
+      else drillReturnLive();
+    });
+    nav.appendChild(rb);
+    fb.appendChild(nav);
+    window.scrollTo(0, 0);
+  }
+
+  function drillReturnLive() {
+    var p = drill.prefix;
+    if (!drill.answeredState) { renderDrillItem(); return; }
+    // 已作答狀態：還原最後一題快照 + 重掛「下一題」按鈕
+    var s = drill.snaps[drill.snaps.length - 1];
+    var area = $(p + "-drill-area"), fb = $(p + "-drill-feedback");
+    area.innerHTML = s.q;
+    fb.innerHTML = s.f;
+    area.querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
+    appendDrillNextControls(fb);
+    window.scrollTo(0, 0);
+  }
+
+  /* 「← Previous」＋「Next question」控制列（drillAnswered 與回顧還原共用；
+   *  防亂做的下一題延遲以 drill.nextUnlockAt 記憶，回顧再回來也躲不掉） */
+  function appendDrillNextControls(fb) {
+    if (drill.snaps.length >= 2) {
+      var pv = document.createElement("button");
+      pv.className = "ghost-btn small";
+      pv.textContent = "← Previous";
+      pv.addEventListener("click", function () { drillShowSnap(drill.snaps.length - 2); });
+      fb.appendChild(pv);
+    }
+    var btn = document.createElement("button");
+    btn.className = "primary-btn";
+    btn.textContent = drill.queue.length ? "Next question" : "Finish";
+    btn.addEventListener("click", renderDrillItem);
+    var remain = Math.ceil(((drill.nextUnlockAt || 0) - Date.now()) / 1000);
+    if (remain > 0) {
+      btn.disabled = true;
+      var note = document.createElement("p");
+      note.className = "hint lock-chip";
+      var leftN = remain;
+      note.textContent = "🐢 Slow down — read carefully before you answer. Next question in " + leftN + "s…";
+      fb.appendChild(note);
+      var ivn = setInterval(function () {
+        leftN--;
+        if (leftN <= 0) { clearInterval(ivn); btn.disabled = false; note.remove(); btn.focus(); return; }
+        note.textContent = "🐢 Slow down — read carefully before you answer. Next question in " + leftN + "s…";
+      }, 1000);
+    }
+    fb.appendChild(btn);
+    btn.focus();
   }
 
   function drillAnswered(isCorrect, userText) {
@@ -694,27 +826,13 @@ if (typeof document !== 'undefined') {
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(drill.correctText(item)) + "</div>" +
         '<div class="expl">' + esc(drill.explText(item)) + "</div></div>";
     }
-    var btn = document.createElement("button");
-    btn.className = "primary-btn";
-    btn.textContent = drill.queue.length ? "Next question" : "Finish";
-    btn.addEventListener("click", renderDrillItem);
+    // 快照（未含控制列）供「← Previous」唯讀回顧
+    drill.snaps.push({ q: $(p + "-drill-area").innerHTML, f: fb.innerHTML });
+    drill.answeredState = true;
     /* 防亂做：連續倉促答錯時，「下一題」按鈕鎖幾秒逼使用者放慢 */
     var delaySecs = drill.nextDelaySecs ? drill.nextDelaySecs() : 0;
-    if (delaySecs) {
-      btn.disabled = true;
-      var note = document.createElement("p");
-      note.className = "hint lock-chip";
-      var leftN = delaySecs;
-      note.textContent = "🐢 Slow down — read carefully before you answer. Next question in " + leftN + "s…";
-      fb.appendChild(note);
-      var ivn = setInterval(function () {
-        leftN--;
-        if (leftN <= 0) { clearInterval(ivn); btn.disabled = false; note.remove(); btn.focus(); return; }
-        note.textContent = "🐢 Slow down — read carefully before you answer. Next question in " + leftN + "s…";
-      }, 1000);
-    }
-    fb.appendChild(btn);
-    btn.focus();
+    drill.nextUnlockAt = delaySecs ? Date.now() + delaySecs * 1000 : 0;
+    appendDrillNextControls(fb);
   }
 
   function startUoeDrill() {
@@ -3502,8 +3620,31 @@ if (typeof document !== 'undefined') {
     safeInit("review", initReview);
   }
 
+  /* 使用說明＋版本紀錄（ℹ️）：全域功能，資料在 js/versions.js */
+  function initHelp() {
+    var btn = $("help-btn"), page = $("help-page"), close = $("help-close"), list = $("version-list");
+    if (!btn || !page) return;
+    var rendered = false;
+    btn.addEventListener("click", function () {
+      if (!rendered) {
+        rendered = true;
+        var html = "";
+        (window.APP_VERSIONS || []).forEach(function (ver) {
+          html += '<div class="card version-card"><h3>' + esc(ver.v) + ' <span class="hint-inline">' + esc(ver.date) + "</span></h3><ul>";
+          ver.items.forEach(function (it) { html += "<li>" + esc(it) + "</li>"; });
+          html += "</ul></div>";
+        });
+        list.innerHTML = html || "<p class='hint'>No version notes yet.</p>";
+      }
+      page.classList.remove("hidden");
+      page.scrollTop = 0;
+    });
+    close.addEventListener("click", function () { page.classList.add("hidden"); });
+  }
+
   /* 主題為全域功能：不等選級數，載入即啟用（含級數選擇畫面）。 */
   safeInit("theme", initTheme);
+  safeInit("help", initHelp);
 
   /* loader.js 載完該級數的資料檔後呼叫 CPEApp.init(level) */
   window.CPEApp = { init: boot };
