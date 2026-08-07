@@ -206,6 +206,8 @@ body { transition: background 0.35s ease, color 0.35s ease; }
 }
 .icon-btn:active { transform: scale(0.92); border-color: var(--accent); color: var(--accent); }
 .icon-btn svg { width: 20px; height: 20px; }
+/* 第一顆 icon-btn 的 margin-left:auto 負責把整組推到右邊；後續相鄰的取消 auto 靠在一起 */
+.icon-btn + .icon-btn { margin-left: 8px; }
 
 main {
   padding: 4px 14px 92px;
