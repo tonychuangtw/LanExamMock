@@ -18,7 +18,7 @@
       if (m) m.setAttribute("content", bgs[t]);
     }
     var fs = parseInt(localStorage.getItem("cpe_fontsize"), 10);
-    if (fs && fs >= 85 && fs <= 150) document.documentElement.style.fontSize = fs + "%";
+    if (fs && fs >= 85 && fs <= 175) document.documentElement.style.fontSize = fs + "%";
   } catch (e) {}
 })();
 </script>
@@ -43,7 +43,7 @@
   </button>
 </header>
 
-<button id="daily-banner" class="daily-banner hidden" type="button" aria-label="Daily 25 practice"></button>
+<button id="daily-banner" class="daily-banner hidden" type="button" aria-label="Daily 20 practice"></button>
 
 <main id="main">
 
@@ -449,7 +449,7 @@
     <div id="d25-congrats" class="hidden">
       <div class="card congrats-card">
         <div class="congrats-emoji">🎯</div>
-        <h2>Daily 25 complete!</h2>
+        <h2>Daily 20 complete!</h2>
         <p id="d25-congrats-text"></p>
         <button id="d25-congrats-home" class="primary-btn">Back to Progress</button>
       </div>

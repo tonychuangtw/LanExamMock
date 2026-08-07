@@ -72,7 +72,7 @@ function shuffle(arr) {
   return a;
 }
 
-/* ---------- Daily 25：種子化亂數與組卷（純函式，供測試） ---------- */
+/* ---------- Daily 20：種子化亂數與組卷（純函式，供測試；函式名沿用 d25 前綴） ---------- */
 
 /** 字串種子 → 決定性亂數產生器（mulberry32 變形）。同種子必產生同序列。 */
 function d25Rng(seedStr) {
@@ -99,11 +99,11 @@ function d25Pick(arr, n, rng) {
   return out;
 }
 
-/** 每日 25 題的類別配額：UoE 各 part 3 題 + 閱讀 6 + 聽力 4 = 22（另混入至多 3 題到期錯題湊 25）。
+/** 每日 20 題的類別配額：UoE 各 part 2 題 + 閱讀 6（3 篇×2）+ 聽力 4 = 18（另混入至多 2 題到期錯題湊 20）。
  *  弱點加權：rated = [{key,n,acc}]；答過 ≥10 題的類別中，正確率最低 +2、最高 −2（不低於 1）；
  *  差距 <10 個百分點就不加權（與 K12Review 同規則）。 */
 function d25Counts(rated) {
-  var counts = { part1: 3, part2: 3, part3: 3, part4: 3, rmc: 6, lis: 4 };
+  var counts = { part1: 2, part2: 2, part3: 2, part4: 2, rmc: 6, lis: 4 };
   var eligible = (rated || []).filter(function (r) { return r.n >= 10 && counts[r.key] != null; });
   if (eligible.length >= 2) {
     eligible.sort(function (a, b) { return a.acc - b.acc; });
@@ -114,6 +114,23 @@ function d25Counts(rated) {
     }
   }
   return counts;
+}
+
+/** 依 gid 把條目分塊（同一篇閱讀/同一段聽力共用 gid，無 gid 者自成一塊），
+ *  決定性洗牌「塊」的順序後攤平：同一篇文章／同一段錄音的題目永遠連續出現。 */
+function d25Blocks(entries, rng) {
+  var blocks = [], byGid = {};
+  entries.forEach(function (e) {
+    if (e.gid) {
+      if (!byGid[e.gid]) { byGid[e.gid] = []; blocks.push(byGid[e.gid]); }
+      byGid[e.gid].push(e);
+    } else blocks.push([e]);
+  });
+  var out = [];
+  d25Pick(blocks, blocks.length, rng).forEach(function (b) {
+    b.forEach(function (e) { out.push(e); });
+  });
+  return out;
 }
 
 /* Node export（測試用） */
@@ -127,7 +144,8 @@ if (typeof module !== 'undefined') {
     shuffle: shuffle,
     d25Rng: d25Rng,
     d25Pick: d25Pick,
-    d25Counts: d25Counts
+    d25Counts: d25Counts,
+    d25Blocks: d25Blocks
   };
 }
 
@@ -636,6 +654,7 @@ if (typeof document !== 'undefined') {
 
   function renderDrillItem() {
     var p = drill.prefix;
+    audioStopAll();   // 換題（或收尾）一律先停掉還在播的聽力
     if (!drill.queue.length) {
       $(p + "-drill").classList.add("hidden");
       $(p + "-congrats").classList.remove("hidden");
@@ -677,6 +696,21 @@ if (typeof document !== 'undefined') {
     btn.className = "primary-btn";
     btn.textContent = drill.queue.length ? "Next question" : "Finish";
     btn.addEventListener("click", renderDrillItem);
+    /* 防亂做：連續倉促答錯時，「下一題」按鈕鎖幾秒逼使用者放慢 */
+    var delaySecs = drill.nextDelaySecs ? drill.nextDelaySecs() : 0;
+    if (delaySecs) {
+      btn.disabled = true;
+      var note = document.createElement("p");
+      note.className = "hint lock-chip";
+      var leftN = delaySecs;
+      note.textContent = "🐢 Slow down — read carefully before you answer. Next question in " + leftN + "s…";
+      fb.appendChild(note);
+      var ivn = setInterval(function () {
+        leftN--;
+        if (leftN <= 0) { clearInterval(ivn); btn.disabled = false; note.remove(); btn.focus(); return; }
+        note.textContent = "🐢 Slow down — read carefully before you answer. Next question in " + leftN + "s…";
+      }, 1000);
+    }
     fb.appendChild(btn);
     btn.focus();
   }
@@ -1313,8 +1347,17 @@ if (typeof document !== 'undefined') {
     });
   }
 
+  /* 播放世代 token：speechSynthesis.cancel() 在部分瀏覽器會觸發被取消句子的
+   * onend，播放鏈的 onend=next 就接著唸下一句 → 按停或跳下一題後仍一直播。
+   * 每條播放鏈綁定當下 token，token 一過期鏈就斷，cancel 才真的停得住。 */
+  var audioGen = 0;
+  function audioStopAll() {
+    audioGen++;
+    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+  }
+
   function lsStopAudio() {
-    if (window.speechSynthesis) speechSynthesis.cancel();
+    audioStopAll();
     ls.playing = false;
     ls.queue = [];
     var b = $("ls-play");
@@ -1339,8 +1382,11 @@ if (typeof document !== 'undefined') {
     if (!ls.drillMode) ls.playsUsed++;
     $("ls-play").textContent = "Playing…";
     lsUpdatePlays();
+    audioGen++;
+    var tok = audioGen;
     var i = 0;
     (function next() {
+      if (audioGen !== tok) return;   // 已被停止或換題
       if (!ls.playing || i >= ls.queue.length) {
         ls.playing = false;
         $("ls-play").textContent = "▶ Play again";
@@ -1471,8 +1517,15 @@ if (typeof document !== 'undefined') {
     player.className = "card center";
     var rp = document.createElement("button");
     rp.className = "ghost-btn small";
-    rp.textContent = "🔊 Replay recording";
-    rp.addEventListener("click", function () { lsStopAudio(); lsDrillReplay(); });
+    rp.dataset.audio = "1";
+    var rpIdle = "🔊 Play recording";
+    var rpPlaying = false;
+    rp.textContent = rpIdle;
+    rp.addEventListener("click", function () {
+      if (rpPlaying) { lsStopAudio(); rpPlaying = false; rp.textContent = rpIdle; return; }
+      rpPlaying = true; rp.textContent = "⏹ Stop";
+      lsDrillReplay(function () { rpPlaying = false; rp.textContent = rpIdle; });
+    });
     player.appendChild(rp);
     area.appendChild(player);
 
@@ -1493,12 +1546,15 @@ if (typeof document !== 'undefined') {
     area.appendChild(card);
   }
 
-  function lsDrillReplay() {
+  function lsDrillReplay(onDone) {
     if (!window.speechSynthesis) return;
+    audioStopAll();
+    var tok = audioGen;
     var queue = lsBuildQueue(ls.set, parseFloat($("ls-rate").value) || 1);
     var i = 0;
     (function next() {
-      if (i >= queue.length) return;
+      if (audioGen !== tok) return;
+      if (i >= queue.length) { if (onDone) onDone(); return; }
       var u = queue[i++];
       u.onend = next;
       u.onerror = next;
@@ -1616,16 +1672,18 @@ if (typeof document !== 'undefined') {
   }
 
   function mbStopAudio() {
-    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    audioStopAll();
   }
 
-  function mbReplay(p) {
+  function mbReplay(p, onDone) {
     if (!window.speechSynthesis) return;
-    speechSynthesis.cancel();
+    audioStopAll();
+    var tok = audioGen;
     var queue = lsBuildQueue({ script: p.script, kind: p.kind }, 1);
     var i = 0;
     (function next() {
-      if (i >= queue.length) return;
+      if (audioGen !== tok) return;
+      if (i >= queue.length) { if (onDone) onDone(); return; }
       var u = queue[i++];
       u.onend = next;
       u.onerror = next;
@@ -1742,8 +1800,15 @@ if (typeof document !== 'undefined') {
       player.className = "card center";
       var rp = document.createElement("button");
       rp.className = "ghost-btn small";
-      rp.textContent = "🔊 Replay recording";
-      rp.addEventListener("click", function () { mbReplay(p); });
+      rp.dataset.audio = "1";
+      var rpIdle = "🔊 Play recording";
+      var rpPlaying = false;
+      rp.textContent = rpIdle;
+      rp.addEventListener("click", function () {
+        if (rpPlaying) { audioStopAll(); rpPlaying = false; rp.textContent = rpIdle; return; }
+        rpPlaying = true; rp.textContent = "⏹ Stop";
+        mbReplay(p, function () { rpPlaying = false; rp.textContent = rpIdle; });
+      });
       player.appendChild(rp);
       area.appendChild(player);
 
@@ -2625,8 +2690,8 @@ if (typeof document !== 'undefined') {
     else { switchTab("tab-listening"); var b = document.querySelector("#ls-picker .mode-btn[data-lkind]"); if (b) b.click(); }
   }
 
-  /* ================= Daily 25 — K12 式每日任務 =================
-   * 每天 25 題：UoE 12（弱點加權）＋閱讀 6＋聽力 4＋到期錯題至多 3。
+  /* ================= Daily 20 — K12 式每日任務 =================
+   * 每天 20 題：UoE 8（弱點加權）＋閱讀 6（3 篇×2，同篇連續）＋聽力 4（同錄音連續）＋到期錯題至多 2。
    * 種子 = 日期|級數 → 同一天永遠同一組題；答錯排回隊尾重做到全對（精熟迴圈）。
    * 紀錄存 <level>.daily25，連續天數沿用 <level>.streak，皆隨雲端同步。 */
   var K_D25 = function () { return LEVEL + ".daily25"; };
@@ -2656,36 +2721,88 @@ if (typeof document !== 'undefined') {
         entries.push({ kind: "uoe", stat: p, payload: { part: p, q: q } });
       });
     });
-    var mcSets = d25Pick(rdPool("mc"), 2, rng);
-    var readQs = [];
-    mcSets.forEach(function (s) {
-      var per = Math.ceil(counts.rmc / mcSets.length);
-      d25Pick(s.questions, Math.min(per, s.questions.length), rng).forEach(function (q) {
-        readQs.push({ kind: "rmc", stat: "rmc", payload: { title: s.title, text: s.text, q: q } });
+    // 閱讀 3 篇、每篇約 2 題；同篇題目共用 gid，洗牌後仍連續出現
+    var mcSets = d25Pick(rdPool("mc"), Math.min(3, Math.max(1, Math.ceil(counts.rmc / 2))), rng);
+    var rNeed = counts.rmc;
+    mcSets.forEach(function (s, si) {
+      if (rNeed <= 0) return;
+      var take = Math.min(Math.ceil(counts.rmc / mcSets.length), s.questions.length, rNeed);
+      d25Pick(s.questions, take, rng).forEach(function (q) {
+        entries.push({ kind: "rmc", stat: "rmc", gid: "r" + si, payload: { title: s.title, text: s.text, q: q } });
       });
+      rNeed -= take;
     });
-    entries = entries.concat(readQs.slice(0, counts.rmc));
     var lsSets = window.LISTENING || [];
     if (lsSets.length && counts.lis) {
       var set = d25Pick(lsSets, 1, rng)[0];
       d25Pick(set.questions, Math.min(counts.lis, set.questions.length), rng).forEach(function (q) {
-        entries.push({ kind: "lis", stat: "lis", payload: { title: set.title, kind: set.kind, script: set.script, q: q } });
+        entries.push({ kind: "lis", stat: "lis", gid: "l0", payload: { title: set.title, kind: set.kind, script: set.script, q: q } });
       });
     }
-    // 到期錯題混入（最多 3 題）；不足就用備用 UoE 題補滿 25
-    var due = mbDueEntries().slice(0, 3);
+    // 到期錯題混入（最多 2 題）；不足就用備用 UoE 題補滿 20
+    var due = mbDueEntries().slice(0, 2);
     due.forEach(function (e) { entries.push(e); });
     var spareParts = ["part1", "part2", "part3"];
-    for (var si = 0; entries.length < 25 && si < spareParts.length; si++) {
-      var pool = (QUESTIONS[spareParts[si]] || []).filter(function (q) {
+    for (var si2 = 0; entries.length < 20 && si2 < spareParts.length; si2++) {
+      var pool = (QUESTIONS[spareParts[si2]] || []).filter(function (q) {
         return !entries.some(function (e) { return e.kind === "uoe" && e.payload.q === q; });
       });
       var extra = d25Pick(pool, 1, rng)[0];
-      if (extra) entries.push({ kind: "uoe", stat: spareParts[si], payload: { part: spareParts[si], q: extra } });
+      if (extra) entries.push({ kind: "uoe", stat: spareParts[si2], payload: { part: spareParts[si2], q: extra } });
     }
-    entries = d25Pick(entries, entries.length, rng);   // 決定性打散出題順序
+    entries = d25Blocks(entries, rng);   // 決定性打散「塊」序：同篇/同錄音題目保持連續
     entries.forEach(function (e, i) { e.d25i = i; });
     return entries;
+  }
+
+  /* ---- 防亂做：作答前先鎖住選項（閱讀要先讀文章、聽力要先播錄音） ---- */
+  function d25LockAnswers(secs, chipHtml, onUnlock) {
+    var area = $("d25-drill-area");
+    drill.answersReadyAt = 0;
+    var chip = document.createElement("p");
+    chip.className = "hint lock-chip";
+    area.insertBefore(chip, area.firstChild);
+    area.classList.add("answers-locked");
+    var token = {};
+    drill.lockToken = token;
+    function unlock() {
+      if (drill.lockToken !== token) return;
+      area.classList.remove("answers-locked");
+      chip.remove();
+      drill.answersReadyAt = Date.now();
+      if (onUnlock) onUnlock();
+    }
+    if (secs === "audio") {   // 聽力：播放過錄音才解鎖
+      chip.innerHTML = chipHtml;
+      var ab = area.querySelector("[data-audio]");
+      if (!ab) { unlock(); return; }
+      ab.addEventListener("click", function h() { ab.removeEventListener("click", h); unlock(); });
+      return;
+    }
+    var left = secs;
+    chip.innerHTML = chipHtml.replace("{s}", left);
+    var iv = setInterval(function () {
+      if (drill.lockToken !== token) { clearInterval(iv); return; }
+      left--;
+      if (left <= 0) { clearInterval(iv); unlock(); return; }
+      chip.innerHTML = chipHtml.replace("{s}", left);
+    }, 1000);
+  }
+
+  function d25ApplyLock(e) {
+    if (!d25) return;
+    if (e.kind === "rmc" || e.kind === "rtfng") {
+      var first = !d25.passSeen[e.payload.title];
+      d25.passSeen[e.payload.title] = true;
+      d25LockAnswers(first ? 8 : 4, "👀 Read the passage first — answers unlock in {s}s");
+    } else if (e.kind === "lis") {
+      if (d25.lisPlayed[e.payload.title]) { drill.answersReadyAt = Date.now(); return; }
+      d25LockAnswers("audio", "🎧 Play the recording first to unlock the answers", function () {
+        d25.lisPlayed[e.payload.title] = true;
+      });
+    } else {
+      d25LockAnswers(3, "🤔 Think it through — answers unlock in {s}s");
+    }
   }
 
   function startDaily25() {
@@ -2694,7 +2811,8 @@ if (typeof document !== 'undefined') {
     var entries = d25Compose();
     if (entries.length < 10) { alert("Not enough questions available at this level yet."); return; }
     mbReviewedThisSession = {};
-    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now() };
+    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now(),
+            rush: 0, rushStreak: 0, slowdown: false, passSeen: {}, lisPlayed: {} };
     switchTab("tab-progress");
     startDrillGeneric({
       prefix: "d25",
@@ -2702,6 +2820,12 @@ if (typeof document !== 'undefined') {
       items: entries,
       render: function (e, done) {
         renderMbDrillItem(e, function (ok, txt) {
+          /* 倉促作答偵測：解鎖後 <2.5 秒就答錯 = 亂猜；連 2 次觸發強制放慢 */
+          if (d25) {
+            var fast = drill.answersReadyAt && (Date.now() - drill.answersReadyAt < 2500);
+            if (fast && !ok) { d25.rush++; d25.rushStreak++; } else { d25.rushStreak = 0; }
+            if (d25.rushStreak >= 2) { d25.slowdown = true; d25.rushStreak = 0; }
+          }
           if (d25 && !d25.seen[e.d25i]) {
             d25.seen[e.d25i] = true;
             if (ok) d25.firstOk++;
@@ -2709,6 +2833,11 @@ if (typeof document !== 'undefined') {
           }
           done(ok, txt);
         });
+        d25ApplyLock(e);
+      },
+      nextDelaySecs: function () {
+        if (d25 && d25.slowdown) { d25.slowdown = false; return 8; }
+        return 0;
       },
       correctText: mbCorrectText,
       explText: mbExplText,
@@ -2719,7 +2848,8 @@ if (typeof document !== 'undefined') {
   function d25Complete() {
     if (!d25) return;
     var ms = Date.now() - d25.t0;
-    d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms, finishedAt: Date.now() });
+    d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
+                 rushed: d25.rush || 0, finishedAt: Date.now() });
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
     var perfect = d25.firstOk === d25.firstTotal;
@@ -2728,7 +2858,8 @@ if (typeof document !== 'undefined') {
       (perfect ? " — a perfect run! 🏅" : " — and you mastered every question in the redo loop.") +
       "<br>About " + mins + " min · 🔥 " + s.current + "-day streak" +
       (s.best > s.current ? " (best " + s.best + ")" : "") +
-      "<br>Come back tomorrow — a fresh set of 25 arrives at midnight.";
+      (d25.rush > 0 ? "<br>⚡ " + d25.rush + " rushed answer" + (d25.rush > 1 ? "s" : "") + " — take your time tomorrow!" : "") +
+      "<br>Come back tomorrow — a fresh set of 20 arrives at midnight.";
     d25 = null;
     renderDailyBanner();
   }
@@ -2742,7 +2873,7 @@ if (typeof document !== 'undefined') {
       else startDaily25();
     });
     $("d25-drill-quit").addEventListener("click", function () {
-      if (!confirm("Quit today's Daily 25? Your progress in this run won't be saved.")) return;
+      if (!confirm("Quit today's Daily 20? Your progress in this run won't be saved.")) return;
       mbStopAudio();
       d25 = null;
       $("d25-drill").classList.add("hidden");
@@ -2763,11 +2894,11 @@ if (typeof document !== 'undefined') {
     var rec = d25TodayRec();
     var s = loadJSON(K_STREAK(), { current: 0 });
     if (rec && rec.done) {
-      el.innerHTML = "🎯 Daily 25 &nbsp;✅ " + rec.firstOk + "/" + rec.total + " today" +
+      el.innerHTML = "🎯 Daily 20 &nbsp;✅ " + rec.firstOk + "/" + rec.total + " today" +
         (s.current ? " &nbsp;·&nbsp; 🔥 " + s.current + " day" + (s.current === 1 ? "" : "s") : "");
       el.classList.add("done");
     } else {
-      el.innerHTML = "🎯 <strong>Daily 25</strong> — start today's mission" +
+      el.innerHTML = "🎯 <strong>Daily 20</strong> — start today's mission" +
         (s.current ? " &nbsp;·&nbsp; 🔥 " + s.current + " day" + (s.current === 1 ? "" : "s") + " — keep it alive!" : "");
       el.classList.remove("done");
     }
@@ -2800,15 +2931,17 @@ if (typeof document !== 'undefined') {
     var hist = loadJSON(K_D25(), {});
     var wk = weakestArea();
 
-    var html = "<h3>🎯 Daily 25" +
+    var html = "<h3>🎯 Daily 20" +
       '<span class="streak-tag">🔥 ' + s.current + " day" + (s.current === 1 ? "" : "s") +
       (s.best > s.current ? " · best " + s.best : "") + "</span></h3>";
     if (rec && rec.done) {
       html += "<p class='verdict-text ok daily-done-msg'>✅ Done today — <strong>" +
         rec.firstOk + " / " + rec.total + "</strong> right first try · about " +
-        Math.max(1, Math.round(rec.ms / 60000)) + " min. See you tomorrow!</p>";
+        Math.max(1, Math.round(rec.ms / 60000)) + " min" +
+        (rec.rushed > 0 ? " · ⚡ " + rec.rushed + " rushed answer" + (rec.rushed > 1 ? "s" : "") : "") +
+        ". See you tomorrow!</p>";
     } else {
-      html += "<p>Your mission today: <strong>25 questions</strong> mixed from Use of English, Reading and Listening" +
+      html += "<p>Your mission today: <strong>20 questions</strong> mixed from Use of English, Reading and Listening" +
         (wk && wk.acc >= 0 && wk.acc < 100 ? ", tuned toward your weakest area (" + esc(wk.area.label) + ")" : "") +
         ". Wrong answers go back in the queue until you master every one.</p>" +
         '<button id="d25-start" class="primary-btn">Start today\'s mission</button>';
@@ -2821,7 +2954,7 @@ if (typeof document !== 'undefined') {
         (r && r.done ? " · " + r.firstOk + "/" + r.total : "") + '">' + (r && r.done ? "✓" : "·") + "</span>";
     }
     html += '<div class="d25-week">' + dots + "</div>";
-    html += "<p class='hint'>Same set all day — a fresh 25 arrives at midnight. Due mistake-book items are mixed in automatically.</p>";
+    html += "<p class='hint'>Same set all day — a fresh 20 arrives at midnight. Due mistake-book items are mixed in automatically.</p>";
     el.innerHTML = html;
 
     var b = $("d25-start");
@@ -3074,22 +3207,22 @@ if (typeof document !== 'undefined') {
       if (e.key === "Escape") closeSheet();
     });
 
-    /* text size: 85–150% in 10% steps, global like the theme */
+    /* text size: 85–175% in 10% steps, global like the theme */
     var K_FS = "cpe_fontsize";
     var fsMinus = $("fs-minus"), fsPlus = $("fs-plus"), fsVal = $("fs-val");
     if (fsMinus && fsPlus && fsVal) {
       function fsGet() {
         var v = 100;
         try { v = parseInt(localStorage.getItem(K_FS), 10) || 100; } catch (e) {}
-        return Math.min(150, Math.max(85, v));
+        return Math.min(175, Math.max(85, v));
       }
       function fsApply(v) {
-        v = Math.min(150, Math.max(85, v));
+        v = Math.min(175, Math.max(85, v));
         document.documentElement.style.fontSize = (v === 100 ? "" : v + "%");
         try { localStorage.setItem(K_FS, String(v)); } catch (e) {}
         fsVal.textContent = v + "%";
         fsMinus.disabled = v <= 85;
-        fsPlus.disabled = v >= 150;
+        fsPlus.disabled = v >= 175;
       }
       fsApply(fsGet());
       fsMinus.addEventListener("click", function () { fsApply(fsGet() - 10); });

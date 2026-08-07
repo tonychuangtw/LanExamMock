@@ -443,23 +443,46 @@ check("shuffle does not mutate input", orig.join() === "1,2,3,4,5");
 
   const sum = c => c.part1 + c.part2 + c.part3 + c.part4 + c.rmc + c.lis;
   const base = logic.d25Counts([]);
-  check("d25Counts base allocation is 22 (3×4 UoE + 6 reading + 4 listening)",
-    sum(base) === 22 && base.rmc === 6 && base.lis === 4);
+  check("d25Counts base allocation is 18 (2×4 UoE + 6 reading + 4 listening)",
+    sum(base) === 18 && base.rmc === 6 && base.lis === 4);
   const boosted = logic.d25Counts([
     { key: "part1", n: 20, acc: 40 }, { key: "rmc", n: 20, acc: 90 }
   ]);
   check("d25Counts boosts weakest +2 and trims strongest -2",
-    boosted.part1 === 5 && boosted.rmc === 4 && sum(boosted) === 22);
+    boosted.part1 === 4 && boosted.rmc === 4 && sum(boosted) === 18);
   const close = logic.d25Counts([
     { key: "part1", n: 20, acc: 80 }, { key: "rmc", n: 20, acc: 85 }
   ]);
-  check("d25Counts skips boost when spread <10pts", sum(close) === 22 && close.part1 === 3);
+  check("d25Counts skips boost when spread <10pts", sum(close) === 18 && close.part1 === 2);
   const few = logic.d25Counts([{ key: "part1", n: 5, acc: 10 }]);
-  check("d25Counts ignores areas with <10 attempts", few.part1 === 3);
+  check("d25Counts ignores areas with <10 attempts", few.part1 === 2);
   const floor = logic.d25Counts([
     { key: "part2", n: 30, acc: 30 }, { key: "part3", n: 30, acc: 95 }
   ]);
-  check("d25Counts never trims a category below 1", floor.part3 >= 1 && floor.part2 === 5);
+  check("d25Counts never trims a category below 1", floor.part3 >= 1 && floor.part2 === 4);
+
+  /* d25Blocks：同 gid 條目必須連續出現，且不掉題、不重複 */
+  const mkEntries = () => [
+    { id: "u1" }, { id: "u2" }, { id: "u3" }, { id: "u4" },
+    { id: "ra1", gid: "r0" }, { id: "ra2", gid: "r0" },
+    { id: "rb1", gid: "r1" }, { id: "rb2", gid: "r1" },
+    { id: "l1", gid: "l0" }, { id: "l2", gid: "l0" }, { id: "l3", gid: "l0" }
+  ];
+  const blocked = logic.d25Blocks(mkEntries(), logic.d25Rng("2026-08-07|fce"));
+  check("d25Blocks keeps every entry exactly once",
+    blocked.length === 11 && new Set(blocked.map(e => e.id)).size === 11);
+  const contiguous = gid => {
+    const idxs = blocked.map((e, i) => e.gid === gid ? i : -1).filter(i => i >= 0);
+    return idxs.every((v, k) => k === 0 || v === idxs[k - 1] + 1);
+  };
+  check("d25Blocks keeps same-passage reading questions consecutive",
+    contiguous("r0") && contiguous("r1"));
+  check("d25Blocks keeps same-recording listening questions consecutive", contiguous("l0"));
+  check("d25Blocks preserves in-block order",
+    blocked.filter(e => e.gid === "l0").map(e => e.id).join() === "l1,l2,l3");
+  const b2 = logic.d25Blocks(mkEntries(), logic.d25Rng("2026-08-07|fce"));
+  check("d25Blocks deterministic for same seed",
+    blocked.map(e => e.id).join() === b2.map(e => e.id).join());
 }
 
 /* ---------- report ---------- */

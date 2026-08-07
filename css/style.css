@@ -879,3 +879,9 @@ input[type="number"]:focus {
   background: var(--accent-soft); color: var(--text2);
 }
 .d25-dot.on { background: var(--accent); color: var(--accent-contrast); }
+
+/* ---- Daily 20 防亂做：作答鎖與提示 ---- */
+.answers-locked .option-btn, .answers-locked .letter-btn {
+  pointer-events: none; opacity: 0.45;
+}
+.lock-chip { font-weight: 600; margin: 4px; }
