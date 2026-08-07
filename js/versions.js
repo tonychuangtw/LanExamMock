@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v7", date: "2026-08-07", items: [
+      "Question bank upgrade: 2 new reading passages (12 questions) and 2 new listening recordings (10 questions) at every level — KET to CPE, all original."
+    ]
+  },
+  {
     v: "v6", date: "2026-08-07", items: [
       "Review Test: pick past Daily-20 days (plus mistake-book items) and take a 20-question test scored out of 100 — see how much really stuck.",
       "Daily and Review now have their own tabs next to Progress.",
