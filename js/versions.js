@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v9", date: "2026-08-08", items: [
+      "Cross-account viewing: grant a parent or teacher read access by entering their Google email in the Parent/Teacher view — they sign in with their own account on any device and see the learner's full dashboard (revocable any time).",
+      "Daily practice now saves mid-run progress to the cloud: pause at question 10, reopen on any device, and continue from question 10 — no more starting over.",
+      "Faster sync: the site pulls the latest cloud progress on page open and when you return to the tab, and a stale background tab can no longer overwrite newer progress from another device."
+    ]
+  },
+  {
     v: "v8", date: "2026-08-08", items: [
       "Daily practice now ends with a spelling round: review 10 words of your level (same 10 all day), then spell each one from its definition — misses repeat until you get them all.",
       "Parent / Teacher view (button at the top of Progress): streak, last-14-day completion strip, 7-day first-try accuracy, words practised/mastered, accuracy by section, words that won't stick, and recent mistakes with the chosen vs correct answer.",

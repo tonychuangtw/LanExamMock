@@ -2975,48 +2975,92 @@ if (typeof document !== 'undefined') {
     }
   }
 
+  /* 單一條目 → 輕量參照（rvDecodeRef 的反向）；錯題本條目與未知型別回 null */
+  function d25RefOf(e) {
+    if (e.key) return null;   // 錯題本條目另以 key 表示
+    if (e.kind === "uoe") {
+      var qi = (QUESTIONS[e.payload.part] || []).indexOf(e.payload.q);
+      return qi >= 0 ? { k: e.payload.part, i: qi } : null;
+    }
+    if (e.kind === "rmc") {
+      var mcSets = rdPool("mc");
+      for (var s = 0; s < mcSets.length; s++) {
+        if (mcSets[s].title !== e.payload.title) continue;
+        var ri = mcSets[s].questions.indexOf(e.payload.q);
+        return ri >= 0 ? { k: "rmc", s: s, q: ri } : null;
+      }
+      return null;
+    }
+    if (e.kind === "lis") {
+      var L = window.LISTENING || [];
+      for (var t = 0; t < L.length; t++) {
+        if (L[t].title !== e.payload.title) continue;
+        var li = L[t].questions.indexOf(e.payload.q);
+        return li >= 0 ? { k: "lis", s: t, q: li } : null;
+      }
+      return null;
+    }
+    return null;
+  }
+
   /* 把當天題目存成輕量參照（Review Test 依此精確重組當日題組）；錯題本混入的條目不存 */
   function d25Refs(entries) {
-    var mcSets = rdPool("mc");
-    var L = window.LISTENING || [];
     var refs = [];
     entries.forEach(function (e) {
-      if (e.key) return;   // 錯題本條目
-      if (e.kind === "uoe") {
-        var qi = (QUESTIONS[e.payload.part] || []).indexOf(e.payload.q);
-        if (qi >= 0) refs.push({ k: e.payload.part, i: qi });
-      } else if (e.kind === "rmc") {
-        for (var s = 0; s < mcSets.length; s++) {
-          if (mcSets[s].title !== e.payload.title) continue;
-          var ri = mcSets[s].questions.indexOf(e.payload.q);
-          if (ri >= 0) refs.push({ k: "rmc", s: s, q: ri });
-          break;
-        }
-      } else if (e.kind === "lis") {
-        for (var t = 0; t < L.length; t++) {
-          if (L[t].title !== e.payload.title) continue;
-          var li = L[t].questions.indexOf(e.payload.q);
-          if (li >= 0) refs.push({ k: "lis", s: t, q: li });
-          break;
-        }
-      }
+      var r = d25RefOf(e);
+      if (r) refs.push(r);
     });
     return refs;
   }
 
-  function startDaily25() {
-    var rec = d25TodayRec();
-    if (rec && rec.done) { switchTab("tab-daily"); return; }
-    var entries = d25Compose();
-    if (entries.length < 10) { alert("Not enough questions available at this level yet."); return; }
-    var prev = d25TodayRec() || {};
-    prev.refs = d25Refs(entries);
-    d25SaveRec(prev);
+  /* ---- 中途進度續做（2026-08-08）：剩餘題目隊列存成參照，隨 <level>.* 雲端同步 ----
+   * 換裝置（或關掉分頁）再進 Daily，會從剩下的題目繼續，第一次答對數/用時照舊累計。 */
+  var K_DRUN = function () { return LEVEL + ".daily_run"; };
+
+  function d25SaveRun() {
+    if (!d25 || !drill || drill.prefix !== "d25") return;
+    var q = [];
+    drill.queue.forEach(function (e) {
+      var r = e.key ? { mb: e.key } : d25RefOf(e);
+      if (r) q.push({ r: r, s: d25.seen[e.d25i] ? 1 : 0 });
+    });
+    saveJSON(K_DRUN(), {
+      date: todayStr(), queue: q, firstTotal: d25.firstTotal,
+      firstOk: d25.firstOk, rush: d25.rush || 0, elapsed: Date.now() - d25.t0
+    });
+  }
+
+  function d25Resume(run) {
+    var book = mbLoad(), items = [];
+    (run.queue || []).forEach(function (it) {
+      var e = null;
+      if (it.r && it.r.mb) {
+        for (var i = 0; i < book.length; i++) {
+          if (book[i].key === it.r.mb) { e = { key: book[i].key, kind: book[i].kind, payload: book[i].payload }; break; }
+        }
+      } else if (it.r) {
+        e = rvDecodeRef(it.r);
+      }
+      if (e) { e._seen = it.s === 1; items.push(e); }
+    });
+    if (!items.length) { saveJSON(K_DRUN(), null); return false; }
+    items.forEach(function (e, i) { e.d25i = i; });
     mbReviewedThisSession = {};
-    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now(),
-            rush: 0, rushStreak: 0, slowdown: false, passSeen: {}, lisPlayed: {} };
+    d25 = { seen: {}, firstOk: run.firstOk || 0, firstTotal: run.firstTotal || items.length,
+            t0: Date.now() - (run.elapsed || 0), rush: run.rush || 0, rushStreak: 0,
+            slowdown: false, passSeen: {}, lisPlayed: {} };
+    items.forEach(function (e, i) { if (e._seen) d25.seen[i] = true; });
     switchTab("tab-daily");
-    startDrillGeneric({
+    startDrillGeneric(d25DrillCfg(items));
+    drill.total = d25.firstTotal;
+    drill.mastered = Math.max(0, d25.firstTotal - drill.queue.length);
+    $("d25-drill-progress").textContent = "Mastered " + drill.mastered + " / " + drill.total +
+      " · " + drill.queue.length + " in queue";
+    return true;
+  }
+
+  function d25DrillCfg(entries) {
+    return {
       prefix: "d25",
       summaryId: "daily-home",
       items: entries,
@@ -3035,6 +3079,7 @@ if (typeof document !== 'undefined') {
             if (!ok) { try { wlogAdd(e.stat || e.kind, wlogQText(e), txt, mbCorrectText(e)); } catch (err) {} }
           }
           done(ok, txt);
+          try { d25SaveRun(); } catch (err) {}   // 每答一題就把剩餘隊列存檔（換裝置可續做）
         });
         d25ApplyLock(e);
       },
@@ -3045,7 +3090,24 @@ if (typeof document !== 'undefined') {
       correctText: mbCorrectText,
       explText: mbExplText,
       onComplete: d25Complete
-    });
+    };
+  }
+
+  function startDaily25() {
+    var rec = d25TodayRec();
+    if (rec && rec.done) { switchTab("tab-daily"); return; }
+    var run = loadJSON(K_DRUN(), null);
+    if (run && run.date === todayStr() && run.queue && run.queue.length && d25Resume(run)) return;
+    var entries = d25Compose();
+    if (entries.length < 10) { alert("Not enough questions available at this level yet."); return; }
+    var prev = d25TodayRec() || {};
+    prev.refs = d25Refs(entries);
+    d25SaveRec(prev);
+    mbReviewedThisSession = {};
+    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now(),
+            rush: 0, rushStreak: 0, slowdown: false, passSeen: {}, lisPlayed: {} };
+    switchTab("tab-daily");
+    startDrillGeneric(d25DrillCfg(entries));
   }
 
   function d25Complete() {
@@ -3055,6 +3117,7 @@ if (typeof document !== 'undefined') {
     d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
                  rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs,
                  spell: prevRec.spell });
+    saveJSON(K_DRUN(), null);   // 今日已完成，清掉中途進度
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
     var perfect = d25.firstOk === d25.firstTotal;
@@ -3248,7 +3311,7 @@ if (typeof document !== 'undefined') {
       else startDaily25();
     });
     $("d25-drill-quit").addEventListener("click", function () {
-      if (!confirm("Quit today's Daily 20? Your progress in this run won't be saved.")) return;
+      if (!confirm("Pause today's Daily 20? Your progress is saved — continue any time, even on another device.")) return;
       mbStopAudio();
       d25 = null;
       $("d25-drill").classList.add("hidden");
@@ -3321,10 +3384,14 @@ if (typeof document !== 'undefined') {
           '<button id="dsp-start-late" class="primary-btn">✍️ Start spelling practice</button>';
       }
     } else {
+      var run = loadJSON(K_DRUN(), null);
+      var resumable = run && run.date === todayStr() && run.queue && run.queue.length;
       html += "<p>Your mission today: <strong>20 questions</strong> mixed from Use of English, Reading and Listening" +
         (wk && wk.acc >= 0 && wk.acc < 100 ? ", tuned toward your weakest area (" + esc(wk.area.label) + ")" : "") +
         ", then a <strong>10-word spelling round</strong>. Wrong answers go back in the queue until you master every one.</p>" +
-        '<button id="d25-start" class="primary-btn">Start today\'s mission</button>';
+        (resumable
+          ? '<button id="d25-start" class="primary-btn">Continue today\'s mission (' + run.queue.length + ' left)</button>'
+          : '<button id="d25-start" class="primary-btn">Start today\'s mission</button>');
     }
     var dots = "";
     for (var i = 6; i >= 0; i--) {
@@ -3734,14 +3801,25 @@ if (typeof document !== 'undefined') {
     return '<div class="pt-tile"><div class="pt-num">' + num + '</div><div class="pt-label">' + label + "</div></div>";
   }
 
-  function renderParent() {
+  /* ext = { level, blob, email }：家長帳號檢視被授權孩子時，資料改讀對方雲端 blob（唯讀） */
+  function renderParent(ext) {
     var body = $("parent-body");
-    var hist = loadJSON(K_D25(), {});
-    var s = loadJSON(K_STREAK(), { current: 0, best: 0 });
+    function sget(suffix, fb) {
+      if (ext) {
+        var raw = ext.blob[ext.level + "." + suffix];
+        if (raw == null) return fb;
+        try { return JSON.parse(raw); } catch (e) { return fb; }
+      }
+      return loadJSON(LEVEL + "." + suffix, fb);
+    }
+    var lvlLabel = (ext ? ext.level : LEVEL).toUpperCase();
+    var hist = sget("daily25", {});
+    var s = sget("streak", { current: 0, best: 0 });
     var todayRec = hist[todayStr()];
     var html = "";
 
-    html += '<div class="card"><h3>' + esc(LEVEL.toUpperCase()) + " learner" +
+    html += '<div class="card"><h3>' + esc(lvlLabel) + " learner" +
+      (ext ? ' <span class="hint-inline">viewing ' + esc(ext.email) + "</span>" : "") +
       '<span class="streak-tag">🔥 ' + (s.current || 0) + "-day streak" +
       (s.best > (s.current || 0) ? " · best " + s.best : "") + "</span></h3>" +
       (todayRec && todayRec.done
@@ -3763,7 +3841,7 @@ if (typeof document !== 'undefined') {
       var rj = hist[todayStr(Date.now() - j * DAY_MS)];
       if (rj && rj.done) { ok7 += rj.firstOk || 0; tot7 += rj.total || 0; }
     }
-    var vst = loadJSON(K_VOCAB, {});
+    var vst = ext ? sget("vocab_state", {}) : loadJSON(K_VOCAB, {});
     var practiced = 0, mastered = 0;
     Object.keys(vst).forEach(function (k) {
       if (vst[k] && vst[k].last) practiced++;
@@ -3775,17 +3853,20 @@ if (typeof document !== 'undefined') {
       ptTile(String(mastered), "words mastered") +
       "</div>";
 
+    var roll = sget("roll", {});
     var secHtml = "";
     WK_AREAS.forEach(function (a) {
-      var m = masteryOf(a.stat);
-      if (!m.n) return;
-      secHtml += barRow(a.label, "last " + m.n + " answers · " + m.acc + "% correct", m.acc, m.acc >= 80);
+      var arr = roll[a.stat] || [];
+      if (!arr.length) return;
+      var okN = arr.reduce(function (x, y) { return x + y; }, 0);
+      var acc = Math.round(100 * okN / arr.length);
+      secHtml += barRow(a.label, "last " + arr.length + " answers · " + acc + "% correct", acc, acc >= 80);
     });
     html += '<div class="card"><h3>Accuracy by section</h3>' +
       "<p class='hint'>Based on the most recent 30 answers in each section.</p>" +
       (secHtml || "<p class='hint'>No answers recorded yet — accuracy appears after some practice.</p>") + "</div>";
 
-    var ww = loadJSON(K_WW(), {});
+    var ww = sget("word_wrong", {});
     var defs = {};
     ((typeof VOCAB !== "undefined" && VOCAB) || []).forEach(function (c) { defs[c.front] = c.def; });
     var sticky = Object.keys(ww).map(function (k) { return { w: k, n: ww[k].n, last: ww[k].last }; })
@@ -3804,7 +3885,7 @@ if (typeof document !== 'undefined') {
     html += "</div>";
 
     var cut = Date.now() - 14 * DAY_MS;
-    var log = loadJSON(K_WLOG(), []).filter(function (e) { return e.ts >= cut; });
+    var log = sget("wrong_log", []).filter(function (e) { return e.ts >= cut; });
     log.sort(function (a, b) { return b.ts - a.ts; });
     html += '<div class="card"><h3>Recent mistakes <span class="hint-inline">last 14 days · ' + log.length + "</span></h3>";
     if (!log.length) {
@@ -3834,6 +3915,162 @@ if (typeof document !== 'undefined') {
     if (rows) html += '<div class="card"><h3>Daily practice history</h3><ul class="mock-history">' + rows + "</ul></div>";
 
     body.innerHTML = html;
+    renderParentCloud(body, ext);
+  }
+
+  /* ---- Cross-account viewing: grant a parent/teacher email read access (backend /api/grants) ---- */
+
+  var ptChild = null;   // { email, levels: [{level, blob, updatedAt}] } while viewing a child
+
+  function ptApi(method, path, body, cb) {
+    var cs = window.CloudSync;
+    if (!cs || !cs.signedIn()) { cb("auth"); return; }
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, cs.apiBase + path);
+    xhr.setRequestHeader("Authorization", "Bearer " + cs.token());
+    if (body) xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onload = function () {
+      var data = null;
+      try { data = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status < 200 || xhr.status >= 300) cb((data && data.error) || ("http " + xhr.status));
+      else cb(null, data);
+    };
+    xhr.onerror = function () { cb("network"); };
+    xhr.send(body ? JSON.stringify(body) : null);
+  }
+
+  /* A child may practise at any level — probe all five and default to the freshest. */
+  function ptLoadChild(email, wantLevel) {
+    if (ptChild && ptChild.email === email && ptChild.levels.length) {
+      var pick0 = null;
+      ptChild.levels.forEach(function (c) { if (c.level === wantLevel) pick0 = c; });
+      pick0 = pick0 || ptChild.levels[0];
+      renderParent({ level: pick0.level, blob: pick0.blob, email: email });
+      return;
+    }
+    var levels = ["ket", "pet", "fce", "cae", "cpe"];
+    var found = [], pending = levels.length;
+    levels.forEach(function (lvl) {
+      ptApi("GET", "/api/progress?level=" + lvl + "&app=lanexammock&owner=" + encodeURIComponent(email), null, function (err, res) {
+        if (!err && res && res.blob) found.push({ level: lvl, blob: res.blob, updatedAt: res.updatedAt || 0 });
+        if (--pending > 0) return;
+        if (!found.length) { alert("No cloud data for " + email + " yet — they need to sign in and practise first."); return; }
+        found.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+        ptChild = { email: email, levels: found };
+        var pick = found[0];
+        found.forEach(function (c) { if (c.level === wantLevel) pick = c; });
+        renderParent({ level: pick.level, blob: pick.blob, email: email });
+      });
+    });
+  }
+
+  function renderParentCloud(body, ext) {
+    var box = document.createElement("div");
+    box.className = "card pt-cloud";
+    body.insertBefore(box, body.firstChild);
+    var cs = window.CloudSync;
+    if (!cs || !cs.signedIn()) {
+      box.innerHTML = "<p class='hint'>☁️ Sign in with Google (top right) to grant a parent or teacher read access to this learner's progress — they can then open this page from their own account on any device.</p>";
+      return;
+    }
+    box.innerHTML = "<p class='hint'>☁️ Loading sharing settings…</p>";
+    ptApi("GET", "/api/grants?app=lanexammock", null, function (err, res) {
+      if (err) { box.innerHTML = "<p class='hint'>⚠️ Cloud unavailable (" + esc(err) + ") — showing this device's data only.</p>"; return; }
+      box.innerHTML = "";
+      var received = (res && res.received) || [];
+      if (received.length || ext) {
+        var row = document.createElement("div");
+        row.className = "pt-viewrow";
+        var lab = document.createElement("span");
+        lab.className = "hint-inline";
+        lab.textContent = "Viewing: ";
+        row.appendChild(lab);
+        var selfBtn = document.createElement("button");
+        selfBtn.className = "ghost-btn small" + (ext ? "" : " selected");
+        selfBtn.textContent = "This device (me)";
+        selfBtn.addEventListener("click", function () { renderParent(); });
+        row.appendChild(selfBtn);
+        received.forEach(function (g) {
+          var b = document.createElement("button");
+          b.className = "ghost-btn small" + (ext && ext.email === g.ownerEmail ? " selected" : "");
+          b.textContent = "👧 " + g.ownerEmail;
+          b.addEventListener("click", function () { ptLoadChild(g.ownerEmail); });
+          row.appendChild(b);
+        });
+        box.appendChild(row);
+        /* level switcher while viewing a child with data at several levels */
+        if (ext && ptChild && ptChild.email === ext.email && ptChild.levels.length > 1) {
+          var lrow = document.createElement("div");
+          lrow.className = "pt-viewrow";
+          var llab = document.createElement("span");
+          llab.className = "hint-inline";
+          llab.textContent = "Level: ";
+          lrow.appendChild(llab);
+          ptChild.levels.forEach(function (c) {
+            var lb = document.createElement("button");
+            lb.className = "ghost-btn small" + (c.level === ext.level ? " selected" : "");
+            lb.textContent = c.level.toUpperCase();
+            lb.addEventListener("click", function () { ptLoadChild(ext.email, c.level); });
+            lrow.appendChild(lb);
+          });
+          box.appendChild(lrow);
+        }
+      }
+      if (ext) return;   // hide my own grant management while viewing someone else
+      var granted = (res && res.granted) || [];
+      var title = document.createElement("p");
+      title.className = "hint";
+      title.textContent = "🔗 Grant a parent / teacher read access (their Google email):";
+      box.appendChild(title);
+      if (granted.length) {
+        var glist = document.createElement("div");
+        glist.className = "pt-words";
+        granted.forEach(function (g) {
+          var em = g.viewer_email || g.viewerEmail || "";
+          var chip = document.createElement("span");
+          chip.className = "pt-word";
+          var bb = document.createElement("strong");
+          bb.textContent = em;
+          chip.appendChild(bb);
+          var del = document.createElement("button");
+          del.className = "ghost-btn small pt-revoke";
+          del.textContent = "✕";
+          del.title = "Revoke access";
+          del.addEventListener("click", function () {
+            if (!confirm("Revoke access for " + em + "?")) return;
+            ptApi("DELETE", "/api/grants?app=lanexammock&viewerEmail=" + encodeURIComponent(em), null, function (derr) {
+              if (derr) { alert("Failed: " + derr); return; }
+              renderParent();
+            });
+          });
+          chip.appendChild(del);
+          glist.appendChild(chip);
+        });
+        box.appendChild(glist);
+      }
+      var form = document.createElement("div");
+      form.className = "vb-type-row";
+      var inp = document.createElement("input");
+      inp.type = "email";
+      inp.className = "answer-input";
+      inp.placeholder = "parent@gmail.com";
+      var btn2 = document.createElement("button");
+      btn2.className = "primary-btn";
+      btn2.textContent = "Grant access";
+      btn2.addEventListener("click", function () {
+        var em = (inp.value || "").trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { alert("Please enter a valid email."); return; }
+        btn2.disabled = true;
+        ptApi("POST", "/api/grants?app=lanexammock", { viewerEmail: em, role: "viewer" }, function (aerr) {
+          btn2.disabled = false;
+          if (aerr) { alert("Failed: " + aerr); return; }
+          renderParent();
+        });
+      });
+      form.appendChild(inp);
+      form.appendChild(btn2);
+      box.appendChild(form);
+    });
   }
 
   function initParent() {

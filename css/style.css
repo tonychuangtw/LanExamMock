@@ -959,3 +959,9 @@ input[type="number"]:focus {
   .pt-tile { padding: 10px 6px; }
   .pt-num { font-size: 1.2rem; }
 }
+
+/* ---- Parent dashboard: cross-account viewing rows ---- */
+.pt-viewrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.pt-cloud .vb-type-row { margin-top: 8px; }
+.pt-revoke { min-height: 0; padding: 2px 8px; margin: 0 0 0 6px; }
+.ghost-btn.selected { border-color: var(--accent); color: var(--accent); }
