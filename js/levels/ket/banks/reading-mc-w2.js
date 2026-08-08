@@ -366,6 +366,80 @@ var BANK = [
       }
     ]
   }
+,
+  {
+    id: "k-rmc2-06",
+    title: "The School Cooking Club",
+    text: "My name is Sofia and I am twelve. On Thursdays after school, I go to the cooking club in the school kitchen. Our teacher is Mr Reed. He teaches maths in the day, but cooking is his hobby, and his lessons are never boring. There are ten children in the club. My best friend Emma joined last month because she saw the biscuits I made and wanted to learn too. Last week we made vegetable soup and bread. Mr Reed showed us how to cut onions without crying: you put them in cold water first. It really works! My job was to measure the flour for the bread. It is important to read the numbers carefully, because too much flour makes the bread hard. While the bread was in the oven, we washed the dishes and wrote the recipe in our club books. The smell was wonderful, and the waiting was the most difficult part of the day. When the bread was ready, we each took a piece home. My dad said it was better than the bread from the supermarket! Next month, there is a small competition in the club. Everyone will cook one dish from another country. I want to make sushi, but rice is not easy to cook well, so I am practising at home this weekend. Emma is going to make Spanish omelette because her grandmother comes from Madrid and taught her the recipe on a video call. I don't know who will win, but I know Thursday is my favourite day.",
+    questions: [
+      {
+        q: "Who is Mr Reed?",
+        options: [
+          "The school cook",
+          "A maths teacher who loves cooking",
+          "Sofia's father",
+          "A chef from a restaurant"
+        ],
+        answer: 1,
+        explanation: "The text says \"He teaches maths in the day, but cooking is his hobby\"."
+      },
+      {
+        q: "Why did Emma join the club?",
+        options: [
+          "Her grandmother told her to",
+          "Mr Reed invited her",
+          "She saw Sofia's biscuits and wanted to learn too",
+          "She needed help with maths"
+        ],
+        answer: 2,
+        explanation: "Emma joined \"because she saw the biscuits I made and wanted to learn too\"."
+      },
+      {
+        q: "What is Mr Reed's trick for cutting onions without crying?",
+        options: [
+          "Put them in cold water first",
+          "Cut them very slowly",
+          "Wear special glasses",
+          "Cook them whole"
+        ],
+        answer: 0,
+        explanation: "He showed the club that \"you put them in cold water first\"."
+      },
+      {
+        q: "Why must Sofia read the numbers carefully when measuring flour?",
+        options: [
+          "Because Mr Reed checks the club books",
+          "Because flour is expensive",
+          "Because the recipe is in another language",
+          "Because too much flour makes the bread hard"
+        ],
+        answer: 3,
+        explanation: "The text explains that \"too much flour makes the bread hard\"."
+      },
+      {
+        q: "What was the most difficult part of the day for Sofia?",
+        options: [
+          "Waiting while the bread was in the oven",
+          "Washing the dishes",
+          "Cutting the onions",
+          "Writing the recipe"
+        ],
+        answer: 0,
+        explanation: "She says \"the waiting was the most difficult part of the day\" while the bread was in the oven."
+      },
+      {
+        q: "Why is Sofia practising cooking rice this weekend?",
+        options: [
+          "Her dad wants sushi for dinner",
+          "Emma asked her to help",
+          "She wants to make sushi for the competition and rice is not easy to cook",
+          "The club is closed next week"
+        ],
+        answer: 2,
+        explanation: "She wants to make sushi for the competition, \"but rice is not easy to cook well, so I am practising at home\"."
+      }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.READING = window.READING || { mc: [], gap: [], match: [] };

@@ -439,6 +439,80 @@ var BANK = [
       }
     ]
   }
+,
+  {
+    "id": "c-rmc2-07",
+    "title": "The Beekeeping Boom's Uncomfortable Truths",
+    "text": "Ten years ago, a beehive on an office roof was a statement; today it is practically a corporate cliché. Banks, museums and tech campuses across Europe's cities have installed hives by the thousand, each accompanied by a press release about 'saving the bees'. It is an appealing story with one inconvenient flaw: the bees being saved are, by and large, not the ones in trouble. The honeybee is a managed, domesticated species — livestock, in effect — and its global numbers have been rising for decades. The pollinators genuinely at risk are the hundreds of wild species: bumblebees, solitary bees and hoverflies, many of which are declining at alarming speed. Worse, a growing body of research suggests the two facts are connected. A single honeybee colony can harvest a large share of the nectar and pollen within flying distance, and in flower-poor urban environments this puts it in direct competition with wild insects that cannot be trucked to better pastures. Studies in Paris and Berlin, two capitals of the urban beekeeping boom, have recorded measurably lower wild-bee diversity in areas dense with hives. Some ecologists now compare installing rooftop hives 'for biodiversity' to releasing chickens into a forest and celebrating the return of wild birds. None of this makes urban honeybees villains, and researchers are careful to stress that the picture is not uniform: where flowers are abundant, competition may be negligible. The deeper problem, they argue, is what the hives displace — not nectar, but attention and budget. A company that has spent its sustainability allowance on two photogenic hives and a honey-tasting afternoon may reasonably feel it has done its bit, when the same money spent on pesticide-free wildflower planting, bare soil for ground-nesting species and untidy corners left unmown would have delivered vastly more for the insects that actually need help. The advice emerging from the science is therefore disarmingly modest. If you want honey, keep bees, and enjoy them — as agriculture. If you want biodiversity, plant flowers, tolerate mess, and count how many kinds of visitor arrive, not how many kilograms one species produces. And if a landlord shows you a rooftop hive as proof of environmental virtue, the polite but pointed question to ask is the one ecologists keep asking: what, exactly, is this saving — and what would the alternative have saved instead?",
+    "questions": [
+      {
+        "q": "What is the 'inconvenient flaw' in the corporate story about rooftop hives?",
+        "options": [
+          "Rooftop hives produce very little honey",
+          "The honeybees being 'saved' are not the pollinators genuinely at risk",
+          "Press releases exaggerate the number of hives installed",
+          "Most companies are not legally allowed to keep bees"
+        ],
+        "answer": 1,
+        "explanation": "The honeybee is managed livestock whose numbers have been rising; the species genuinely at risk are wild pollinators."
+      },
+      {
+        "q": "In flower-poor cities, honeybee colonies may harm wild insects because honeybees",
+        "options": [
+          "spread diseases through their honey",
+          "attack solitary bees directly",
+          "are regularly moved between cities",
+          "take a large share of the limited nectar and pollen"
+        ],
+        "answer": 3,
+        "explanation": "A single colony \"can harvest a large share of the nectar and pollen within flying distance\", competing with wild insects."
+      },
+      {
+        "q": "The comparison with releasing chickens into a forest suggests that",
+        "options": [
+          "keeping a managed species is not the same as helping wild ones",
+          "chickens are ecologically as useful as bees",
+          "forests would benefit from more livestock",
+          "wild birds return wherever chickens are released"
+        ],
+        "answer": 0,
+        "explanation": "The analogy mocks the idea that adding domesticated animals ('livestock, in effect') counts as restoring wild biodiversity."
+      },
+      {
+        "q": "According to the article, the 'deeper problem' with corporate hives is that they",
+        "options": [
+          "produce inferior honey",
+          "breach urban planning rules",
+          "absorb attention and budgets that could achieve far more elsewhere",
+          "make landlords complacent about pesticide use"
+        ],
+        "answer": 2,
+        "explanation": "What the hives displace is \"not nectar, but attention and budget\" that could fund measures wild insects actually need."
+      },
+      {
+        "q": "Which action does the article suggest delivers most for endangered pollinators?",
+        "options": [
+          "Installing more hives on each roof",
+          "Pesticide-free wildflower planting, bare soil and unmown corners",
+          "Holding honey-tasting events to raise awareness",
+          "Moving hives to flower-rich cities"
+        ],
+        "answer": 1,
+        "explanation": "The same money spent on wildflowers, bare soil and untidy corners \"would have delivered vastly more for the insects that actually need help\"."
+      },
+      {
+        "q": "The closing question ecologists keep asking is designed to",
+        "options": [
+          "embarrass amateur beekeepers",
+          "calculate honey yields more precisely",
+          "prove that hives are always harmful",
+          "weigh what a hive achieves against what the money could have achieved instead"
+        ],
+        "answer": 3,
+        "explanation": "\"What, exactly, is this saving — and what would the alternative have saved instead?\" asks for a comparison of outcomes, not a verdict on bees."
+      }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.READING = window.READING || { mc: [], gap: [], match: [] };

@@ -438,6 +438,80 @@ var BANK = [
       }
     ]
   }
+,
+  {
+    id: "f-rmc2-07",
+    title: "The Silent Book Club",
+    text: "The first rule of Silent Book Club is that nobody has to talk about the book. On a wet Tuesday evening in a corner of a Manchester pub, twenty-three people are reading twenty-three different books, and the only sounds are turning pages and the occasional clink of a glass. To anyone raised on traditional book groups — one assigned novel, one date, one slightly tense discussion about who actually finished it — the concept sounds almost rebellious. Members arrive, order a drink, announce (if they feel like it) what they are reading, and then simply read, together and separately, for an hour. A short break follows for those who fancy chatting; plenty don't, and that is fine. The format was invented in California in 2012 by two friends who loved reading but had grown to dread the homework feeling of their book group. It has since spread to dozens of countries. Organisers say the appeal is precisely what it removes: the deadline, the guilt, the performance. \"In a normal book club, you spend the evening defending your opinion,\" says Priya, who runs the Manchester chapter. \"Here the book doesn't have to be good. You don't even have to finish it. The point is protecting the time.\" Sceptics might ask why people need to leave home in order to ignore each other, an accusation Priya cheerfully accepts. \"You could read alone in your flat. But you don't, do you? You do the laundry, you scroll your phone. Sitting in a room of readers is like going to the gym with a friend — the company keeps you honest.\" Research on 'body doubling', the technique of working alongside another person, offers her some support: the mere presence of others engaged in the same task appears to reduce the urge to switch activities. Whatever the mechanism, the numbers suggest the silence is filling a gap. The Manchester group began with four members; two years later, there is a waiting list. As Priya puts it, \"Loneliness isn't the absence of people. It's the absence of shared attention — and an hour of that, it turns out, is enough.\"",
+    questions: [
+      {
+        q: "What happens at a Silent Book Club meeting?",
+        options: [
+          "Everyone discusses one assigned novel",
+          "Members take turns reading aloud",
+          "People read their own books side by side, mostly in silence",
+          "The organiser checks who finished the book"
+        ],
+        answer: 2,
+        explanation: "Twenty-three people read twenty-three different books; members \"simply read, together and separately, for an hour\"."
+      },
+      {
+        q: "The founders created the format because traditional book groups",
+        options: [
+          "had started to feel like homework",
+          "met too rarely",
+          "were too expensive",
+          "chose books that were too difficult"
+        ],
+        answer: 0,
+        explanation: "The two friends \"had grown to dread the homework feeling of their book group\"."
+      },
+      {
+        q: "According to Priya, the main point of the club is",
+        options: [
+          "discovering better books",
+          "learning to defend your opinions",
+          "finishing more novels",
+          "protecting time to read"
+        ],
+        answer: 3,
+        explanation: "She says the book doesn't have to be good or even finished: \"The point is protecting the time.\""
+      },
+      {
+        q: "How does Priya respond to the criticism that members just ignore each other?",
+        options: [
+          "She denies that it ever happens",
+          "She accepts it cheerfully and explains why the company still helps",
+          "She makes talking compulsory in her chapter",
+          "She blames mobile phones"
+        ],
+        answer: 1,
+        explanation: "It is \"an accusation Priya cheerfully accepts\", before comparing the club to going to the gym with a friend."
+      },
+      {
+        q: "The research mentioned suggests that the presence of others doing the same task",
+        options: [
+          "makes people less likely to switch to another activity",
+          "improves reading speed",
+          "increases feelings of loneliness",
+          "only works during exercise"
+        ],
+        answer: 0,
+        explanation: "Body-doubling research shows the presence of others engaged in the same task \"appears to reduce the urge to switch activities\"."
+      },
+      {
+        q: "What does Priya suggest about loneliness at the end of the article?",
+        options: [
+          "It disappears when you live with other people",
+          "It is caused by reading alone",
+          "It comes from lacking shared attention rather than lacking people",
+          "It cannot be helped by one hour a week"
+        ],
+        answer: 2,
+        explanation: "\"Loneliness isn't the absence of people. It's the absence of shared attention — and an hour of that, it turns out, is enough.\""
+      }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.READING = window.READING || { mc: [], gap: [], match: [] };

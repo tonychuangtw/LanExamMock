@@ -366,6 +366,80 @@ var BANK = [
       }
     ]
   }
+,
+  {
+    id: "p-rmc2-06",
+    title: "The Night the Lights Went Out",
+    text: "Last February, at about seven in the evening, every light in our street went out at the same time. I was doing my homework, and suddenly the house was completely dark and strangely quiet — no fridge humming, no television from the living room. Dad found the torch, and through the window we could see our neighbours doing the same, little lights moving behind the glass like fireflies. The electricity company's message said engineers were working on the problem, but power might not return until midnight. Mum looked at the freezer and made a quick decision. 'Everything in here will melt,' she said. 'Let's cook it.' She lit the gas cooker, and soon the kitchen smelled of sausages and onions. Dad knocked on the doors of the two houses next to ours to invite them over. Mrs Ellis, who has lived alone next door since her husband died, arrived with a box of candles. The Novak family brought bread and a big bag of marshmallows. We ate in the candlelight, and the adults talked for hours. I learned that Mr Novak had once played basketball for his country, and that Mrs Ellis used to be a nurse in a hospital far up in the mountains, where power cuts happened every winter. 'A blackout is only boring if you spend it alone,' she told us, toasting a marshmallow over a candle. My little brother thought this was the best party he had ever been to. The lights came back just before eleven. Everyone cheered, and then, a little sadly, went home. The next morning, the street looked the same as always, but it didn't feel the same. We had lived next to these people for six years and knew almost nothing about them. Now Mrs Ellis waves at me through the window every morning, and Mum and Mrs Novak go swimming together on Fridays. Sometimes I catch myself hoping the lights will go out again.",
+    questions: [
+      {
+        q: "What was the first sign that something was wrong?",
+        options: [
+          "The fridge broke down",
+          "The television was too loud",
+          "Dad couldn't find the torch",
+          "The house suddenly became dark and quiet"
+        ],
+        answer: 3,
+        explanation: "The lights went out and the house was \"completely dark and strangely quiet — no fridge humming, no television\"."
+      },
+      {
+        q: "Why did Mum decide to cook the food from the freezer?",
+        options: [
+          "It would melt before the power returned",
+          "The family had already invited guests",
+          "It was her turn to cook for the street",
+          "The gas cooker was new and she wanted to try it"
+        ],
+        answer: 0,
+        explanation: "Power might not return until midnight, so she said \"Everything in here will melt. Let's cook it.\""
+      },
+      {
+        q: "Who did Dad invite to the house?",
+        options: [
+          "The engineers from the electricity company",
+          "His friends from work",
+          "The neighbours from the two houses next door",
+          "His brother's family"
+        ],
+        answer: 2,
+        explanation: "Dad \"knocked on the doors of the two houses next to ours to invite them over\"."
+      },
+      {
+        q: "What do we learn about Mrs Ellis?",
+        options: [
+          "She played basketball for her country",
+          "She used to be a nurse in a mountain hospital",
+          "She works for the electricity company",
+          "She is afraid of the dark"
+        ],
+        answer: 1,
+        explanation: "Mrs Ellis \"used to be a nurse in a hospital far up in the mountains, where power cuts happened every winter\"."
+      },
+      {
+        q: "What did Mrs Ellis mean by her comment about blackouts?",
+        options: [
+          "Blackouts are dangerous for older people",
+          "Winter blackouts are the worst kind",
+          "Toasting marshmallows needs a lot of practice",
+          "A blackout is only dull if you spend it alone"
+        ],
+        answer: 3,
+        explanation: "She said \"A blackout is only boring if you spend it alone\" while enjoying the candlelit evening together."
+      },
+      {
+        q: "How did the street change after that night?",
+        options: [
+          "The neighbours moved away one by one",
+          "The neighbours now know each other and meet regularly",
+          "Everyone bought bigger torches",
+          "The power cuts continued every week"
+        ],
+        answer: 1,
+        explanation: "Mrs Ellis now waves every morning and \"Mum and Mrs Novak go swimming together on Fridays\"."
+      }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.READING = window.READING || { mc: [], gap: [], match: [] };

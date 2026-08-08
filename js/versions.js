@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v10", date: "2026-08-08", items: [
+      "Question bank upgrade: one new original reading passage (6 questions) at every level, KET to CPE, difficulty rising from a school cooking club story to a C2 essay on memory and forgetting."
+    ]
+  },
+  {
     v: "v9", date: "2026-08-08", items: [
       "Cross-account viewing: grant a parent or teacher read access by entering their Google email in the Parent/Teacher view — they sign in with their own account on any device and see the learner's full dashboard (revocable any time).",
       "Daily practice now saves mid-run progress to the cloud: pause at question 10, reopen on any device, and continue from question 10 — no more starting over.",

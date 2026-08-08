@@ -438,6 +438,80 @@ var BANK = [
       }
     ]
   }
+,
+  {
+    id: "p-rmc2-07",
+    title: "In Praise of Forgetting",
+    text: "There is a photograph of me, aged seven, mid-tantrum at a family picnic, that resurfaces every August. My phone serves it up with algorithmic good cheer — On this day — and every year I am returned, whether I wish it or not, to a grievance the intervening decades had sensibly dissolved. My grandmother, who owned perhaps forty photographs in her whole life, was granted no such punctuality. Her past faded as pasts were long designed to: unevenly, mercifully, its edges smoothed by retelling until what remained was less a record than a story she could live with. It has become customary to speak of forgetting as failure — of storage, of attention, of duty. The sciences of memory suggest something closer to the opposite. Forgetting is not memory's absence but one of its functions: the sieve through which experience is passed so that the significant may settle. Remove the sieve and you do not get total recall so much as paralysis. Borges understood this when he imagined Funes, the young man who, unable to forget anything, becomes incapable of thought — for to think, Borges observes, is to abstract, to generalise, and generalisation is precisely what a perfect memory forbids. The digital archive has quietly abolished the distinction between keeping and curating on which that older, healthier forgetting depended. Storage being effectively free, deletion has become the act that requires effort, and the default — for photographs, messages, search histories, the offhand cruelties of adolescence — is permanence. We have inverted the ancient economy of memory: for most of history, remembering was laborious and forgetting cost nothing; now the labour lies entirely in disposal. The legal scholar Viktor Mayer-Schönberger has proposed expiration dates for data, arguing that a society which can never forget risks becoming one that can never forgive, and Europe's 'right to be forgotten' represents a first, contested attempt to restore by regulation the decay rate that technology removed. Its critics call this censorship; its defenders reply that nobody ever called the fading of a rumour censorship — that oblivion, arriving on schedule, was always part of how communities allowed people to change. I do not want my grandmother's forty photographs; the archive has given me much that I treasure. But I have begun, deliberately, to delete — not the record of what happened, which nobody edits honestly, but the debris that a wiser instrument would never have kept. It feels, each time, less like loss than like exhaling.",
+    questions: [
+      {
+        q: "The writer contrasts the phone's 'On this day' feature with his grandmother's photographs to show that",
+        options: [
+          "older photographs were of higher quality",
+          "his grandmother cared little for her own past",
+          "the past once faded naturally, whereas the archive now revives it on schedule",
+          "modern families take far too many photographs"
+        ],
+        answer: 2,
+        explanation: "The phone returns the picnic photo every August, while the grandmother's past \"faded as pasts were long designed to\"."
+      },
+      {
+        q: "According to the second paragraph, forgetting is best understood as",
+        options: [
+          "a functional part of memory that filters experience",
+          "a failure of storage and attention",
+          "a moral duty towards the past",
+          "an illness that science may one day cure"
+        ],
+        answer: 0,
+        explanation: "Forgetting is \"not memory's absence but one of its functions: the sieve through which experience is passed\"."
+      },
+      {
+        q: "Borges's Funes is cited to illustrate that",
+        options: [
+          "perfect memory is a common literary fantasy",
+          "fiction routinely exaggerates scientific findings",
+          "memory training can be psychologically dangerous",
+          "thought itself depends on the ability to forget and generalise"
+        ],
+        answer: 3,
+        explanation: "Funes, unable to forget, \"becomes incapable of thought\", since generalisation \"is precisely what a perfect memory forbids\"."
+      },
+      {
+        q: "The 'inverted economy of memory' refers to the fact that",
+        options: [
+          "photographs now cost more to print than to take",
+          "forgetting once cost nothing but now requires deliberate effort",
+          "remembering has become impossible without devices",
+          "the price of digital storage keeps rising"
+        ],
+        answer: 1,
+        explanation: "\"For most of history, remembering was laborious and forgetting cost nothing; now the labour lies entirely in disposal.\""
+      },
+      {
+        q: "Defenders of the 'right to be forgotten' argue that it",
+        options: [
+          "prevents all criticism of public figures",
+          "makes genuine censorship easier to detect",
+          "restores a natural decay rate that technology eliminated",
+          "hands governments control of private archives"
+        ],
+        answer: 2,
+        explanation: "Defenders say oblivion \"arriving on schedule\" was always normal — the law merely restores \"the decay rate that technology removed\"."
+      },
+      {
+        q: "In the final paragraph, deleting files feels 'like exhaling' because it",
+        options: [
+          "relieves the writer of accumulated debris he never needed to keep",
+          "frees storage space on his phone",
+          "erases the record of what actually happened",
+          "brings back memories of his grandmother"
+        ],
+        answer: 0,
+        explanation: "He deletes \"not the record of what happened … but the debris that a wiser instrument would never have kept\" — a release, not a loss."
+      }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.READING = window.READING || { mc: [], gap: [], match: [] };
