@@ -121,6 +121,9 @@
     { text: "The pay rise, once inflation is counted, is nothing to write ____ about.", answers: ["home"], explanation: "'Nothing to write home about' means unremarkable, not worth reporting." },
     { text: "After months of glitches, the booking system is finally up and ____.", answers: ["running"], explanation: "'Up and running' means fully operational, especially of systems and ventures." },
     { text: "I'll stay in tonight — I've been feeling a little ____ the weather.", answers: ["under"], explanation: "'Under the weather' means slightly unwell." },
+,
+    {"text": "Little ____ he know that the letter would change his life.", "answers": ["did"], "explanation": "After 'Little' the auxiliary inverts: 'Little did he know…'"},
+    {"text": "It was only by sheer chance that the manuscript came to ____.", "answers": ["light"], "explanation": "'Come to light' = become known or be discovered."}
   ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   QUESTIONS.part2 = QUESTIONS.part2.concat(BANK);

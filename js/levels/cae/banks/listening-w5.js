@@ -19,6 +19,35 @@ var BANK = [
       { q: "What does Tomas's iceberg comparison refer to?", options: ["The size of conference venues.", "The difficulty of technical vocabulary.", "The number of interpreters at a conference.", "The unseen preparation behind the visible work."], answer: 3, explanation: "Days of glossary-building and research mean the interpreting itself 'is the visible tenth of the iceberg'." },
       { q: "What does Tomas suggest about his 'please laugh now' solution?", options: ["It paradoxically achieves the joke's purpose.", "It always offends the speaker.", "It is forbidden in formal settings.", "It only works for wordplay."], answer: 0, explanation: "Delegates always laugh — 'which, if you think about it, means the joke worked after all'." }
     ] }
+,
+  {
+    id: "cae-lis5-03",
+    title: "Interview with a Foley Artist",
+    kind: "dialogue",
+    script: "Host: My guest today is Dana Whitfield, who has spent twenty years as a Foley artist, creating everyday sounds for films. Dana, most people have never even heard your job title.\nDana: And yet they've heard my work — that's the irony. When an actor walks across a room, the footsteps you hear in the cinema were almost certainly performed by someone like me, months later, in a studio full of junk.\nHost: Junk?\nDana: Lovingly curated junk! Gravel trays, forty pairs of shoes, half a car door. The professional secret is that the real object rarely sounds convincing. A punch recorded from an actual punch sounds thin, almost polite. We get something far more believable by thumping a cabbage wrapped in a wet towel.\nHost: Why not simply use sound libraries? Surely every footstep imaginable has been recorded by now.\nDana: Libraries are fine for background — traffic, birdsong. But footsteps carry character. A nervous person walks differently from a confident one, and the audience hears that, even if they couldn't tell you why. Performance is the part software can't fake: I watch the screen and act the scene with my feet.\nHost: Is the craft under threat from AI-generated sound?\nDana: The tools are improving, and for cheap productions they may soon be good enough. What reassures me is that directors keep coming back after trying them. They tell me the generated tracks are technically clean but emotionally flat — everything is correct and nothing is alive. My job was never really about making noises. It's about making an audience believe a world exists.",
+    questions: [
+      { q: "What does Dana identify as the irony of her profession?",
+        options: ["Her studio is full of objects nobody wants", "Audiences have heard her work without knowing her job exists", "Actors receive credit for sounds she never made", "Films no longer need performed sound at all"],
+        answer: 1,
+        explanation: "'They've heard my work — that's the irony': her job title is unknown, her sounds are everywhere." },
+      { q: "Why does she record a cabbage in a wet towel rather than a real punch?",
+        options: ["Cabbages are cheaper than stunt actors", "Real punches would injure the performers", "Wet towels are easier to keep in a studio", "A real punch sounds thin and unconvincing"],
+        answer: 3,
+        explanation: "'A punch recorded from an actual punch sounds thin, almost polite' — the substitute is 'far more believable'." },
+      { q: "According to Dana, why can't sound libraries replace performed footsteps?",
+        options: ["Libraries are too expensive for most studios", "Library recordings are technically poor", "Footsteps convey character that audiences can sense", "Libraries contain too few types of shoes"],
+        answer: 2,
+        explanation: "'Footsteps carry character' — audiences hear the difference between a nervous and a confident walk." },
+      { q: "What reassures Dana about AI-generated sound?",
+        options: ["Directors return to her after finding AI tracks emotionally flat", "AI tools have stopped improving in recent years", "Cheap productions cannot afford the software", "Audiences boycott films with generated sound"],
+        answer: 0,
+        explanation: "Directors 'keep coming back', saying generated tracks are 'technically clean but emotionally flat'." },
+      { q: "How does Dana define the real purpose of her job?",
+        options: ["Collecting rare objects for film studios", "Recording noises as accurately as possible", "Teaching actors to walk more convincingly", "Making an audience believe a world exists"],
+        answer: 3,
+        explanation: "'My job was never really about making noises. It's about making an audience believe a world exists.'" }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.LISTENING = (window.LISTENING || []).concat(BANK);

@@ -19,6 +19,35 @@ var BANK = [
       { q: "What happened after the restaurant started closing on Mondays?", options: ["Her father took over Mondays.", "Weekly income fell as predicted.", "Customers moved to other restaurants.", "Tuesday earnings went up."], answer: 3, explanation: "Staff return rested, mistakes are down, 'and Tuesday takings have actually risen'." },
       { q: "Why did Elena shorten the menu?", options: ["A long menu caused waste and slow service.", "Her mother could no longer cook forty dishes.", "Customers complained it was confusing.", "Suppliers could not deliver enough ingredients."], answer: 0, explanation: "'A long menu looks generous, but it really means waste in the kitchen and slower service.'" }
     ] }
+,
+  {
+    id: "fce-lis5-03",
+    title: "Talk: My Year Without a Smartphone",
+    kind: "monologue",
+    script: "When I tell people I spent last year without a smartphone, they usually assume it was some kind of digital health experiment. Actually, the reason was embarrassingly ordinary: I dropped mine in a canal on the second of January, and because I'd just started a poorly paid internship, I simply couldn't afford a new one. I bought a fifteen-pound phone that could call and text, and told myself I'd upgrade in a month or two. The first fortnight was genuinely difficult, and not for the reasons I expected. I didn't miss social media much, but I'd never realised how often I used the map. I got lost three times in the first week, and had to do something I hadn't done for years: ask strangers for directions. That, oddly enough, became the best part of the experience. Conversations with strangers turned out to be little gifts — a taxi driver told me about a hidden bakery I still visit every week. My friends adapted quickly; they knew a call would reach me when a message wouldn't. My mother, on the other hand, never stopped worrying, convinced that without a map I was permanently on the verge of disappearing. By summer I had savings again, and everyone expected me to buy a proper phone. I did — but it mostly lives in a drawer at home. I take it out for train tickets and long journeys. What I learned is not that technology is bad; it's that my attention is valuable, and for a whole year, nobody was renting it for free.",
+    questions: [
+      { q: "Why did the speaker originally give up her smartphone?",
+        options: ["She was taking part in a health experiment", "She dropped it in a canal and couldn't afford a replacement", "Her doctor advised her to stop using it", "Her internship did not allow phones"],
+        answer: 1,
+        explanation: "She dropped it in a canal, and with 'a poorly paid internship' she 'simply couldn't afford a new one'." },
+      { q: "What did she find hardest to live without at first?",
+        options: ["Social media", "Her camera", "The map", "Music streaming"],
+        answer: 2,
+        explanation: "She 'didn't miss social media much', but had 'never realised how often I used the map'." },
+      { q: "What became the best part of the experience?",
+        options: ["Conversations with strangers", "Saving money for the summer", "Visiting a hidden bakery every day", "Learning the city streets by heart"],
+        answer: 0,
+        explanation: "Asking strangers for directions 'became the best part'; those conversations 'turned out to be little gifts'." },
+      { q: "How did the speaker's mother react to the change?",
+        options: ["She adapted more quickly than the friends did", "She refused to call the cheap phone", "She bought her daughter a new smartphone", "She kept worrying that the speaker would get lost"],
+        answer: 3,
+        explanation: "Her mother 'never stopped worrying', convinced she was 'permanently on the verge of disappearing'." },
+      { q: "What conclusion does the speaker draw from the year?",
+        options: ["Modern technology is fundamentally bad", "Smartphones should be banned on trains", "Her attention is valuable and shouldn't be given away for free", "Everyone should spend a year without a phone"],
+        answer: 2,
+        explanation: "'My attention is valuable, and for a whole year, nobody was renting it for free.'" }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.LISTENING = (window.LISTENING || []).concat(BANK);

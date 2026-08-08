@@ -19,6 +19,35 @@ var BANK = [
       { q: "What happened in Jack's only rescue?", options: ["He pulled a boy's father from the deep end.", "The boy's father reached the side first.", "The boy was seriously hurt.", "Jack lost the boy's ball."], answer: 1, explanation: "His dad 'reached the side before I even hit the water', but they still followed the procedure." },
       { q: "According to Jack, what is the job mostly about?", options: ["Sitting and relaxing by the pool.", "Setting up lanes for the club.", "Earning as much money as possible.", "Preventing problems before they happen."], answer: 3, explanation: "He says 'mostly the job is about preventing problems before they happen'." }
     ] }
+,
+  {
+    id: "pet-lis5-03",
+    title: "Planning a Surprise Party",
+    kind: "dialogue",
+    script: "Lucy: Ben, have you got a minute? It's about Grandpa's seventieth birthday.\nBen: Of course. Are we still having the party at your house?\nLucy: That's the problem. Mum's painting the kitchen that week, so the house will be a mess. I phoned the community hall — it's free that Sunday afternoon, and it only costs twenty pounds.\nBen: That's cheaper than I expected. What about food? Shall we order pizza?\nLucy: I thought about that, but Grandpa doesn't really like it. Aunt Rosa offered to cook — she wants to make his favourite fish soup and an apple cake.\nBen: Perfect. Then I can spend my money on the present instead. Did you ask everyone about the photo album idea?\nLucy: Yes! Fourteen people have already sent me old photos. I just need one from your dad — the one from the fishing trip in 1998.\nBen: I'll scan it tonight and send it to you. And the most important thing: how do we get Grandpa to the hall without telling him?\nLucy: Uncle Marco will say he needs help choosing a new radio, and the shop is just across the street from the hall.\nBen: He'll believe that. Grandpa loves giving advice about radios. What time should everyone arrive?\nLucy: Guests at three, Grandpa at half past. And Ben — remember, not a word in the family group chat. Grandpa reads it secretly on Dad's phone!",
+    questions: [
+      { q: "Why can't the party be at Lucy's house?",
+        options: ["The house is too small for the family", "Her mum will be painting the kitchen", "It costs too much to hold it there", "Grandpa lives too far away"],
+        answer: 1,
+        explanation: "Lucy says 'Mum's painting the kitchen that week, so the house will be a mess'." },
+      { q: "Why did they decide not to order pizza?",
+        options: ["It is too expensive", "Aunt Rosa refuses to eat it", "Grandpa doesn't really like it", "The hall doesn't allow hot food"],
+        answer: 2,
+        explanation: "Lucy thought about pizza, 'but Grandpa doesn't really like it'." },
+      { q: "What present are they preparing for Grandpa?",
+        options: ["A new radio", "A fishing rod", "An apple cake", "A photo album"],
+        answer: 3,
+        explanation: "Fourteen people have sent old photos for 'the photo album idea'." },
+      { q: "How will Uncle Marco get Grandpa to the hall?",
+        options: ["By asking for help choosing a new radio", "By inviting him for fish soup", "By taking him on a fishing trip", "By saying there is a photo exhibition"],
+        answer: 0,
+        explanation: "Uncle Marco 'will say he needs help choosing a new radio', in the shop across the street from the hall." },
+      { q: "Why must they keep the plan out of the family group chat?",
+        options: ["Ben often forgets to reply there", "Grandpa secretly reads it on Dad's phone", "Aunt Rosa is not a member of it", "The group chat has stopped working"],
+        answer: 1,
+        explanation: "Lucy warns: 'Grandpa reads it secretly on Dad's phone!'" }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.LISTENING = (window.LISTENING || []).concat(BANK);

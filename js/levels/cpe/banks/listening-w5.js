@@ -19,6 +19,35 @@ var BANK = [
       { q: "What does the 'archaeology clause' forbid?", options: ["Interviewing beyond a hundred hours.", "Shaping or selecting material.", "Working with politicians.", "Inventing material for the book."], answer: 3, explanation: "'I will shape, select, and polish, but I will not invent' — she has abandoned projects over this." },
       { q: "Why does Vera say invention is not professionally tempting?", options: ["Readers reliably detect false notes.", "Publishers check every fact.", "Invented passages take too long to write.", "Novelists would sue for imitation."], answer: 0, explanation: "'Readers have an extraordinary radar for the false note'; authentic texture cannot be fabricated." }
     ] }
+,
+  {
+    id: "cpe-lis5-03",
+    title: "Lecture: The Unlikely History of the Pencil",
+    kind: "monologue",
+    script: "It is tempting to regard the pencil as the humblest of technologies — a thing so ordinary that it scarcely counts as an invention at all. That impression dissolves the moment one examines its history. The so-called lead is, of course, graphite; the misnomer dates from the sixteenth century, when an extraordinarily pure deposit uncovered at Borrowdale, in the English Lake District, was taken for a form of lead ore. So valuable did the material prove — chiefly because it could line the moulds in which cannonballs were cast — that the mines were deliberately flooded between extractions and, at times, placed under armed guard: an early instance of a state treating a mineral as a strategic asset. The pencil as we know it, however, owes less to English abundance than to French scarcity. When a wartime blockade cut France off from Borrowdale graphite at the close of the eighteenth century, the engineer Nicolas-Jacques Conté was instructed to devise a substitute. His solution — powdered graphite blended with clay and fired in a kiln — not only freed France from imports but, by varying the proportion of clay, allowed the hardness of the core to be controlled at will: the very system of grades stamped on pencils to this day. The improving spirit crossed the Atlantic too; Henry David Thoreau, better remembered for his cabin by a pond, spent years refining the graphite mixtures of his family's pencil firm in Massachusetts. The lesson I would leave you with is this: the objects we call simple are usually those whose complexity we have stopped noticing. A pencil unites mining, chemistry, forestry and precision manufacture in an article sold for pennies — and it took two centuries, a war and an accident of geology to become boring.",
+    questions: [
+      { q: "Why is the word 'lead' a misnomer when applied to pencils?",
+        options: ["Early pencils contained no writing core at all", "Lead was considered too soft for writing", "The graphite deposit was originally mistaken for lead ore", "Manufacturers invented the term for marketing reasons"],
+        answer: 2,
+        explanation: "The Borrowdale deposit 'was taken for a form of lead ore' in the sixteenth century." },
+      { q: "Why was Borrowdale graphite treated as a strategic asset?",
+        options: ["It could line the moulds used for casting cannonballs", "It was the only material suitable for pencils", "It was needed for early printing presses", "It could be exported at enormous profit to France"],
+        answer: 0,
+        explanation: "It proved valuable 'chiefly because it could line the moulds in which cannonballs were cast', so the mines were flooded and guarded." },
+      { q: "What prompted Conté's invention of the clay-graphite core?",
+        options: ["A royal competition for new writing tools", "A blockade cutting France off from English graphite", "The exhaustion of the Borrowdale mines", "A demand for cheaper artists' materials"],
+        answer: 1,
+        explanation: "'When a wartime blockade cut France off from Borrowdale graphite', Conté 'was instructed to devise a substitute'." },
+      { q: "Besides freeing France from imports, what did Conté's method make possible?",
+        options: ["Pencils that no longer required wood", "Mass production by unskilled workers", "Graphite mining outside England", "Controlling hardness through the clay ratio — the modern grading system"],
+        answer: 3,
+        explanation: "Varying the proportion of clay 'allowed the hardness of the core to be controlled at will: the very system of grades stamped on pencils to this day'." },
+      { q: "What is the speaker's closing point?",
+        options: ["Modern technology has made the pencil obsolete", "So-called simple objects are complexity we have stopped noticing", "Wars invariably accelerate technological progress", "The pencil should be more expensive than it is"],
+        answer: 1,
+        explanation: "'The objects we call simple are usually those whose complexity we have stopped noticing.'" }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.LISTENING = (window.LISTENING || []).concat(BANK);

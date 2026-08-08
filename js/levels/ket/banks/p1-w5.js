@@ -611,6 +611,9 @@
       answer: 2,
       explanation: "'Good night' is said before sleeping. 'Good morning', 'good afternoon' and 'good day' are greetings for other times."
     },
+,
+    {"text": "Let's take the ____ to the fifth floor — the stairs are too slow.", "options": ["door", "roof", "lift", "wall"], "answer": 2, "explanation": "You go up a building in a 'lift'. Doors, roofs and walls cannot carry you upstairs."},
+    {"text": "I'm thirsty. Can I have a ____ of water, please?", "options": ["piece", "glass", "slice", "bar"], "answer": 1, "explanation": "Water is served in a 'glass'. 'Piece' and 'slice' are for solid food; 'bar' is for chocolate or soap."}
   ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   QUESTIONS.part1 = QUESTIONS.part1.concat(BANK);

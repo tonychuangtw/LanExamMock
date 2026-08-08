@@ -605,6 +605,9 @@
       answer: 3,
       explanation: "'Pleased with' is the correct adjective-preposition combination. 'Of', 'at' and 'for' are not used after 'pleased' with achievements."
     }
+,
+    {"text": "It took me a few weeks to get ____ to my new school.", "options": ["known", "familiar", "close", "used"], "answer": 3, "explanation": "'Get used to something' means become familiar with it. 'Familiar' would need 'with', not 'to'."},
+    {"text": "The match was ____ until next weekend because of the heavy rain.", "options": ["postponed", "cancelled", "refused", "delivered"], "answer": 0, "explanation": "'Postponed until' = moved to a later time. 'Cancelled' means it will not happen at all, so it cannot be 'until next weekend'."}
   ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   QUESTIONS.part1 = QUESTIONS.part1.concat(BANK);

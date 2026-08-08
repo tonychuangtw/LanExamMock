@@ -19,6 +19,35 @@ var BANK = [
       { q: "What happened when Mia forgot the salt?", options: ["The bread tasted boring.", "The bread was flat like a pizza.", "Her dad refused to eat it.", "The oven stopped working."], answer: 0, explanation: "Last month she forgot the salt 'and the bread tasted very boring'." },
       { q: "What will Mia make for the competition?", options: ["White bread with honey.", "A chocolate and orange cake.", "Banana bread.", "An orange pizza."], answer: 1, explanation: "She wants 'to make a chocolate and orange cake' for the competition in July." }
     ] }
+,
+  {
+    id: "ket-lis5-03",
+    title: "Swimming Pool Announcement",
+    kind: "monologue",
+    script: "Hello, everyone. This is an announcement for all members of the town swimming pool. From next Monday, the pool will open earlier in the morning, at half past six, so people can swim before work or school. The evening closing time stays the same: nine o'clock. Please remember that the small pool will be closed on Tuesday morning, because we are teaching baby swimming classes there. If you come by bicycle, please do not leave it by the front door. There is a new bicycle park behind the building, next to the café, and it is free for members. Our summer competition is on Saturday the second of August. You can put your name on the list at the front desk before Friday. It costs two pounds to enter, and every swimmer gets a T-shirt at the end. The fastest swimmers in each group will win cinema tickets. One more thing: we still need two helpers for the competition day. Helpers do not pay for lunch, and they can use the pool free for one month. If you would like to help, please speak to Anna in the office before Thursday. Thank you for listening, and enjoy your swim!",
+    questions: [
+      { q: "From next Monday, what time will the pool open in the morning?",
+        options: ["At six o'clock", "At half past six", "At half past seven", "At nine o'clock"],
+        answer: 1,
+        explanation: "The pool 'will open earlier in the morning, at half past six'." },
+      { q: "Why will the small pool be closed on Tuesday morning?",
+        options: ["For cleaning", "For a competition", "For baby swimming classes", "Because of repairs"],
+        answer: 2,
+        explanation: "It is closed 'because we are teaching baby swimming classes there'." },
+      { q: "Where is the new bicycle park?",
+        options: ["By the front door", "Behind the building, next to the café", "In front of the office", "At the front desk"],
+        answer: 1,
+        explanation: "'There is a new bicycle park behind the building, next to the café.'" },
+      { q: "What does every swimmer in the competition get?",
+        options: ["Cinema tickets", "Two pounds", "A T-shirt", "A free month at the pool"],
+        answer: 2,
+        explanation: "'Every swimmer gets a T-shirt at the end'; only the fastest win cinema tickets." },
+      { q: "What do helpers on competition day receive?",
+        options: ["Free lunch and one month of free swimming", "Cinema tickets for their family", "Two pounds each", "A new bicycle"],
+        answer: 0,
+        explanation: "'Helpers do not pay for lunch, and they can use the pool free for one month.'" }
+    ]
+  }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }
 window.LISTENING = (window.LISTENING || []).concat(BANK);

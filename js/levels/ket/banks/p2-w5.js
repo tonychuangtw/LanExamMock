@@ -501,6 +501,9 @@
       answers: ["in", "during"],
       explanation: "'In/during the mornings' place the quietness in that part of the day."
     }
+,
+    {"text": "My sister is very good ____ maths.", "answers": ["at"], "explanation": "'Good at' + a subject or activity: good at maths, good at swimming."},
+    {"text": "We went to the cinema ____ Saturday.", "answers": ["on"], "explanation": "Days of the week take 'on': on Saturday, on Monday."}
   ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   QUESTIONS.part2 = QUESTIONS.part2.concat(BANK);

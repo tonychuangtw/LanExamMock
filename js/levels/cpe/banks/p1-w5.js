@@ -721,6 +721,9 @@
       answer: 2,
       explanation: "'Beleaguered' means under sustained pressure or criticism from all sides. 'Belaboured' means over-elaborated, 'becalmed' describes a ship without wind, and 'bemused' means puzzled."
     }
+,
+    {"text": "The minister's carefully ____ statement managed to leave every option open.", "options": ["voiced", "uttered", "worded", "spoken"], "answer": 2, "explanation": "'Carefully worded' describes the deliberate choice of words; the others don't collocate with 'statement' this way."},
+    {"text": "Only when the last guest had left did the ____ of what had happened begin to sink in.", "options": ["enormity", "hugeness", "vastness", "largeness"], "answer": 0, "explanation": "'The enormity of' (the great seriousness of) an event is the idiomatic choice here."}
   ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   QUESTIONS.part1 = QUESTIONS.part1.concat(BANK);

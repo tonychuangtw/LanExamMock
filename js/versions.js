@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v11", date: "2026-08-08", items: [
+      "Question bank upgrade: one new original listening recording (5 questions) at every level — from a pool announcement (KET) to a lecture on the history of the pencil (CPE) — plus 4 new Use of English items per level (2 multiple-choice cloze, 2 open cloze)."
+    ]
+  },
+  {
     v: "v10", date: "2026-08-08", items: [
       "Question bank upgrade: one new original reading passage (6 questions) at every level, KET to CPE, difficulty rising from a school cooking club story to a C2 essay on memory and forgetting."
     ]

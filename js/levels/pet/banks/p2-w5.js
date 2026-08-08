@@ -501,6 +501,9 @@
       answers: ["between"],
       explanation: "'The difference between A and B' is the fixed pattern for comparing two things."
     }
+,
+    {"text": "I have been learning English ____ five years.", "answers": ["for"], "explanation": "'For' + a period of time (five years); 'since' + a starting point."},
+    {"text": "This book is not as interesting ____ the film.", "answers": ["as"], "explanation": "The comparison 'as … as': not as interesting as."}
   ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   QUESTIONS.part2 = QUESTIONS.part2.concat(BANK);
