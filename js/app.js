@@ -456,7 +456,9 @@ if (typeof document !== 'undefined') {
       onAnswer(input.value);
     };
     btn.addEventListener("click", submit);
-    input.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+    /* preventDefault：交卷後焦點會移到「下一題」，不擋掉的話同一下 Enter 的 keypress
+     * 會落在那顆按鈕上直接觸發，回饋一閃而過（2026-08-08 Tony 桌機回報） */
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
     container.appendChild(input);
     container.appendChild(btn);
     input.focus();
@@ -803,7 +805,8 @@ if (typeof document !== 'undefined') {
       }, 1000);
     }
     fb.appendChild(btn);
-    btn.focus();
+    /* 延後 focus：避免觸發交卷的那一次 Enter 按鍵序列順手按到這顆按鈕 */
+    setTimeout(function () { if (!btn.disabled) btn.focus(); }, 0);
   }
 
   function drillAnswered(isCorrect, userText) {
@@ -2679,6 +2682,7 @@ if (typeof document !== 'undefined') {
     $("vb-type-submit").addEventListener("click", submitVocabType);
     $("vb-type-input").addEventListener("keydown", function (e) {
       if (e.key !== "Enter") return;
+      e.preventDefault();
       if ($("vb-type-next").classList.contains("hidden")) submitVocabType(); else nextVocabType();
     });
     $("vb-type-next").addEventListener("click", nextVocabType);
@@ -3230,7 +3234,7 @@ if (typeof document !== 'undefined') {
     nb.textContent = (dsp.queue.length === 1 && ok) ? "Finish" : "Next";
     nb.classList.remove("hidden");
     nb.dataset.ok = ok ? "1" : "0";
-    nb.focus();
+    setTimeout(function () { nb.focus(); }, 0);
   }
 
   function dspNextWord() {
@@ -3292,6 +3296,7 @@ if (typeof document !== 'undefined') {
     $("dsp-submit").addEventListener("click", dspSubmit);
     $("dsp-input").addEventListener("keydown", function (e) {
       if (e.key !== "Enter") return;
+      e.preventDefault();
       if ($("dsp-next").classList.contains("hidden")) dspSubmit(); else dspNextWord();
     });
     $("dsp-next").addEventListener("click", dspNextWord);

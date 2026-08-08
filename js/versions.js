@@ -5,7 +5,8 @@ window.APP_VERSIONS = [
     v: "v9", date: "2026-08-08", items: [
       "Cross-account viewing: grant a parent or teacher read access by entering their Google email in the Parent/Teacher view — they sign in with their own account on any device and see the learner's full dashboard (revocable any time).",
       "Daily practice now saves mid-run progress to the cloud: pause at question 10, reopen on any device, and continue from question 10 — no more starting over.",
-      "Faster sync: the site pulls the latest cloud progress on page open and when you return to the tab, and a stale background tab can no longer overwrite newer progress from another device."
+      "Faster sync: the site pulls the latest cloud progress on page open and when you return to the tab, and a stale background tab can no longer overwrite newer progress from another device.",
+      "Desktop fix: pressing Enter to submit a typed answer now shows the correct/wrong feedback properly instead of skipping straight to the next question."
     ]
   },
   {
