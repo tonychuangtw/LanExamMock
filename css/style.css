@@ -918,3 +918,44 @@ input[type="number"]:focus {
 .help-page h2 { clear: both; }
 .version-card ul { margin: 6px 0 2px; padding-left: 20px; }
 .version-card li { margin: 4px 0; line-height: 1.55; }
+
+/* ---- Daily spelling stage (dsp) ---- */
+.dsp-card { text-align: center; }
+.dsp-word {
+  font-size: 1.9rem; font-weight: 700; color: var(--accent);
+  letter-spacing: 0.5px; margin: 10px 0 6px; font-family: var(--font-ui);
+}
+.dsp-card .def, #dsp-q .def { margin: 8px 0; line-height: 1.6; }
+.dsp-card .ex, #dsp-q .ex { color: var(--muted); font-style: italic; line-height: 1.6; margin: 6px 0; }
+#dsp-q .hint { margin-top: 10px; }
+
+/* ---- Parent / Teacher dashboard (pt) ---- */
+.pt-strip { display: flex; gap: 5px; flex-wrap: wrap; margin: 6px 0 2px; }
+.pt-cell {
+  width: 22px; height: 22px; border-radius: 6px; flex: 0 0 auto;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700; color: var(--muted);
+}
+.pt-cell.on { background: var(--green); border-color: var(--green); color: #0b2513; }
+.pt-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.pt-tile {
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 10px; text-align: center; box-shadow: var(--shadow-1);
+}
+.pt-num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+.pt-label { color: var(--muted); font-size: 0.78rem; margin-top: 4px; line-height: 1.35; }
+.pt-words { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pt-word {
+  background: var(--red-soft); border: 1px solid var(--border);
+  border-radius: var(--radius-s); padding: 6px 10px; font-size: 0.9rem;
+}
+.pt-word strong { color: var(--red); }
+.pt-word-def { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; max-width: 260px; }
+.pt-mist-q { line-height: 1.55; }
+@media (max-width: 480px) {
+  .pt-tiles { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pt-tile { padding: 10px 6px; }
+  .pt-num { font-size: 1.2rem; }
+}

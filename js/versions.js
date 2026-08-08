@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v8", date: "2026-08-08", items: [
+      "Daily practice now ends with a spelling round: review 10 words of your level (same 10 all day), then spell each one from its definition — misses repeat until you get them all.",
+      "Parent / Teacher view (button at the top of Progress): streak, last-14-day completion strip, 7-day first-try accuracy, words practised/mastered, accuracy by section, words that won't stick, and recent mistakes with the chosen vs correct answer.",
+      "Spelling results feed the vocabulary boxes, and first-try mistakes from Daily practice are now logged for the dashboard."
+    ]
+  },
+  {
     v: "v7", date: "2026-08-07", items: [
       "Question bank upgrade: 2 new reading passages (12 questions) and 2 new listening recordings (10 questions) at every level — KET to CPE, all original."
     ]

@@ -1791,6 +1791,45 @@ if (typeof document !== 'undefined') {
     return p.q.explanation;
   }
 
+  /* ---- 家長儀表板用的兩個輕量紀錄（隨 <level>.* 前綴自動雲端同步） ----
+   * wrong_log：每日任務/拼寫的「第一次答錯」流水帳（14 天內顯示，留 30 天/120 筆上限）
+   * word_wrong：單字拼錯/不會的次數統計（字彙卡、拼寫練習共用） */
+  var K_WLOG = function () { return LEVEL + ".wrong_log"; };
+  var K_WW = function () { return LEVEL + ".word_wrong"; };
+
+  function wlogAdd(sec, qText, chosen, correct) {
+    try {
+      var log = loadJSON(K_WLOG(), []);
+      log.push({ ts: Date.now(), sec: sec, q: String(qText || "").slice(0, 160),
+                 chosen: String(chosen || "").slice(0, 80), correct: String(correct || "").slice(0, 80) });
+      var cut = Date.now() - 30 * DAY_MS;
+      log = log.filter(function (e) { return e.ts >= cut; });
+      if (log.length > 120) log = log.slice(log.length - 120);
+      saveJSON(K_WLOG(), log);
+    } catch (e) {}
+  }
+
+  function wwBump(front) {
+    try {
+      var ww = loadJSON(K_WW(), {});
+      if (!ww[front]) ww[front] = { n: 0, last: 0 };
+      ww[front].n += 1;
+      ww[front].last = Date.now();
+      saveJSON(K_WW(), ww);
+    } catch (e) {}
+  }
+
+  /* 錯題流水帳用的題目摘要 */
+  function wlogQText(e) {
+    var p = e.payload;
+    if (e.kind === "uoe") return p.q.text || p.q.original || p.q.q || "";
+    if (e.kind === "rmc" || e.kind === "rtfng" || e.kind === "lis") return p.q.q || "";
+    if (e.kind === "rgap") return (p.title || "") + " — gapped text";
+    if (e.kind === "rhead") return (p.title || "") + " — matching headings";
+    if (e.kind === "rmatch") return (p.title || "") + " — multiple matching";
+    return "";
+  }
+
   function mbStopAudio() {
     audioStopAll();
   }
@@ -2574,6 +2613,7 @@ if (typeof document !== 'undefined') {
       st[c.front] = leitnerReview(st[c.front], ok, Date.now());
       saveJSON(K_VOCAB, st);
       try { actBump("v"); } catch (e) {}
+      if (!ok) wwBump(c.front);
     }
     if (vocabQueue.length > 0) {
       $("vb-status").innerHTML = "<p>Remaining this session: <strong>" + vocabQueue.length + "</strong></p>";
@@ -2610,6 +2650,7 @@ if (typeof document !== 'undefined') {
     st[c.front] = leitnerReview(st[c.front], known, Date.now());
     saveJSON(K_VOCAB, st);
     try { actBump("v"); } catch (e) {}
+    if (!known) wwBump(c.front);
     showVocabCard();
     // update due count text
     var st2 = getVocabState();
@@ -2991,6 +3032,7 @@ if (typeof document !== 'undefined') {
             d25.seen[e.d25i] = true;
             if (ok) d25.firstOk++;
             if (e.stat) { try { recordResult(e.stat, ok); } catch (err) {} }
+            if (!ok) { try { wlogAdd(e.stat || e.kind, wlogQText(e), txt, mbCorrectText(e)); } catch (err) {} }
           }
           done(ok, txt);
         });
@@ -3011,19 +3053,190 @@ if (typeof document !== 'undefined') {
     var ms = Date.now() - d25.t0;
     var prevRec = d25TodayRec() || {};
     d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
-                 rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs });
+                 rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs,
+                 spell: prevRec.spell });
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
     var perfect = d25.firstOk === d25.firstTotal;
-    $("d25-congrats-text").innerHTML =
-      "<strong>" + d25.firstOk + " / " + d25.firstTotal + "</strong> right on the first try" +
-      (perfect ? " — a perfect run! 🏅" : " — and you mastered every question in the redo loop.") +
+    dspSummaryHtml =
+      "🎯 Questions: <strong>" + d25.firstOk + " / " + d25.firstTotal + "</strong> right on the first try" +
+      (perfect ? " — a perfect run! 🏅" : "") +
       "<br>About " + mins + " min · 🔥 " + s.current + "-day streak" +
       (s.best > s.current ? " (best " + s.best + ")" : "") +
-      (d25.rush > 0 ? "<br>⚡ " + d25.rush + " rushed answer" + (d25.rush > 1 ? "s" : "") + " — take your time tomorrow!" : "") +
-      "<br>Come back tomorrow — a fresh set of 20 arrives at midnight.";
+      (d25.rush > 0 ? "<br>⚡ " + d25.rush + " rushed answer" + (d25.rush > 1 ? "s" : "") + " — take your time tomorrow!" : "");
     d25 = null;
     renderDailyBanner();
+    dspBegin();   // 收尾接拼寫練習；沒有單字資料時會直接顯示總結
+  }
+
+  /* ================= Daily Spelling — 每日任務收尾的拼寫練習 =================
+   * 完成 Daily 20 後：以「日期|級數|spell」種子決定性抽出當天 10 個本級單字，
+   * 先逐張複習（單字＋定義＋例句），再看定義拼出單字；拼錯排回隊尾重做到全對。
+   * 第一次作答結果餵 Leitner 字彙盒與 word_wrong/wrong_log；紀錄存當日 rec.spell。 */
+  var dsp = null;           // { words, idx, queue, first, firstOk, total }
+  var dspSummaryHtml = "";  // Daily 20 成績摘要，最後與拼寫成績一起顯示
+
+  function dspWords() {
+    var pool = (typeof VOCAB !== "undefined" && VOCAB && VOCAB.length) ? VOCAB : [];
+    var rng = d25Rng(todayStr() + "|" + LEVEL + "|spell");
+    return d25Pick(pool, Math.min(10, pool.length), rng);
+  }
+
+  function dspHideAll() {
+    ["daily-home", "d25-drill", "d25-congrats", "dsp-review", "dsp-quiz", "dsp-congrats"]
+      .forEach(function (id) { var el = $(id); if (el) el.classList.add("hidden"); });
+  }
+
+  function dspBegin() {
+    var words = dspWords();
+    if (!words.length) { dspFinish(null); return; }
+    dsp = { words: words, idx: 0, queue: [], first: {}, firstOk: 0, total: words.length };
+    dspHideAll();
+    $("dsp-review").classList.remove("hidden");
+    dspRenderReview();
+    window.scrollTo(0, 0);
+  }
+
+  function dspRenderReview() {
+    var c = dsp.words[dsp.idx];
+    $("dsp-review-card").innerHTML =
+      '<div class="hint">Word ' + (dsp.idx + 1) + " / " + dsp.words.length + "</div>" +
+      '<div class="dsp-word">' + esc(c.front) + "</div>" +
+      '<div class="def"><strong>' + esc(c.pos) + "</strong> — " + esc(c.def) + "</div>" +
+      '<div class="ex">' + esc(c.example) + "</div>";
+    $("dsp-review-prev").disabled = dsp.idx === 0;
+    $("dsp-review-next").textContent = dsp.idx === dsp.words.length - 1 ? "Start spelling quiz ✍️" : "Next word →";
+  }
+
+  function dspStartQuiz() {
+    var rng = d25Rng(todayStr() + "|" + LEVEL + "|spellquiz");
+    dsp.queue = d25Pick(dsp.words, dsp.words.length, rng);
+    dspHideAll();
+    $("dsp-quiz").classList.remove("hidden");
+    dspRenderQ();
+    window.scrollTo(0, 0);
+  }
+
+  function dspRenderQ() {
+    if (!dsp.queue.length) { dspComplete(); return; }
+    $("dsp-progress").textContent = "Mastered " + (dsp.total - dsp.queue.length) + " / " + dsp.total +
+      " · " + dsp.queue.length + " to go";
+    var c = dsp.queue[0];
+    var cloze = clozeExample(c.example, c.front);
+    $("dsp-q").innerHTML =
+      '<div class="def"><strong>' + esc(c.pos) + "</strong> — " + esc(c.def) + "</div>" +
+      (cloze ? '<div class="ex">' + esc(cloze) + "</div>" : "") +
+      '<div class="hint">First letter: <strong>' + esc(c.front.charAt(0)) + "</strong> · " + typeHintCount(c.front) + "</div>";
+    var input = $("dsp-input");
+    input.value = "";
+    input.disabled = false;
+    $("dsp-submit").disabled = false;
+    $("dsp-feedback").innerHTML = "";
+    $("dsp-next").classList.add("hidden");
+    input.focus();
+  }
+
+  function dspSubmit() {
+    if (!dsp || !dsp.queue.length) return;
+    var c = dsp.queue[0];
+    var input = $("dsp-input");
+    var val = input.value.trim();
+    if (!val) return;
+    var ok = normalizeAnswer(val) === normalizeAnswer(c.front);
+    input.disabled = true;
+    $("dsp-submit").disabled = true;
+    if (!dsp.first[c.front]) {           // 只有第一次作答計分、餵 Leitner／錯字統計
+      dsp.first[c.front] = true;
+      if (ok) dsp.firstOk++;
+      try {
+        var st = getVocabState();
+        st[c.front] = leitnerReview(st[c.front], ok, Date.now());
+        saveJSON(K_VOCAB, st);
+        actBump("v");
+      } catch (e) {}
+      if (!ok) {
+        wwBump(c.front);
+        wlogAdd("spell", "Spell the word: " + c.def, val, c.front);
+      }
+    }
+    $("dsp-feedback").innerHTML = ok
+      ? '<p class="verdict-text ok">✓ Correct — <strong>' + esc(c.front) + "</strong></p>"
+      : '<p class="verdict-text bad">✗ It’s spelled <strong>' + esc(c.front) +
+        '</strong> — this word goes back in the queue.</p><p class="ex">' + esc(c.example) + "</p>";
+    var nb = $("dsp-next");
+    nb.textContent = (dsp.queue.length === 1 && ok) ? "Finish" : "Next";
+    nb.classList.remove("hidden");
+    nb.dataset.ok = ok ? "1" : "0";
+    nb.focus();
+  }
+
+  function dspNextWord() {
+    if (!dsp) return;
+    var ok = $("dsp-next").dataset.ok === "1";
+    var c = dsp.queue.shift();
+    if (!ok) dsp.queue.push(c);
+    dspRenderQ();
+  }
+
+  function dspComplete() {
+    var rec = d25TodayRec() || {};
+    rec.spell = { done: true, total: dsp.total, firstOk: dsp.firstOk,
+                  words: dsp.words.map(function (c) { return c.front; }) };
+    d25SaveRec(rec);
+    dspFinish(dsp);
+  }
+
+  function dspFinish(d) {
+    dsp = null;
+    dspHideAll();
+    var html = dspSummaryHtml || "";
+    if (d) {
+      html += (html ? "<br>" : "") + "✍️ Spelling: <strong>" + d.firstOk + " / " + d.total +
+        "</strong> right first try" +
+        (d.firstOk === d.total ? " — perfect! 🐝" : " — and you mastered every word in the redo loop.");
+    }
+    html += (html ? "<br>" : "") + "Come back tomorrow — a fresh mission arrives at midnight.";
+    $("dsp-congrats-text").innerHTML = html;
+    $("dsp-congrats").classList.remove("hidden");
+    dropConfetti($("dsp-congrats"));
+    dspSummaryHtml = "";
+    renderDailyBanner();
+    window.scrollTo(0, 0);
+  }
+
+  function initDailySpelling() {
+    if (!$("dsp-review")) return;
+    $("dsp-review-prev").addEventListener("click", function () {
+      if (dsp && dsp.idx > 0) { dsp.idx--; dspRenderReview(); }
+    });
+    $("dsp-review-next").addEventListener("click", function () {
+      if (!dsp) return;
+      if (dsp.idx >= dsp.words.length - 1) dspStartQuiz();
+      else { dsp.idx++; dspRenderReview(); }
+    });
+    $("dsp-review-skip").addEventListener("click", function () {
+      if (!confirm("Skip today's spelling practice?")) return;
+      dspFinish(null);
+    });
+    $("dsp-quit").addEventListener("click", function () {
+      if (!confirm("Quit spelling practice? Today's questions are already saved; the spelling round won't be recorded.")) return;
+      dsp = null;
+      dspSummaryHtml = "";
+      dspHideAll();
+      $("daily-home").classList.remove("hidden");
+      renderDaily();
+    });
+    $("dsp-submit").addEventListener("click", dspSubmit);
+    $("dsp-input").addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      if ($("dsp-next").classList.contains("hidden")) dspSubmit(); else dspNextWord();
+    });
+    $("dsp-next").addEventListener("click", dspNextWord);
+    $("dsp-congrats-home").addEventListener("click", function () {
+      dspHideAll();
+      $("daily-home").classList.remove("hidden");
+      renderDaily();
+    });
   }
 
   function initDaily25() {
@@ -3101,11 +3314,16 @@ if (typeof document !== 'undefined') {
         rec.firstOk + " / " + rec.total + "</strong> right first try · about " +
         Math.max(1, Math.round(rec.ms / 60000)) + " min" +
         (rec.rushed > 0 ? " · ⚡ " + rec.rushed + " rushed answer" + (rec.rushed > 1 ? "s" : "") : "") +
+        (rec.spell && rec.spell.done ? " · ✍️ spelling " + rec.spell.firstOk + " / " + rec.spell.total + " first try" : "") +
         ". See you tomorrow!</p>";
+      if (!(rec.spell && rec.spell.done)) {
+        html += "<p class='hint'>One thing left: today's 10-word spelling round.</p>" +
+          '<button id="dsp-start-late" class="primary-btn">✍️ Start spelling practice</button>';
+      }
     } else {
       html += "<p>Your mission today: <strong>20 questions</strong> mixed from Use of English, Reading and Listening" +
         (wk && wk.acc >= 0 && wk.acc < 100 ? ", tuned toward your weakest area (" + esc(wk.area.label) + ")" : "") +
-        ". Wrong answers go back in the queue until you master every one.</p>" +
+        ", then a <strong>10-word spelling round</strong>. Wrong answers go back in the queue until you master every one.</p>" +
         '<button id="d25-start" class="primary-btn">Start today\'s mission</button>';
     }
     var dots = "";
@@ -3121,6 +3339,8 @@ if (typeof document !== 'undefined') {
 
     var b = $("d25-start");
     if (b) b.addEventListener("click", startDaily25);
+    var sb = $("dsp-start-late");
+    if (sb) sb.addEventListener("click", function () { dspSummaryHtml = ""; dspBegin(); });
   }
 
   /* ================= Review Test — 挑日期＋錯題出 100 分考卷 =================
@@ -3501,6 +3721,138 @@ if (typeof document !== 'undefined') {
     renderProgress();
   }
 
+  /* ================= §8.4 Parent / Teacher dashboard =================
+   * 唯讀快照：連續天數、14 天完成格、7 天首次答對率、單字量、各項正確率、
+   * 一直記不住的單字（word_wrong）、近 14 天錯題流水帳（wrong_log）。全英文。 */
+  var PT_SEC_LABELS = {
+    part1: "Use of English", part2: "Use of English", part3: "Use of English", part4: "Use of English",
+    uoe: "Use of English", rmc: "Reading", rtfng: "Reading", rgap: "Reading", rmatch: "Reading",
+    rhead: "Reading", lis: "Listening", spell: "Spelling"
+  };
+
+  function ptTile(num, label) {
+    return '<div class="pt-tile"><div class="pt-num">' + num + '</div><div class="pt-label">' + label + "</div></div>";
+  }
+
+  function renderParent() {
+    var body = $("parent-body");
+    var hist = loadJSON(K_D25(), {});
+    var s = loadJSON(K_STREAK(), { current: 0, best: 0 });
+    var todayRec = hist[todayStr()];
+    var html = "";
+
+    html += '<div class="card"><h3>' + esc(LEVEL.toUpperCase()) + " learner" +
+      '<span class="streak-tag">🔥 ' + (s.current || 0) + "-day streak" +
+      (s.best > (s.current || 0) ? " · best " + s.best : "") + "</span></h3>" +
+      (todayRec && todayRec.done
+        ? "<p class='verdict-text ok'>✅ Today's daily practice is done — " + todayRec.firstOk + " / " + todayRec.total + " right first try" +
+          (todayRec.spell && todayRec.spell.done ? " · ✍️ spelling " + todayRec.spell.firstOk + " / " + todayRec.spell.total : "") + ".</p>"
+        : "<p class='verdict-text bad'>⬜ Today's daily practice is not done yet.</p>");
+    html += "<p class='hint'>Daily practice — last 14 days</p><div class='pt-strip'>";
+    for (var i = 13; i >= 0; i--) {
+      var dk = todayStr(Date.now() - i * DAY_MS);
+      var r = hist[dk];
+      var on = r && r.done;
+      html += '<span class="pt-cell' + (on ? " on" : "") + '" title="' + dk +
+        (on ? " · " + r.firstOk + "/" + r.total : " · not done") + '">' + (on ? "✓" : "") + "</span>";
+    }
+    html += "</div></div>";
+
+    var ok7 = 0, tot7 = 0;
+    for (var j = 6; j >= 0; j--) {
+      var rj = hist[todayStr(Date.now() - j * DAY_MS)];
+      if (rj && rj.done) { ok7 += rj.firstOk || 0; tot7 += rj.total || 0; }
+    }
+    var vst = loadJSON(K_VOCAB, {});
+    var practiced = 0, mastered = 0;
+    Object.keys(vst).forEach(function (k) {
+      if (vst[k] && vst[k].last) practiced++;
+      if (vst[k] && vst[k].last && vst[k].box >= 3) mastered++;
+    });
+    html += '<div class="pt-tiles">' +
+      ptTile(tot7 ? Math.round(100 * ok7 / tot7) + "%" : "—", "first-try accuracy, last 7 days") +
+      ptTile(String(practiced), "words practised") +
+      ptTile(String(mastered), "words mastered") +
+      "</div>";
+
+    var secHtml = "";
+    WK_AREAS.forEach(function (a) {
+      var m = masteryOf(a.stat);
+      if (!m.n) return;
+      secHtml += barRow(a.label, "last " + m.n + " answers · " + m.acc + "% correct", m.acc, m.acc >= 80);
+    });
+    html += '<div class="card"><h3>Accuracy by section</h3>' +
+      "<p class='hint'>Based on the most recent 30 answers in each section.</p>" +
+      (secHtml || "<p class='hint'>No answers recorded yet — accuracy appears after some practice.</p>") + "</div>";
+
+    var ww = loadJSON(K_WW(), {});
+    var defs = {};
+    ((typeof VOCAB !== "undefined" && VOCAB) || []).forEach(function (c) { defs[c.front] = c.def; });
+    var sticky = Object.keys(ww).map(function (k) { return { w: k, n: ww[k].n, last: ww[k].last }; })
+      .sort(function (a, b) { return b.n - a.n || b.last - a.last; }).slice(0, 10);
+    html += '<div class="card"><h3>Words that won\'t stick</h3>';
+    if (!sticky.length) {
+      html += "<p class='hint'>No trouble words yet — misses from vocabulary review and spelling practice show up here.</p>";
+    } else {
+      html += '<div class="pt-words">';
+      sticky.forEach(function (x) {
+        html += '<span class="pt-word"><strong>' + esc(x.w) + "</strong> ✗" + x.n +
+          (defs[x.w] ? '<span class="pt-word-def">' + esc(defs[x.w]) + "</span>" : "") + "</span>";
+      });
+      html += "</div>";
+    }
+    html += "</div>";
+
+    var cut = Date.now() - 14 * DAY_MS;
+    var log = loadJSON(K_WLOG(), []).filter(function (e) { return e.ts >= cut; });
+    log.sort(function (a, b) { return b.ts - a.ts; });
+    html += '<div class="card"><h3>Recent mistakes <span class="hint-inline">last 14 days · ' + log.length + "</span></h3>";
+    if (!log.length) {
+      html += "<p class='hint'>No first-try mistakes recorded in the last 14 days. Mistakes from Daily practice and spelling rounds are listed here.</p>";
+    } else {
+      log.slice(0, 12).forEach(function (e) {
+        html += '<div class="review-item bad">' +
+          '<div class="pt-mist-q">' + esc(e.q) + "</div>" +
+          '<div class="review-ans">Chose: <strong>' + esc(e.chosen || "—") + "</strong> · Correct: <strong>" + esc(e.correct) + "</strong></div>" +
+          '<div class="expl">' + esc(PT_SEC_LABELS[e.sec] || e.sec) + " · " + esc(fmtDate(e.ts)) + "</div></div>";
+      });
+      if (log.length > 12) html += "<p class='hint'>Showing the 12 most recent.</p>";
+    }
+    html += "</div>";
+
+    var rows = "";
+    Object.keys(hist).sort().reverse().slice(0, 14).forEach(function (dk2) {
+      var r2 = hist[dk2];
+      if (!r2 || !r2.done) return;
+      var pct = r2.total ? Math.round(100 * r2.firstOk / r2.total) : 0;
+      rows += '<li><span class="mh-date">' + esc(dk2) + "</span>" +
+        '<span class="mh-label">' + Math.max(1, Math.round((r2.ms || 0) / 60000)) + " min" +
+        (r2.spell && r2.spell.done ? " · ✍️ " + r2.spell.firstOk + "/" + r2.spell.total : "") + "</span>" +
+        '<span class="mh-score ' + (pct >= 75 ? "ok" : pct >= 60 ? "mid" : "bad") + '">' +
+        r2.firstOk + "/" + r2.total + " (" + pct + "%)</span></li>";
+    });
+    if (rows) html += '<div class="card"><h3>Daily practice history</h3><ul class="mock-history">' + rows + "</ul></div>";
+
+    body.innerHTML = html;
+  }
+
+  function initParent() {
+    var btn = $("pg-parent-btn");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      $("mb-summary").classList.add("hidden");
+      renderParent();
+      $("parent-view").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    });
+    $("parent-back").addEventListener("click", function () {
+      $("parent-view").classList.add("hidden");
+      $("mb-summary").classList.remove("hidden");
+      renderProgress();
+      window.scrollTo(0, 0);
+    });
+  }
+
   /* ================= §8.5 色系主題 ================= */
   var K_THEME = "cpe_theme";
   var THEMES = [
@@ -3616,7 +3968,9 @@ if (typeof document !== 'undefined') {
     safeInit("speakrec", initSpeakRec);
     safeInit("vocab", initVocab);
     safeInit("progress", initProgress);
+    safeInit("parent", initParent);
     safeInit("daily25", initDaily25);
+    safeInit("spelling", initDailySpelling);
     safeInit("review", initReview);
   }
 

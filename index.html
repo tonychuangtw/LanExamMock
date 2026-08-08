@@ -412,6 +412,10 @@
   <section id="tab-progress" class="tab-panel">
     <div id="mb-summary">
       <h2>Progress</h2>
+      <div class="card center">
+        <button id="pg-parent-btn" class="primary-btn">👨‍🏫 Parent / Teacher view</button>
+        <p class="hint">A one-page snapshot of this learner's daily practice, accuracy and trouble spots.</p>
+      </div>
       <div id="pg-mistakes" class="card center"></div>
       <div id="pg-weakness" class="card"></div>
       <div id="pg-mastery" class="card"></div>
@@ -441,6 +445,15 @@
       </div>
     </div>
 
+    <!-- Parent / Teacher dashboard (read-only snapshot) -->
+    <div id="parent-view" class="hidden">
+      <div class="exam-top">
+        <button id="parent-back" class="ghost-btn">← Back</button>
+        <span class="exam-progress">Parent / Teacher view</span>
+      </div>
+      <div id="parent-body"></div>
+    </div>
+
   </section>
 
   <!-- ===== Tab: Daily 20 ===== -->
@@ -465,6 +478,42 @@
         <h2>Daily 20 complete!</h2>
         <p id="d25-congrats-text"></p>
         <button id="d25-congrats-home" class="primary-btn">Back to Daily</button>
+      </div>
+    </div>
+
+    <!-- Daily spelling stage: review today's 10 words, then spell them from the definition -->
+    <div id="dsp-review" class="hidden">
+      <h2>✍️ Spelling practice</h2>
+      <p class="hint">Step 1 of 2 — review today's 10 words first. Read each card carefully; you'll spell these from the definition next.</p>
+      <div id="dsp-review-card" class="card dsp-card"></div>
+      <div class="timer-row center">
+        <button id="dsp-review-prev" class="ghost-btn">← Previous</button>
+        <button id="dsp-review-next" class="primary-btn">Next word →</button>
+      </div>
+      <p class="center"><button id="dsp-review-skip" class="ghost-btn small">Skip spelling practice</button></p>
+    </div>
+
+    <div id="dsp-quiz" class="hidden">
+      <div class="exam-top">
+        <button id="dsp-quit" class="ghost-btn">Quit</button>
+        <span id="dsp-progress" class="exam-progress"></span>
+      </div>
+      <h2>✍️ Spell it!</h2>
+      <div id="dsp-q" class="card"></div>
+      <div class="vb-type-row">
+        <input id="dsp-input" class="answer-input" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="Spell the word…">
+        <button id="dsp-submit" class="primary-btn">Check</button>
+      </div>
+      <div id="dsp-feedback"></div>
+      <button id="dsp-next" class="primary-btn hidden">Next</button>
+    </div>
+
+    <div id="dsp-congrats" class="hidden">
+      <div class="card congrats-card">
+        <div class="congrats-emoji">🏅</div>
+        <h2>All done for today!</h2>
+        <p id="dsp-congrats-text"></p>
+        <button id="dsp-congrats-home" class="primary-btn">Back to Daily</button>
       </div>
     </div>
   </section>
