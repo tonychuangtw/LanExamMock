@@ -3281,10 +3281,6 @@ if (typeof document !== 'undefined') {
       if (dsp.idx >= dsp.words.length - 1) dspStartQuiz();
       else { dsp.idx++; dspRenderReview(); }
     });
-    $("dsp-review-skip").addEventListener("click", function () {
-      if (!confirm("Skip today's spelling practice?")) return;
-      dspFinish(null);
-    });
     $("dsp-quit").addEventListener("click", function () {
       if (!confirm("Quit spelling practice? Today's questions are already saved; the spelling round won't be recorded.")) return;
       dsp = null;
