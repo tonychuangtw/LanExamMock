@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v13", date: "2026-08-11", items: [
+      "Signing in with Google is now required to start any practice — mock exams, reading, speed reading, listening, vocabulary review, daily practice, and the writing / speaking timers — so progress always syncs to the cloud and the Parent/Teacher view stays complete. Browsing pages needs no sign-in, and a run already in progress is never interrupted."
+    ]
+  },
+  {
     v: "v12", date: "2026-08-09", items: [
       "The daily spelling round is now a required part of the daily mission — the skip button is gone. (Leaving mid-round is still possible; the round stays pending until you finish it.)"
     ]

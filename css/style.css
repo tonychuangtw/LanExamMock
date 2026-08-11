@@ -813,6 +813,22 @@ input[type="number"]:focus {
 .sync-chip { font-weight: 700; }
 .sync-status { font-size: 0.75rem; opacity: 0.7; }
 
+/* ---- sign-in gate (2026-08-11) ---- */
+#login-toast {
+  position: fixed; bottom: calc(1.2rem + env(safe-area-inset-bottom)); left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border-strong);
+  border-radius: 999px; padding: 0.55rem 1.2rem; font-size: 0.9rem;
+  max-width: min(92vw, 480px); text-align: center;
+  opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 200;
+}
+#login-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@keyframes syncFlash {
+  0%, 100% { box-shadow: none; transform: scale(1); }
+  50% { box-shadow: 0 0 0 3px var(--accent); transform: scale(1.12); }
+}
+.sync-flash { animation: syncFlash 0.8s ease-in-out 3; border-radius: 999px; }
+
 /* ---- IELTS Task 1 charts ---- */
 .chart-wrap {
   margin: 12px auto;

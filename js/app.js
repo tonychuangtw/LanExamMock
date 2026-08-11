@@ -169,6 +169,30 @@ if (typeof document !== 'undefined') {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
+  // 強制登入（2026-08-11 Tony 要求，比照 K12Review）：未登入不能開始練習，紀錄才一定會同步。
+  // 只擋「開始」的入口，不擋做到一半的人（token 一小時過期，重新整理會 auto_select 自動續登）。
+  var loginToastTimer = null;
+  function loginToast(msg) {
+    var t = $("login-toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "login-toast";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(loginToastTimer);
+    loginToastTimer = setTimeout(function () { t.classList.remove("show"); }, 2600);
+  }
+  function needLogin() {
+    if (!window.CloudSync || !CloudSync.promptLogin) return false;  // sync.js 沒載入（本機開發）不擋
+    if (CloudSync.signedIn()) return false;
+    loginToast("Please sign in first (top right) so your progress syncs to the cloud ☁️");
+    CloudSync.promptLogin();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return true;
+  }
+
   /* ---- 級數相關狀態（CPEApp.init(level) 設定） ---- */
   var LEVEL = "cpe";
   var CFG = {           // 預設 = CPE；init 時會被 window.LEVELS[level] 覆蓋
@@ -231,7 +255,7 @@ if (typeof document !== 'undefined') {
         if (btn.dataset.tab === "tab-progress") { try { renderProgress(); } catch (e) {} }
         if (btn.dataset.tab === "tab-daily") { try { renderDaily(); } catch (e) {} }
         if (btn.dataset.tab === "tab-review") { try { rvRenderHome(); } catch (e) {} }
-        if (btn.dataset.tab === "tab-vocab") { try { renderVocabStatus(); } catch (e) {} }
+        if (btn.dataset.tab === "tab-vocab") { try { needLogin(); renderVocabStatus(); } catch (e) {} }
       });
     });
   }
@@ -329,6 +353,7 @@ if (typeof document !== 'undefined') {
   }
 
   function beginExam() {
+    if (needLogin()) return;
     quiz.idx = 0;
     quiz.answers = [];
     quiz.times = [];
@@ -678,6 +703,7 @@ if (typeof document !== 'undefined') {
   var drill = null;
 
   function startDrillGeneric(cfg) {
+    if (needLogin()) return;
     drill = cfg;
     drill.queue = cfg.items.slice();
     drill.total = cfg.items.length;
@@ -984,6 +1010,7 @@ if (typeof document !== 'undefined') {
   }
 
   function startReading(type) {
+    if (needLogin()) return;
     var pool = rdPool(type);
     if (!pool.length) { alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
     rd.type = type;
@@ -1292,6 +1319,7 @@ if (typeof document !== 'undefined') {
   }
 
   function startSpeed() {
+    if (needLogin()) return;
     var pool = rdPool("mc").concat(rdPool("tfng"));
     if (!pool.length) { alert("The reading banks haven't loaded. Please try again later."); return; }
     sr.set = pool[Math.floor(Math.random() * pool.length)];
@@ -1523,6 +1551,7 @@ if (typeof document !== 'undefined') {
     })();
   }
   function startListening(kind) {
+    if (needLogin()) return;
     var pool = lsPool(kind);
     if (!pool.length) { alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
     ls.set = pool[Math.floor(Math.random() * pool.length)];
@@ -2049,7 +2078,7 @@ if (typeof document !== 'undefined') {
       wrTimer.set(m * 60);
     }
     resetWr();
-    $("wr-start").addEventListener("click", function () { wrTimer.start(); });
+    $("wr-start").addEventListener("click", function () { if (needLogin()) return; wrTimer.start(); });
     $("wr-pause").addEventListener("click", function () { wrTimer.pause(); });
     $("wr-reset").addEventListener("click", resetWr);
     minInput.addEventListener("change", function () { if (!wrTimer.isRunning()) resetWr(); });
@@ -2365,7 +2394,7 @@ if (typeof document !== 'undefined') {
       spTimer.set(CFG.spSecs);
       spRecNewTask(p.question + " (" + p.bullets.join("; ") + ")");
     });
-    $("sp-start").addEventListener("click", function () { spTimer.start(); });
+    $("sp-start").addEventListener("click", function () { if (needLogin()) return; spTimer.start(); });
     $("sp-reset").addEventListener("click", function () { spTimer.pause(); spTimer.set(CFG.spSecs); });
 
     var ul = $("sp-phrase-list");
@@ -2529,6 +2558,13 @@ if (typeof document !== 'undefined') {
   }
 
   function renderVocabStatus() {
+    if (window.CloudSync && CloudSync.promptLogin && !CloudSync.signedIn()) {
+      $("vb-status").innerHTML = "<p>🔒 Please sign in (top right) to review vocabulary — so your progress syncs to the cloud.</p>";
+      $("vb-card-wrap").classList.add("hidden");
+      var tw = $("vb-type-wrap");
+      if (tw) tw.classList.add("hidden");
+      return;
+    }
     var st = getVocabState();
     var now = Date.now();
     var due = VOCAB.filter(function (c) { return leitnerIsDue(st[c.front], now); }).length;
@@ -3098,6 +3134,7 @@ if (typeof document !== 'undefined') {
   }
 
   function startDaily25() {
+    if (needLogin()) return;
     var rec = d25TodayRec();
     if (rec && rec.done) { switchTab("tab-daily"); return; }
     var run = loadJSON(K_DRUN(), null);

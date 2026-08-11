@@ -197,8 +197,20 @@
     if (signedIn()) pull(currentLevel(), function (err, applied) { if (applied) location.reload(); });
   }
 
+  // 觸發 Google One Tap 登入提示（強制登入守門用，2026-08-11，同 K12Review）
+  function promptLogin() {
+    try {
+      if (window.google && google.accounts && google.accounts.id) google.accounts.id.prompt();
+    } catch (e) {}
+    var pill = document.querySelector(".sync-ui");
+    if (pill) {
+      pill.classList.add("sync-flash");
+      setTimeout(function () { pill.classList.remove("sync-flash"); }, 2400);
+    }
+  }
+
   // Minimal interface for the Parent/Teacher dashboard (grants API needs the token)
-  window.CloudSync = { signedIn: signedIn, token: token, apiBase: API_BASE };
+  window.CloudSync = { signedIn: signedIn, token: token, apiBase: API_BASE, promptLogin: promptLogin };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);
