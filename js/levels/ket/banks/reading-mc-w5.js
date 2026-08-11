@@ -26,6 +26,19 @@ var BANK = [
       { q: "What happens because of Marco's posters?", options: ["Families come to give animals a home", "The animals get more food", "The newspaper writes about Marco", "Helpers get free sandwiches"], answer: 0, explanation: "Families read the posters on the website 'and sometimes come to give a cat or dog a new home'." },
       { q: "How does Marco feel when animals find new families?", options: ["Only sad", "Proud, but a little sad too", "Angry with Mrs Field", "Afraid for the cats"], answer: 1, explanation: "He 'feels proud when that happens, although he is always a little sad' to say goodbye." }
     ]
+  },
+  {
+    id: "ket-rmc5-03",
+    title: "The School Garden",
+    text: "Behind Greenhill School there is a small garden, and this year Class 2B looks after it. Every Tuesday after lunch, the class works there for one hour with their teacher, Mr Shaw. In March, the children planted carrots, tomatoes, and sunflowers. Each child wrote their name on a small wooden stick and put it next to their plant. Lena's sunflower grew fastest, and by June it was taller than Mr Shaw! The children take turns to water the plants. There is a big green bottle by the door, and the two helpers of the week fill it from the kitchen tap because the garden has no water tap. Once, in April, nobody watered the garden for a week because of the school trip, and the tomato plants looked very sad and dry. After that, Mr Shaw made a new plan: in busy weeks, the school cook, Mrs Bell, waters the plants in the morning. The best day was the last Friday before the summer holiday. The class picked the carrots and the tomatoes, washed them, and made a big salad for their parents, who came at three o'clock. Everyone ate in the garden, and the parents said it was the best salad in town. The sunflowers were not for eating, of course — the children cut them and gave one to every teacher in the school. Next year, Class 2B will move up, and Class 2A will get the garden. Lena wrote a little book about the plants for them, with pictures and one important rule on the first page: never forget the water!",
+    questions: [
+      { q: "When does Class 2B work in the garden?", options: ["Every morning", "On Friday afternoons", "On Tuesdays after lunch", "During the school trip"], answer: 2, explanation: "The class works there 'every Tuesday after lunch' for one hour." },
+      { q: "Whose sunflower grew fastest?", options: ["Lena's", "Mr Shaw's", "Mrs Bell's", "The cook's"], answer: 0, explanation: "The text says 'Lena's sunflower grew fastest', and by June it was taller than Mr Shaw." },
+      { q: "Why do the helpers fill the bottle in the kitchen?", options: ["The bottle is kept in the kitchen", "Mrs Bell asks them to help her", "The kitchen water is warmer", "The garden has no water tap"], answer: 3, explanation: "They fill it from the kitchen tap 'because the garden has no water tap'." },
+      { q: "What happened in April?", options: ["The parents visited the garden", "Nobody watered the plants for a week", "The class planted sunflowers", "Mrs Bell picked the tomatoes"], answer: 1, explanation: "In April 'nobody watered the garden for a week because of the school trip'." },
+      { q: "What did the class do with the carrots and tomatoes?", options: ["They made a salad for their parents", "They gave them to every teacher", "They sold them in town", "They took them on the school trip"], answer: 0, explanation: "The class 'picked the carrots and the tomatoes, washed them, and made a big salad for their parents'." },
+      { q: "What is on the first page of Lena's book?", options: ["A picture of Mr Shaw", "A map of the garden", "A rule about watering", "The names of Class 2A"], answer: 2, explanation: "The first page has 'one important rule': 'never forget the water!'" }
+    ]
   }
 ];
 if (typeof module !== "undefined") { module.exports = BANK; return; }

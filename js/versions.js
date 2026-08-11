@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v14", date: "2026-08-11", items: [
+      "Question bank upgrade: one new original reading passage (6 questions) at every level — a class garden (KET), a market jam stall (PET), a man who records his town's vanishing sounds (FCE), a daily paper that went weekly (CAE), and an essay defending deep knowledge of one small place (CPE)."
+    ]
+  },
+  {
     v: "v13", date: "2026-08-11", items: [
       "Signing in with Google is now required to start any practice — mock exams, reading, speed reading, listening, vocabulary review, daily practice, and the writing / speaking timers — so progress always syncs to the cloud and the Parent/Teacher view stays complete. Browsing pages needs no sign-in, and a run already in progress is never interrupted."
     ]
