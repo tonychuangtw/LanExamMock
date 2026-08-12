@@ -954,7 +954,8 @@ input[type="number"]:focus {
   font-size: 0.72rem; font-weight: 700; color: var(--muted);
 }
 .pt-cell.on { background: var(--green); border-color: var(--green); color: #0b2513; }
-.pt-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.pt-cell.half { border-color: var(--green); color: var(--green); border-style: dashed; }
+.pt-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
 .pt-tile {
   background: linear-gradient(180deg, var(--surface-hi), var(--surface));
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -971,7 +972,7 @@ input[type="number"]:focus {
 .pt-word-def { display: block; color: var(--muted); font-size: 0.78rem; margin-top: 2px; max-width: 260px; }
 .pt-mist-q { line-height: 1.55; }
 @media (max-width: 480px) {
-  .pt-tiles { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pt-tiles { grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .pt-tile { padding: 10px 6px; }
   .pt-num { font-size: 1.2rem; }
 }

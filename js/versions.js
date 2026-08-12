@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v15", date: "2026-08-12", items: [
+      "Practice outside the daily mission now shows in the Parent / Teacher view: days with any practice (mock exams, reading, listening, vocabulary) get a dashed • cell in the 14-day strip with the number of questions answered, plus a new \"questions answered, last 7 days · all practice\" tile.",
+      "New 🎯 Mastery check on the Review page: 20 fresh questions drawn from the sections practised in the last 7 days — new questions rather than repeats, scored out of 100. Results appear in the Review history and the Parent / Teacher view."
+    ]
+  },
+  {
     v: "v14", date: "2026-08-11", items: [
       "Question bank upgrade: one new original reading passage (6 questions) at every level — a class garden (KET), a market jam stall (PET), a man who records his town's vanishing sounds (FCE), a daily paper that went weekly (CAE), and an essay defending deep knowledge of one small place (CPE)."
     ]

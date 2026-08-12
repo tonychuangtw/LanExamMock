@@ -3535,7 +3535,8 @@ if (typeof document !== 'undefined') {
     } else {
       hist.slice(-8).reverse().forEach(function (h) {
         html += "<p><strong>" + h.score + " / 100</strong> · " + h.correct + "/" + h.n + " correct · " +
-          esc(h.date) + " · " + h.days.length + " day" + (h.days.length === 1 ? "" : "s") + " tested" +
+          esc(h.date) + " · " +
+          (h.mastery ? "🎯 mastery check" : h.days.length + " day" + (h.days.length === 1 ? "" : "s") + " tested") +
           (h.rushed ? " · ⚡" + h.rushed + " rushed" : "") + "</p>";
       });
     }
@@ -3543,6 +3544,77 @@ if (typeof document !== 'undefined') {
   }
 
   function rvSrc(e) { return e.src === "mb" ? "mistake book" : e.src; }
+
+  /* ---- Mastery check（Tony 2026-08-12）：從近 7 天練過的區塊（模擬考/閱讀/聽力/每日都算）
+   * 抽「新題」出卷檢驗是否真的精熟；成績記入同一份 review_tests，家長檢視看得到。 */
+  var RV_SEC_SHORT = { part1: "UoE P1", part2: "UoE P2", part3: "UoE P3", part4: "UoE P4", rmc: "Reading", lis: "Listening" };
+
+  function rvRecentSections() {
+    var stats = loadJSON(K_STATS, {});
+    var cut = Date.now() - 7 * DAY_MS;
+    return ["part1", "part2", "part3", "part4", "rmc", "lis"].filter(function (k) {
+      return stats[k] && stats[k].attempted > 0 && (stats[k].last || 0) >= cut;
+    });
+  }
+
+  function rvMasteryPool(k) {
+    var out = [];
+    if (k === "rmc") {
+      rdPool("mc").forEach(function (s) {
+        s.questions.forEach(function (q) {
+          out.push({ kind: "rmc", stat: "rmc", payload: { title: s.title, text: s.text, q: q }, src: RV_SEC_SHORT[k] });
+        });
+      });
+    } else if (k === "lis") {
+      (window.LISTENING || []).forEach(function (s) {
+        s.questions.forEach(function (q) {
+          out.push({ kind: "lis", stat: "lis", payload: { title: s.title, kind: s.kind, script: s.script, q: q }, src: RV_SEC_SHORT[k] });
+        });
+      });
+    } else {
+      (QUESTIONS[k] || []).forEach(function (q) {
+        out.push({ kind: "uoe", stat: k, payload: { part: k, q: q }, src: RV_SEC_SHORT[k] });
+      });
+    }
+    return shuffle(out);
+  }
+
+  function rvStartMastery() {
+    var secs = rvRecentSections();
+    if (!secs.length) { alert("No practice recorded in the last 7 days — do some practice first, then come back to check mastery."); return; }
+    var pools = secs.map(rvMasteryPool);
+    var items = [], seen = {}, more = true;
+    while (items.length < RV_TOTAL && more) {   // round-robin：每個練過的區塊輪流抽一題
+      more = false;
+      pools.forEach(function (p) {
+        if (items.length >= RV_TOTAL) return;
+        while (p.length) {
+          var e = p.pop();
+          var kk = mbKey(e.kind, e.payload);
+          if (seen[kk]) continue;
+          seen[kk] = true;
+          items.push(e);
+          more = true;
+          break;
+        }
+      });
+    }
+    if (items.length < 5) { alert("Not enough questions available for a mastery check."); return; }
+    items.forEach(function (e) {
+      if (e.kind === "rmc" || e.kind === "rtfng") e.gid = "r|" + e.payload.title;
+      else if (e.kind === "lis") e.gid = "l|" + e.payload.title;
+      else e.gid = null;
+    });
+    items = d25Blocks(items, Math.random);
+    mbReviewedThisSession = {};
+    rv = { items: items, idx: 0, correct: 0, rushed: 0, t0: Date.now(), days: [], mastery: true,
+           secs: secs.map(function (k) { return RV_SEC_SHORT[k]; }), reviewHtml: "" };
+    $("rv-home").classList.add("hidden");
+    $("rv-summary").classList.add("hidden");
+    $("rv-quiz").classList.remove("hidden");
+    rvRenderItem();
+    window.scrollTo(0, 0);
+  }
 
   function rvStart() {
     var days = Array.prototype.slice.call(document.querySelectorAll("#rv-days input:checked"))
@@ -3608,7 +3680,7 @@ if (typeof document !== 'undefined') {
     var score = Math.round(100 * rv.correct / n);
     var hist = loadJSON(K_RV(), []);
     hist.push({ ts: Date.now(), date: todayStr(), days: rv.days, n: n, correct: rv.correct,
-                score: score, rushed: rv.rushed, ms: Date.now() - rv.t0 });
+                score: score, rushed: rv.rushed, ms: Date.now() - rv.t0, mastery: rv.mastery ? 1 : 0 });
     if (hist.length > 30) hist = hist.slice(-30);
     saveJSON(K_RV(), hist);
     var v = verdictFor(score);
@@ -3620,7 +3692,8 @@ if (typeof document !== 'undefined') {
     $("rv-meta").textContent = rv.correct + " / " + n + " correct · about " +
       Math.max(1, Math.round((Date.now() - rv.t0) / 60000)) + " min" +
       (rv.rushed ? " · ⚡ " + rv.rushed + " rushed answer" + (rv.rushed > 1 ? "s" : "") : "") +
-      (rv.days.length ? " · days: " + rv.days.map(function (d) { return d.slice(5); }).join(", ") : "");
+      (rv.days.length ? " · days: " + rv.days.map(function (d) { return d.slice(5); }).join(", ")
+        : rv.mastery ? " · 🎯 mastery check — fresh questions from " + rv.secs.join(", ") : "");
     $("rv-review").innerHTML = rv.reviewHtml;
     rv = null;
     window.scrollTo(0, 0);
@@ -3629,6 +3702,7 @@ if (typeof document !== 'undefined') {
   function initReview() {
     if (!$("rv-start")) return;
     $("rv-start").addEventListener("click", rvStart);
+    if ($("rv-mastery")) $("rv-mastery").addEventListener("click", rvStartMastery);
     $("rv-last7").addEventListener("click", function () {
       var cut = todayStr(Date.now() - 6 * DAY_MS);
       document.querySelectorAll("#rv-days input").forEach(function (c) { c.checked = c.value >= cut; });
@@ -3853,7 +3927,9 @@ if (typeof document !== 'undefined') {
     var lvlLabel = (ext ? ext.level : LEVEL).toUpperCase();
     var hist = sget("daily25", {});
     var s = sget("streak", { current: 0, best: 0 });
+    var act = sget("activity", {});   // 每日活動：所有練習（模擬考/閱讀/聽力/每日/複習測驗）的作答數
     var todayRec = hist[todayStr()];
+    var actToday = act[todayStr()];
     var html = "";
 
     html += '<div class="card"><h3>' + esc(lvlLabel) + " learner" +
@@ -3863,21 +3939,29 @@ if (typeof document !== 'undefined') {
       (todayRec && todayRec.done
         ? "<p class='verdict-text ok'>✅ Today's daily practice is done — " + todayRec.firstOk + " / " + todayRec.total + " right first try" +
           (todayRec.spell && todayRec.spell.done ? " · ✍️ spelling " + todayRec.spell.firstOk + " / " + todayRec.spell.total : "") + ".</p>"
-        : "<p class='verdict-text bad'>⬜ Today's daily practice is not done yet.</p>");
-    html += "<p class='hint'>Daily practice — last 14 days</p><div class='pt-strip'>";
+        : "<p class='verdict-text bad'>⬜ Today's daily practice is not done yet" +
+          (actToday && actToday.a ? " — but " + actToday.a + " question" + (actToday.a === 1 ? "" : "s") + " answered in other practice today" : "") + ".</p>");
+    html += "<p class='hint'>Last 14 days · ✓ daily mission done · <span class='pt-cell half' style='width:14px;height:14px'>•</span> practised without finishing the mission</p><div class='pt-strip'>";
     for (var i = 13; i >= 0; i--) {
       var dk = todayStr(Date.now() - i * DAY_MS);
       var r = hist[dk];
       var on = r && r.done;
-      html += '<span class="pt-cell' + (on ? " on" : "") + '" title="' + dk +
-        (on ? " · " + r.firstOk + "/" + r.total : " · not done") + '">' + (on ? "✓" : "") + "</span>";
+      var ad = act[dk];
+      var some = !on && ad && (ad.a || ad.v);
+      html += '<span class="pt-cell' + (on ? " on" : some ? " half" : "") + '" title="' + dk +
+        (on ? " · " + r.firstOk + "/" + r.total
+          : some ? " · practice: " + (ad.a || 0) + " answered" + (ad.v ? ", " + ad.v + " words reviewed" : "")
+          : " · no practice") + '">' + (on ? "✓" : some ? "•" : "") + "</span>";
     }
     html += "</div></div>";
 
-    var ok7 = 0, tot7 = 0;
+    var ok7 = 0, tot7 = 0, act7 = 0, actOk7 = 0;
     for (var j = 6; j >= 0; j--) {
-      var rj = hist[todayStr(Date.now() - j * DAY_MS)];
+      var dj = todayStr(Date.now() - j * DAY_MS);
+      var rj = hist[dj];
       if (rj && rj.done) { ok7 += rj.firstOk || 0; tot7 += rj.total || 0; }
+      var aj = act[dj];
+      if (aj) { act7 += aj.a || 0; actOk7 += aj.c || 0; }
     }
     var vst = ext ? sget("vocab_state", {}) : loadJSON(K_VOCAB, {});
     var practiced = 0, mastered = 0;
@@ -3886,10 +3970,25 @@ if (typeof document !== 'undefined') {
       if (vst[k] && vst[k].last && vst[k].box >= 3) mastered++;
     });
     html += '<div class="pt-tiles">' +
-      ptTile(tot7 ? Math.round(100 * ok7 / tot7) + "%" : "—", "first-try accuracy, last 7 days") +
+      ptTile(tot7 ? Math.round(100 * ok7 / tot7) + "%" : "—", "daily-mission first-try accuracy, last 7 days") +
+      ptTile(act7 ? act7 + " · " + Math.round(100 * actOk7 / act7) + "%" : "—", "questions answered, last 7 days · all practice") +
       ptTile(String(practiced), "words practised") +
       ptTile(String(mastered), "words mastered") +
       "</div>";
+
+    // 複習/精熟測驗成績（Review Test + Mastery check 共用 review_tests 紀錄）
+    var rvh = sget("review_tests", []);
+    if (rvh.length) {
+      var rrows = "";
+      rvh.slice(-6).reverse().forEach(function (h) {
+        rrows += '<li><span class="mh-date">' + esc(h.date) + "</span>" +
+          '<span class="mh-label">' + (h.mastery ? "🎯 mastery check" : "review · " + h.days.length + " day" + (h.days.length === 1 ? "" : "s")) + "</span>" +
+          '<span class="mh-score ' + (h.score >= 75 ? "ok" : h.score >= 60 ? "mid" : "bad") + '">' + h.score + " / 100</span></li>";
+      });
+      html += '<div class="card"><h3>Review & mastery test scores</h3>' +
+        "<p class='hint'>Review Tests re-test past daily sets; Mastery checks draw fresh questions from recently practised sections.</p>" +
+        '<ul class="mock-history">' + rrows + "</ul></div>";
+    }
 
     var roll = sget("roll", {});
     var secHtml = "";
