@@ -70,6 +70,7 @@
     "p3-w1.js", "p3-w2.js", "p3-w3.js", "p3-w4.js", "p3-w5.js",
     "p4-w1.js", "p4-w2.js", "p4-w3.js", "p4-w4.js", "p4-w5.js",
     "reading-mc-w1.js", "reading-mc-w2.js", "reading-mc-w3.js", "reading-mc-w4.js", "reading-mc-w5.js",
+    "reading-mc-w6.js",
     "reading-gap-w1.js", "reading-gap-w2.js", "reading-gap-w3.js", "reading-gap-w4.js",
     "reading-match-w1.js", "reading-match-w2.js", "reading-match-w3.js", "reading-match-w4.js",
     "reading-tfng-w1.js", "reading-head-w1.js",
