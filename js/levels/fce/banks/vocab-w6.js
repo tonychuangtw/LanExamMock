@@ -1,6 +1,159 @@
 /* FCE Prep extra bank: vocab wave 6 */
 (function () {
-  var BANK = [];
+  var BANK = [
+    // --- Work and careers ---
+    { front: "apprenticeship", pos: "n.", def: "a period of learning a skilled trade while working for an employer", example: "He completed a four-year apprenticeship as an electrician.", zh: "學徒期；學徒制" },
+    { front: "shortlist", pos: "n.", def: "a list of the best candidates chosen from all applicants", example: "Six applicants made it onto the shortlist for the job.", zh: "決選名單" },
+    { front: "notice period", pos: "n.", def: "the time you must continue working after saying you will leave a job", example: "My contract has a two-month notice period.", zh: "離職預告期" },
+    { front: "burnout", pos: "n.", def: "extreme tiredness caused by working too hard for too long", example: "Many young doctors suffer burnout in their first years.", zh: "職業倦怠" },
+    { front: "freelancer", pos: "n.", def: "a person who works independently for different clients", example: "As a freelancer, she chooses her own projects.", zh: "自由工作者" },
+    { front: "understaffed", pos: "adj.", def: "not having enough workers", example: "The hospital is badly understaffed at weekends.", zh: "人手不足的" },
+    { front: "shift work", pos: "n.", def: "a system where people work at different times of day and night", example: "Shift work makes it hard for him to sleep regularly.", zh: "輪班工作" },
+    { front: "vocational", pos: "adj.", def: "relating to training for a particular job or trade", example: "The college offers vocational courses in catering and plumbing.", zh: "職業(訓練)的" },
+    // --- Health and the body ---
+    { front: "dehydrated", pos: "adj.", def: "lacking enough water in your body", example: "Runners become dehydrated quickly in hot weather.", zh: "脫水的" },
+    { front: "antibiotic", pos: "n.", def: "a medicine that kills bacteria", example: "Antibiotics are useless against the common cold.", zh: "抗生素" },
+    { front: "convalesce", pos: "v.", def: "to rest and get better after an illness", example: "He spent a month convalescing by the sea.", zh: "療養；康復" },
+    // --- Environment and nature ---
+    { front: "emission", pos: "n.", def: "gas or other substance sent out into the air", example: "The new law limits emissions from factories.", zh: "排放(物)" },
+    { front: "habitat loss", pos: "n.", def: "the destruction of the natural home of plants or animals", example: "Habitat loss is the main threat to orang-utans.", zh: "棲地喪失" },
+    { front: "conservationist", pos: "n.", def: "a person who works to protect nature", example: "Conservationists are fighting to save the wetlands.", zh: "自然保育人士" },
+    // --- Money and shopping ---
+    { front: "refundable", pos: "adj.", def: "able to be paid back to you", example: "The booking deposit is fully refundable within seven days.", zh: "可退還的" },
+    { front: "haggle", pos: "v.", def: "to argue about a price in order to pay less", example: "In the bazaar you are expected to haggle over prices.", zh: "討價還價" },
+    { front: "thrifty", pos: "adj.", def: "careful about spending money", example: "My thrifty grandmother never threw food away.", zh: "節儉的" },
+    { front: "creditworthy", pos: "adj.", def: "considered safe to lend money to", example: "The bank checks whether applicants are creditworthy.", zh: "信用良好的" },
+    { front: "nest egg", pos: "n.", def: "money saved for the future", example: "They built up a nest egg for their retirement.", zh: "儲蓄；老本" },
+    // --- Travel and transport ---
+    { front: "off-season", pos: "adj.", def: "during the time of year when few people travel", example: "Off-season flights to the island are half the price.", zh: "淡季的" },
+    { front: "carry-on", pos: "n.", def: "a small bag you take onto a plane with you", example: "Only one carry-on is allowed per passenger.", zh: "隨身行李" },
+    { front: "budget airline", pos: "n.", def: "an airline with very low fares and few free services", example: "Budget airlines charge extra for checked luggage.", zh: "廉價航空" },
+    // --- Feelings and behaviour ---
+    { front: "apprehensive", pos: "adj.", def: "worried about something that is going to happen", example: "She felt apprehensive before her first flight.", zh: "憂慮的" },
+    { front: "sympathise", pos: "v.", def: "to understand and share someone's feelings", example: "I sympathise with anyone who has lost a pet.", zh: "同情" },
+    { front: "grudge", pos: "n.", def: "a lasting feeling of anger towards someone", example: "He still bears a grudge over that old insult.", zh: "怨恨" },
+    { front: "tactful", pos: "adj.", def: "careful not to upset people with what you say", example: "A tactful reply avoided an argument.", zh: "圓融得體的" },
+    { front: "impulsive", pos: "adj.", def: "acting suddenly without thinking first", example: "An impulsive purchase left her short of rent money.", zh: "衝動的" },
+    { front: "down-to-earth", pos: "adj.", def: "practical and sensible, not pretending to be special", example: "Despite her fame, she is remarkably down-to-earth.", zh: "務實的；平易近人的" },
+    // --- Crime and the law ---
+    { front: "eyewitness", pos: "n.", def: "a person who saw a crime or accident happen", example: "An eyewitness described the getaway car to police.", zh: "目擊者" },
+    { front: "acquit", pos: "v.", def: "to decide officially in court that someone is not guilty", example: "The jury acquitted her of all charges.", zh: "宣判無罪" },
+    // --- Education and learning ---
+    { front: "plagiarism", pos: "n.", def: "copying someone else's work and pretending it is yours", example: "The essay was rejected for blatant plagiarism.", zh: "抄襲" },
+    { front: "boarding school", pos: "n.", def: "a school where pupils live during term time", example: "He was sent to boarding school at eleven.", zh: "寄宿學校" },
+    { front: "extracurricular", pos: "adj.", def: "outside the normal school timetable", example: "Debating is her favourite extracurricular activity.", zh: "課外的" },
+    // --- Technology and media ---
+    { front: "password-protected", pos: "adj.", def: "needing a secret word to be opened or used", example: "Keep the shared folder password-protected.", zh: "有密碼保護的" },
+    { front: "clickbait", pos: "n.", def: "internet content with a misleading title designed to attract clicks", example: "The headline was pure clickbait — the article said nothing new.", zh: "點擊誘餌" },
+    { front: "livestream", pos: "v.", def: "to broadcast an event over the internet as it happens", example: "The concert was livestreamed to fans worldwide.", zh: "直播" },
+    { front: "glitch", pos: "n.", def: "a small fault that stops something working smoothly", example: "A software glitch delayed all departures for an hour.", zh: "小故障" },
+    { front: "troubleshoot", pos: "v.", def: "to find and fix problems in a machine or system", example: "The manual explains how to troubleshoot common errors.", zh: "排除故障" },
+    { front: "misinformation", pos: "n.", def: "false information spread without bad intention", example: "Health misinformation spreads rapidly on social media.", zh: "錯誤資訊" },
+    // --- Housing and city life ---
+    { front: "residential", pos: "adj.", def: "consisting of homes rather than offices or factories", example: "It's a quiet residential neighbourhood.", zh: "住宅(區)的" },
+    { front: "utilities", pos: "n.", def: "basic services such as water, gas and electricity", example: "The rent includes all utilities.", zh: "水電瓦斯等公共服務" },
+    { front: "eviction", pos: "n.", def: "the act of legally forcing someone to leave their home", example: "The family faced eviction for unpaid rent.", zh: "驅逐；逐出" },
+    { front: "high-rise", pos: "n.", def: "a very tall building with many floors", example: "New high-rises are changing the city skyline.", zh: "高樓大廈" },
+    { front: "amenities", pos: "n.", def: "useful facilities such as shops, parks and pools", example: "The area has excellent amenities for families.", zh: "生活機能設施" },
+    // --- Food and cooking ---
+    { front: "additive", pos: "n.", def: "a substance added to food to preserve or colour it", example: "This juice contains no artificial additives.", zh: "添加物" },
+    { front: "portion", pos: "n.", def: "the amount of food served to one person", example: "The portions at that restaurant are enormous.", zh: "一份(食物)" },
+    { front: "past its sell-by date", pos: "phr.", def: "too old to be sold or eaten safely", example: "Throw that yoghurt out — it's past its sell-by date.", zh: "過期的" },
+    { front: "food miles", pos: "n.", def: "the distance food travels from producer to consumer", example: "Buying local vegetables cuts food miles.", zh: "食物里程" },
+    { front: "gourmet", pos: "adj.", def: "relating to high-quality food and cooking", example: "The hotel is famous for its gourmet restaurant.", zh: "美食的；饕客級的" } ,
+    // --- Work (batch 2) ---
+    { front: "trial period", pos: "n.", def: "a time at the start of a job when the employer checks you are suitable", example: "New staff are on a three-month trial period.", zh: "試用期" },
+    { front: "job-share", pos: "n.", def: "an arrangement where two people split one full-time job", example: "The two mothers arranged a job-share at the library.", zh: "職務分擔" },
+    { front: "white-collar", pos: "adj.", def: "relating to office work rather than physical work", example: "The town lost thousands of white-collar jobs in the merger.", zh: "白領的" },
+    { front: "blue-collar", pos: "adj.", def: "relating to physical work, especially in factories", example: "His father was proud of his blue-collar roots.", zh: "藍領的" },
+    { front: "take early retirement", pos: "phr.", def: "to stop working before the usual retirement age", example: "She took early retirement at fifty-five to travel.", zh: "提前退休" },
+    { front: "maternity leave", pos: "n.", def: "time a mother takes off work before and after having a baby", example: "She returns from maternity leave next month.", zh: "產假" },
+    { front: "sick pay", pos: "n.", def: "money paid to an employee who cannot work because of illness", example: "Freelancers get no sick pay when they fall ill.", zh: "病假薪資" },
+    { front: "pull your weight", pos: "idiom", def: "to do your fair share of the work", example: "Everyone in this team is expected to pull their weight.", zh: "盡自己的本分" },
+    { front: "snowed under", pos: "idiom", def: "having far too much work to do", example: "I can't come out tonight — I'm snowed under with marking.", zh: "忙得不可開交" },
+    { front: "red tape", pos: "idiom", def: "official rules that seem unnecessary and cause delay", example: "Endless red tape delayed the building permit for a year.", zh: "官僚繁文縟節" },
+    { front: "call in sick", pos: "phr.", def: "to phone your workplace to say you are too ill to come", example: "He called in sick for the third Monday in a row.", zh: "打電話請病假" },
+    { front: "get the sack", pos: "idiom", def: "to be dismissed from your job", example: "He got the sack for repeatedly arriving late.", zh: "被解僱" },
+    // --- Health (batch 2) ---
+    { front: "pins and needles", pos: "idiom", def: "a tingling feeling in a limb when blood returns to it", example: "I got pins and needles from sitting cross-legged.", zh: "肢體發麻" },
+    { front: "hay fever", pos: "n.", def: "an allergy to pollen that causes sneezing and itchy eyes", example: "Her hay fever is terrible during grass-cutting season.", zh: "花粉症" },
+    { front: "over-the-counter", pos: "adj.", def: "describing medicines you can buy without a prescription", example: "It's just a mild over-the-counter painkiller.", zh: "非處方的" },
+    // --- Environment (batch 2) ---
+    { front: "greenhouse effect", pos: "n.", def: "the warming of the Earth caused by gases trapping heat", example: "Carbon dioxide is the main driver of the greenhouse effect.", zh: "溫室效應" },
+    { front: "litter-picking", pos: "n.", def: "the activity of collecting rubbish from public places", example: "The scouts organised a litter-picking day on the beach.", zh: "撿拾垃圾活動" },
+    { front: "flash flood", pos: "n.", def: "a sudden flood caused by very heavy rain", example: "A flash flood swept away cars parked in the valley.", zh: "暴洪" },
+    { front: "landslide", pos: "n.", def: "a mass of earth or rock sliding down a mountain", example: "The road was blocked by a landslide after the storm.", zh: "山崩；土石流" },
+    { front: "tremor", pos: "n.", def: "a small earthquake", example: "Residents felt a slight tremor during the night.", zh: "輕微地震" },
+    { front: "aftershock", pos: "n.", def: "a smaller earthquake that follows a large one", example: "Aftershocks continued for days after the main quake.", zh: "餘震" },
+    { front: "evacuate", pos: "v.", def: "to move people away from a dangerous place", example: "Hundreds were evacuated when the river burst its banks.", zh: "疏散；撤離" },
+    // --- Money (batch 2) ---
+    { front: "money laundering", pos: "n.", def: "hiding the origin of illegally obtained money", example: "The casino was investigated for money laundering.", zh: "洗錢" },
+    { front: "loan shark", pos: "n.", def: "a person who lends money at extremely high interest", example: "He borrowed from a loan shark and couldn't repay the debt.", zh: "放高利貸者" },
+    { front: "cost of living", pos: "n.", def: "the amount of money needed for basic everyday expenses", example: "The cost of living in the capital keeps rising.", zh: "生活費用" },
+    { front: "strapped for cash", pos: "idiom", def: "having very little money", example: "We're a bit strapped for cash until payday.", zh: "手頭拮据" },
+    { front: "put down a deposit", pos: "phr.", def: "to pay the first part of the price of something expensive", example: "They put down a deposit on a flat near the station.", zh: "支付訂金" },
+    { front: "pay through the nose", pos: "idiom", def: "to pay far too much for something", example: "Tourists pay through the nose for taxis at the airport.", zh: "花大錢當冤大頭" },
+    // --- Travel (batch 2) ---
+    { front: "excess baggage", pos: "n.", def: "luggage that weighs more than the airline allows", example: "We paid forty euros for excess baggage.", zh: "超重行李" },
+    { front: "aisle seat", pos: "n.", def: "a seat next to the walkway on a plane or train", example: "I always book an aisle seat on long flights.", zh: "靠走道座位" },
+    { front: "departure lounge", pos: "n.", def: "the airport area where passengers wait to board", example: "We spent two hours in the departure lounge.", zh: "候機室" },
+    { front: "round trip", pos: "n.", def: "a journey to a place and back again", example: "The round trip to the glacier takes a full day.", zh: "來回行程" },
+    { front: "get itchy feet", pos: "idiom", def: "to feel a strong desire to travel", example: "After a year at home she got itchy feet again.", zh: "渴望出走旅行" },
+    { front: "home from home", pos: "idiom", def: "a place as comfortable as your own home", example: "The little guesthouse became a home from home for us.", zh: "賓至如歸的地方" },
+    { front: "culture shock", pos: "n.", def: "confusion felt in a country very different from your own", example: "The biggest culture shock was the food.", zh: "文化衝擊" },
+    { front: "touristy", pos: "adj.", def: "full of tourists and tourist attractions; not authentic", example: "The old port has become terribly touristy.", zh: "觀光味太重的" },
+    // --- Feelings (batch 2) ---
+    { front: "green with envy", pos: "idiom", def: "very jealous of someone", example: "Her new sports car left the neighbours green with envy.", zh: "羨慕嫉妒" },
+    { front: "butterflies in your stomach", pos: "idiom", def: "a nervous feeling before something important", example: "I had butterflies in my stomach before the interview.", zh: "緊張得心裡發慌" },
+    { front: "keep a straight face", pos: "idiom", def: "to stop yourself from laughing", example: "I could hardly keep a straight face during his speech.", zh: "忍住不笑" },
+    { front: "burst into tears", pos: "phr.", def: "to suddenly start crying", example: "She burst into tears when she heard the news.", zh: "突然大哭" },
+    { front: "on edge", pos: "idiom", def: "nervous and unable to relax", example: "Waiting for the results kept us all on edge.", zh: "焦躁不安" },
+    { front: "take after someone", pos: "phr. v.", def: "to look or behave like an older relative", example: "He takes after his mother in his love of music.", zh: "像(某長輩)" },
+    { front: "white lie", pos: "n.", def: "a small harmless lie told to avoid hurting someone", example: "I told a white lie and said I loved the gift.", zh: "善意的謊言" },
+    // --- Crime (batch 2) ---
+    { front: "joyriding", pos: "n.", def: "stealing a car to drive it for fun", example: "Two teenagers were arrested for joyriding.", zh: "偷車兜風" },
+    { front: "hit-and-run", pos: "n.", def: "an accident where the driver leaves without stopping", example: "Police are appealing for witnesses to the hit-and-run.", zh: "肇事逃逸" },
+    { front: "take someone to court", pos: "phr.", def: "to start a legal case against someone", example: "She took the builder to court over the faulty roof.", zh: "把某人告上法院" },
+    { front: "on parole", pos: "phr.", def: "released from prison early on condition of good behaviour", example: "He was released on parole after serving half his sentence.", zh: "假釋中" },
+    { front: "crack down", pos: "phr. v.", def: "to start dealing with bad behaviour much more strictly", example: "The city is cracking down on illegal parking.", zh: "嚴厲取締" },
+    // --- Education (batch 2) ---
+    { front: "halls of residence", pos: "n.", def: "buildings where university students live", example: "First-years usually live in halls of residence.", zh: "學生宿舍" },
+    { front: "dissertation", pos: "n.", def: "a long piece of writing on one subject for a degree", example: "She wrote her dissertation on coral reefs.", zh: "學位論文" },
+    { front: "continuous assessment", pos: "n.", def: "judging students by work done all year, not just exams", example: "The course is graded by continuous assessment.", zh: "平時成績評量" },
+    { front: "learn by heart", pos: "phr.", def: "to memorise something exactly", example: "We had to learn the poem by heart.", zh: "背熟；熟記" },
+    { front: "resit", pos: "v.", def: "to take an exam again after failing it", example: "He had to resit two papers in September.", zh: "重考" },
+    // --- Technology and media (batch 2) ---
+    { front: "scroll", pos: "v.", def: "to move text up or down on a screen", example: "She scrolled through the comments on her phone.", zh: "捲動(頁面)" },
+    { front: "download speed", pos: "n.", def: "how fast data can be received over the internet", example: "Our download speed drops badly in the evening.", zh: "下載速度" },
+    { front: "spam folder", pos: "n.", def: "the email folder where unwanted messages are put", example: "The invitation ended up in my spam folder.", zh: "垃圾郵件匣" },
+    { front: "catch-up TV", pos: "n.", def: "a service for watching programmes after they were broadcast", example: "I missed the final but watched it on catch-up TV.", zh: "回看電視服務" },
+    { front: "couch potato", pos: "idiom", def: "a person who spends all their time sitting and watching TV", example: "The holidays turned him into a complete couch potato.", zh: "電視沙發馬鈴薯" },
+    { front: "prime time", pos: "n.", def: "the evening hours when most people watch TV", example: "The debate was broadcast in prime time.", zh: "黃金時段" },
+    { front: "current affairs", pos: "n.", def: "political and social events happening now", example: "She hosts a weekly current affairs programme.", zh: "時事" },
+    { front: "broadsheet", pos: "n.", def: "a serious newspaper printed on large pages", example: "The broadsheets covered the summit in depth.", zh: "大報；質報" },
+    { front: "headline news", pos: "n.", def: "the most important news stories", example: "The rescue made headline news around the world.", zh: "頭條新聞" },
+    // --- Housing (batch 2) ---
+    { front: "flatmate", pos: "n.", def: "a person you share a flat with", example: "My flatmate and I split the bills equally.", zh: "室友" },
+    { front: "landlady", pos: "n.", def: "a woman who rents out a building or room", example: "Our landlady lives on the ground floor.", zh: "女房東" },
+    { front: "bedsit", pos: "n.", def: "a rented room used for both living and sleeping", example: "He lived in a cramped bedsit as a student.", zh: "臥室兼起居室的套房" },
+    { front: "semi-detached", pos: "adj.", def: "describing a house joined to one other house", example: "They bought a semi-detached house in the suburbs.", zh: "半獨立式(雙拼)的" },
+    { front: "terraced house", pos: "n.", def: "a house joined to others in a row", example: "The street is lined with Victorian terraced houses.", zh: "連棟房屋" },
+    { front: "open-plan", pos: "adj.", def: "having few or no dividing walls inside", example: "The flat has a bright open-plan kitchen and living room.", zh: "開放式格局的" },
+    { front: "fully furnished", pos: "adj.", def: "rented with all furniture included", example: "The studio comes fully furnished.", zh: "附全套家具的" },
+    { front: "commuter belt", pos: "n.", def: "the area around a city where people who work there live", example: "House prices in the commuter belt have soared.", zh: "通勤圈" },
+    // --- Food (batch 2) ---
+    { front: "ready meal", pos: "n.", def: "a pre-cooked meal you only need to heat up", example: "He lived on ready meals during exam week.", zh: "調理即食餐" },
+    { front: "takeaway", pos: "n.", def: "a meal bought from a restaurant to eat elsewhere", example: "Let's just get a takeaway tonight.", zh: "外帶餐點" },
+    { front: "doggy bag", pos: "n.", def: "a bag for taking home food left over at a restaurant", example: "We asked the waiter for a doggy bag.", zh: "打包袋" },
+    { front: "fussy eater", pos: "n.", def: "a person who dislikes many kinds of food", example: "As a child I was a terribly fussy eater.", zh: "挑食的人" },
+    { front: "sweet tooth", pos: "idiom", def: "a strong liking for sweet food", example: "Her sweet tooth makes dieting difficult.", zh: "愛吃甜食" },
+    { front: "wolf down", pos: "phr. v.", def: "to eat something very quickly", example: "He wolfed down his lunch and ran back to work.", zh: "狼吞虎嚥" },
+    { front: "eat like a horse", pos: "idiom", def: "to eat very large amounts of food", example: "The twins eat like horses but stay slim.", zh: "食量很大" },
+    { front: "grab a bite", pos: "idiom", def: "to have a quick meal", example: "We grabbed a bite before the film started.", zh: "隨便吃點東西" },
+    { front: "off the menu", pos: "phr.", def: "no longer available to order", example: "The salmon is off the menu tonight, I'm afraid.", zh: "(菜色)已無供應" },
+    { front: "on the house", pos: "idiom", def: "provided free by the restaurant or bar", example: "The owner said the desserts were on the house.", zh: "店家免費招待" },
+    { front: "set menu", pos: "n.", def: "a fixed list of dishes at a fixed price", example: "The set menu is much better value than ordering separately.", zh: "套餐" }
+  ];
   if (typeof module !== 'undefined') { module.exports = BANK; return; }
   VOCAB = VOCAB.concat(BANK);
 })();
