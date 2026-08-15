@@ -6,6 +6,17 @@
 
   if (!CLIENT_ID || !API_BASE || typeof window === "undefined") return;
 
+  // In-app browser (LINE/Telegram/FB webview) detection: Google blocks OAuth inside
+  // webviews — even when the GSI script loads, tapping sign-in just opens a blank
+  // accounts.google.com page (Tony confirmed on device, 2026-08-15).
+  var IN_WEBVIEW = (function () {
+    var ua = navigator.userAgent || "";
+    return /\bwv\b/.test(ua) ||
+      (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) ||
+      /Line\/|FBAN|FBAV|Instagram|MicroMessenger|Telegram/i.test(ua);
+  })();
+  var WEBVIEW_MSG = "Google doesn't allow sign-in inside in-app browsers (LINE / Telegram, etc.) — it only shows a blank page.\nUse the menu (⋯ or share button) in the corner to open this site in Safari or Chrome, then sign in.";
+
   var TOKEN_KEY = "sync.token";
   var PUSH_INTERVAL_MS = 60000;
   var lastPushedHash = null;
@@ -148,17 +159,18 @@
       statusEl = null;
       var slot = document.createElement("div");
       ui.appendChild(slot);
-      if (window.google && google.accounts && google.accounts.id) {
+      // In webviews never mount the official button — it leads to a blank sign-in page.
+      if (!IN_WEBVIEW && window.google && google.accounts && google.accounts.id) {
         google.accounts.id.renderButton(slot, { type: "icon", shape: "circle", size: "medium" });
       } else {
-        // GSI 沒載入（App 內建瀏覽器常擋 accounts.google.com）時，登入入口不能消失
+        // Sign-in entry must never disappear (GSI blocked or webview)
         var pill = document.createElement("button");
         pill.type = "button";
         pill.className = "sync-chip";
         pill.textContent = "Sign in";
         pill.title = "Sign in with Google to sync progress";
         pill.addEventListener("click", function () {
-          UIDialog.alert("This in-app browser blocks Google Sign-In.\nOpen this site in Safari or Chrome to sign in.");
+          UIDialog.alert(WEBVIEW_MSG);
         });
         slot.appendChild(pill);
       }
@@ -190,11 +202,13 @@
     header.appendChild(ui);
     renderUi(); // 先畫出登入鈕：GSI 被擋時入口也不能消失（2026-08-15 Tony 回報）
 
-    var s = document.createElement("script");
-    s.src = "https://accounts.google.com/gsi/client";
-    s.async = true;
-    s.onload = initGis;
-    document.head.appendChild(s);
+    if (!IN_WEBVIEW) {
+      var s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.onload = initGis;
+      document.head.appendChild(s);
+    }
 
     setInterval(function () { if (signedIn()) push(currentLevel()); }, PUSH_INTERVAL_MS);
     document.addEventListener("visibilitychange", function () {
