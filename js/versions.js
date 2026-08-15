@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v16", date: "2026-08-15", items: [
+      "Fix: the sign-in button was missing when the site was opened inside an in-app browser (LINE / Telegram, etc.). The sign-in button now always shows; if the in-app browser blocks Google Sign-In, tapping it explains how to open the site in Safari or Chrome."
+    ]
+  },
+  {
     v: "v15", date: "2026-08-12", items: [
       "Practice outside the daily mission now shows in the Parent / Teacher view: days with any practice (mock exams, reading, listening, vocabulary) get a dashed • cell in the 14-day strip with the number of questions answered, plus a new \"questions answered, last 7 days · all practice\" tile.",
       "New 🎯 Mastery check on the Review page: 20 fresh questions drawn from the sections practised in the last 7 days — new questions rather than repeats, scored out of 100. Results appear in the Review history and the Parent / Teacher view."

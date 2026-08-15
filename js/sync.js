@@ -150,6 +150,17 @@
       ui.appendChild(slot);
       if (window.google && google.accounts && google.accounts.id) {
         google.accounts.id.renderButton(slot, { type: "icon", shape: "circle", size: "medium" });
+      } else {
+        // GSI 沒載入（App 內建瀏覽器常擋 accounts.google.com）時，登入入口不能消失
+        var pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "sync-chip";
+        pill.textContent = "Sign in";
+        pill.title = "Sign in with Google to sync progress";
+        pill.addEventListener("click", function () {
+          alert("This in-app browser blocks Google Sign-In.\nOpen this site in Safari or Chrome to sign in.");
+        });
+        slot.appendChild(pill);
       }
     }
   }
@@ -177,6 +188,7 @@
     ui = document.createElement("div");
     ui.className = "sync-ui";
     header.appendChild(ui);
+    renderUi(); // 先畫出登入鈕：GSI 被擋時入口也不能消失（2026-08-15 Tony 回報）
 
     var s = document.createElement("script");
     s.src = "https://accounts.google.com/gsi/client";
