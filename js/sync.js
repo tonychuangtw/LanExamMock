@@ -19,6 +19,10 @@
   })();
   var WEBVIEW_MSG = "Google doesn't allow sign-in inside in-app browsers (LINE / Telegram, etc.) — it only shows a blank page.\nUse the menu (⋯ or share button) in the corner to open this site in Safari or Chrome, then sign in.";
 
+  // UIDialog 可能因混版快取（舊 HTML 沒載 dialog.js + 新 sync.js）不存在——退回原生框保底
+  function dlgAlert(msg) { if (window.UIDialog) UIDialog.alert(msg); else alert(msg); }
+  function dlgConfirm(msg, ok) { if (window.UIDialog) UIDialog.confirm(msg, ok); else if (confirm(msg)) ok(); }
+
   var TOKEN_KEY = "sync.token";
   var PUSH_INTERVAL_MS = 60000;
   var lastPushedHash = null;
@@ -148,7 +152,7 @@
       chip.title = (p.email || "") + " — click to sign out";
       chip.textContent = (p.given_name || p.name || "?").charAt(0).toUpperCase();
       chip.addEventListener("click", function () {
-        UIDialog.confirm("Sign out of cloud sync? (local progress stays on this device)", function () {
+        dlgConfirm("Sign out of cloud sync? (local progress stays on this device)", function () {
           clearToken(); lastPushedHash = null; renderUi();
         });
       });
@@ -172,7 +176,7 @@
         pill.textContent = "Sign in";
         pill.title = "Sign in with Google to sync progress";
         pill.addEventListener("click", function () {
-          UIDialog.alert(WEBVIEW_MSG);
+          dlgAlert(WEBVIEW_MSG);
         });
         slot.appendChild(pill);
       }
