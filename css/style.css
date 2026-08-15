@@ -982,3 +982,16 @@ input[type="number"]:focus {
 .pt-cloud .vb-type-row { margin-top: 8px; }
 .pt-revoke { min-height: 0; padding: 2px 8px; margin: 0 0 0 6px; }
 .ghost-btn.selected { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- In-app dialog (replaces native alert/confirm, 2026-08-15) ---------- */
+.dlg-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 1.2rem;
+}
+.dlg-card {
+  background: var(--surface-hi); border: 1px solid var(--border-strong);
+  border-radius: 14px; padding: 1.1rem 1.2rem; max-width: 380px; width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+.dlg-msg { color: var(--text); font-size: 0.95rem; line-height: 1.7; white-space: pre-line; margin-bottom: 1rem; }
+.dlg-btns { display: flex; gap: 0.6rem; justify-content: flex-end; }

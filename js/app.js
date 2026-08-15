@@ -679,15 +679,16 @@ if (typeof document !== 'undefined') {
       if (quiz.mode === "full") startFullMock(); else startMock(quiz.part);
     });
     $("uoe-back").addEventListener("click", function () {
-      if (quiz.idx > 0 && !confirm("You haven't submitted yet. Abandon this mock exam?")) return;
+      if (quiz.idx > 0) { UIDialog.confirm("You haven't submitted yet. Abandon this mock exam?", backToPicker); return; }
       backToPicker();
     });
     $("uoe-home").addEventListener("click", backToPicker);
     $("uoe-drill-btn").addEventListener("click", startUoeDrill);
     $("uoe-drill-quit").addEventListener("click", function () {
-      if (!confirm("Quit mistake practice and go back to the results?")) return;
-      $("uoe-drill").classList.add("hidden");
-      $("uoe-summary").classList.remove("hidden");
+      UIDialog.confirm("Quit mistake practice and go back to the results?", function () {
+        $("uoe-drill").classList.add("hidden");
+        $("uoe-summary").classList.remove("hidden");
+      });
     });
     $("uoe-congrats-home").addEventListener("click", backToPicker);
   }
@@ -1012,7 +1013,7 @@ if (typeof document !== 'undefined') {
   function startReading(type) {
     if (needLogin()) return;
     var pool = rdPool(type);
-    if (!pool.length) { alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
+    if (!pool.length) { UIDialog.alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
     rd.type = type;
     rd.set = pool[Math.floor(Math.random() * pool.length)];
     rd.answers = [];
@@ -1212,8 +1213,12 @@ if (typeof document !== 'undefined') {
     var n = rdCount(rd.type);
     var unanswered = 0;
     for (var i = 0; i < n; i++) if (rd.answers[i] === undefined || rd.answers[i] === null) unanswered++;
-    if (unanswered > 0 && !confirm(unanswered + " question(s) still unanswered. Submit anyway?")) return;
+    if (unanswered > 0) { UIDialog.confirm(unanswered + " question(s) still unanswered. Submit anyway?", gradeReadingNow); return; }
+    gradeReadingNow();
+  }
 
+  function gradeReadingNow() {
+    var n = rdCount(rd.type);
     var score = 0;
     var reviewHtml = "";
     var statKey = "r" + rd.type;
@@ -1285,15 +1290,16 @@ if (typeof document !== 'undefined') {
     $("rd-submit").addEventListener("click", gradeReading);
     $("rd-retry").addEventListener("click", function () { startReading(rd.type); });
     $("rd-back").addEventListener("click", function () {
-      if (rd.answers.length > 0 && !confirm("You haven't submitted yet. Abandon this mock exam?")) return;
+      if (rd.answers.length > 0) { UIDialog.confirm("You haven't submitted yet. Abandon this mock exam?", rdBackToPicker); return; }
       rdBackToPicker();
     });
     $("rd-home").addEventListener("click", rdBackToPicker);
     $("rd-drill-btn").addEventListener("click", startRdDrill);
     $("rd-drill-quit").addEventListener("click", function () {
-      if (!confirm("Quit mistake practice and go back to the results?")) return;
-      $("rd-drill").classList.add("hidden");
-      $("rd-summary").classList.remove("hidden");
+      UIDialog.confirm("Quit mistake practice and go back to the results?", function () {
+        $("rd-drill").classList.add("hidden");
+        $("rd-summary").classList.remove("hidden");
+      });
     });
     $("rd-congrats-home").addEventListener("click", rdBackToPicker);
   }
@@ -1321,7 +1327,7 @@ if (typeof document !== 'undefined') {
   function startSpeed() {
     if (needLogin()) return;
     var pool = rdPool("mc").concat(rdPool("tfng"));
-    if (!pool.length) { alert("The reading banks haven't loaded. Please try again later."); return; }
+    if (!pool.length) { UIDialog.alert("The reading banks haven't loaded. Please try again later."); return; }
     sr.set = pool[Math.floor(Math.random() * pool.length)];
     sr.words = countWords(sr.set.text);
     sr.qs = shuffle(sr.set.questions).slice(0, SR_QN);
@@ -1349,7 +1355,7 @@ if (typeof document !== 'undefined') {
   function srFinishReading() {
     sr.ms = Date.now() - sr.t0;
     srStopTicker();
-    if (sr.ms < 5000) { alert("That was too quick — actually read the passage first."); sr.t0 = Date.now() - sr.ms; srTicker = setInterval(function () { $("sr-timer").textContent = fmtSecs(Math.round((Date.now() - sr.t0) / 1000)); }, 500); return; }
+    if (sr.ms < 5000) { UIDialog.alert("That was too quick — actually read the passage first."); sr.t0 = Date.now() - sr.ms; srTicker = setInterval(function () { $("sr-timer").textContent = fmtSecs(Math.round((Date.now() - sr.t0) / 1000)); }, 500); return; }
     var qarea = $("sr-qarea");
     qarea.innerHTML = "";
     sr.qs.forEach(function (q, qi) {
@@ -1375,7 +1381,7 @@ if (typeof document !== 'undefined') {
 
   function srSubmit() {
     for (var i = 0; i < sr.qs.length; i++) {
-      if (sr.answers[i] === undefined) { alert("Answer all " + SR_QN + " questions first."); return; }
+      if (sr.answers[i] === undefined) { UIDialog.alert("Answer all " + SR_QN + " questions first."); return; }
     }
     var score = 0;
     var reviewHtml = "";
@@ -1444,10 +1450,11 @@ if (typeof document !== 'undefined') {
   }
 
   function srQuit(fromRead) {
-    if (!confirm("Quit this speed-reading session?")) return;
-    srStopTicker();
-    srShow("rd-picker");
-    renderSrStats();
+    UIDialog.confirm("Quit this speed-reading session?", function () {
+      srStopTicker();
+      srShow("rd-picker");
+      renderSrStats();
+    });
   }
 
   function initSpeedReading() {
@@ -1525,7 +1532,7 @@ if (typeof document !== 'undefined') {
   }
 
   function lsPlay() {
-    if (!window.speechSynthesis) { alert("This browser does not support speech synthesis."); return; }
+    if (!window.speechSynthesis) { UIDialog.alert("This browser does not support speech synthesis."); return; }
     if (ls.playing) return;
     var rate = parseFloat($("ls-rate").value) || 1;
     ls.queue = lsBuildQueue(ls.set, rate);
@@ -1553,7 +1560,7 @@ if (typeof document !== 'undefined') {
   function startListening(kind) {
     if (needLogin()) return;
     var pool = lsPool(kind);
-    if (!pool.length) { alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
+    if (!pool.length) { UIDialog.alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
     ls.set = pool[Math.floor(Math.random() * pool.length)];
     ls.answers = [];
     ls.playsUsed = 0;
@@ -1609,7 +1616,12 @@ if (typeof document !== 'undefined') {
     var qs = ls.set.questions, n = qs.length;
     var unanswered = 0;
     for (var i = 0; i < n; i++) if (ls.answers[i] === undefined || ls.answers[i] === null) unanswered++;
-    if (unanswered > 0 && !confirm(unanswered + " question(s) still unanswered. Submit anyway?")) return;
+    if (unanswered > 0) { UIDialog.confirm(unanswered + " question(s) still unanswered. Submit anyway?", gradeListeningNow); return; }
+    gradeListeningNow();
+  }
+
+  function gradeListeningNow() {
+    var qs = ls.set.questions, n = qs.length;
     lsStopAudio();
 
     var score = 0, reviewHtml = "";
@@ -1732,16 +1744,17 @@ if (typeof document !== 'undefined') {
     $("ls-submit").addEventListener("click", gradeListening);
     $("ls-retry").addEventListener("click", function () { startListening(ls.set.kind); });
     $("ls-back").addEventListener("click", function () {
-      if (ls.answers.length > 0 && !confirm("You haven't submitted yet. Abandon this mock exam?")) return;
+      if (ls.answers.length > 0) { UIDialog.confirm("You haven't submitted yet. Abandon this mock exam?", lsBackToPicker); return; }
       lsBackToPicker();
     });
     $("ls-home").addEventListener("click", lsBackToPicker);
     $("ls-drill-btn").addEventListener("click", startLsDrill);
     $("ls-drill-quit").addEventListener("click", function () {
-      if (!confirm("Quit mistake practice and go back to the results?")) return;
-      lsStopAudio();
-      $("ls-drill").classList.add("hidden");
-      $("ls-summary").classList.remove("hidden");
+      UIDialog.confirm("Quit mistake practice and go back to the results?", function () {
+        lsStopAudio();
+        $("ls-drill").classList.add("hidden");
+        $("ls-summary").classList.remove("hidden");
+      });
     });
     $("ls-congrats-home").addEventListener("click", lsBackToPicker);
     /* Chrome 需要先觸發 getVoices 才會載入聲音清單 */
@@ -2068,7 +2081,7 @@ if (typeof document !== 'undefined') {
     var guide = $("wr-guidance");
     if (guide) guide.textContent = CFG.wordGuide || "";
     // timer
-    var wrTimer = makeCountdown($("wr-timer"), function () { alert("Time's up!"); });
+    var wrTimer = makeCountdown($("wr-timer"), function () { UIDialog.alert("Time's up!"); });
     var minInput = $("wr-minutes");
     minInput.value = CFG.timerMin;
     function resetWr() {
@@ -2136,7 +2149,7 @@ if (typeof document !== 'undefined') {
       fb.textContent = "📋 Copy for AI feedback";
       fb.addEventListener("click", function () {
         var essay = ta.value.trim();
-        if (!essay) { alert("Write your draft first, then copy it for feedback."); return; }
+        if (!essay) { UIDialog.alert("Write your draft first, then copy it for feedback."); return; }
         var isIelts = typeof p.part !== "number";
         var msg = (isIelts
           ? "Please grade this IELTS Writing Task 1 answer using the official IELTS band descriptors " +
@@ -2163,10 +2176,10 @@ if (typeof document !== 'undefined') {
       gradeOut.className = "wr-grade hidden";
       gb.addEventListener("click", function () {
         var essay = ta.value.trim();
-        if (countWords(essay) < 10) { alert("Write your draft first (at least a few sentences)."); return; }
+        if (countWords(essay) < 10) { UIDialog.alert("Write your draft first (at least a few sentences)."); return; }
         var token = null;
         try { token = sessionStorage.getItem("sync.token"); } catch (e) {}
-        if (!token) { alert("Sign in with Google first — AI grading needs your account."); return; }
+        if (!token) { UIDialog.alert("Sign in with Google first — AI grading needs your account."); return; }
         var isIelts = typeof p.part !== "number";
         gb.disabled = true;
         gb.textContent = "\u23f3 Grading\u2026 (up to 90s)";
@@ -2367,7 +2380,7 @@ if (typeof document !== 'undefined') {
       boxes.forEach(function (b) { if (b.checked) ticked++; });
       $("sp-int-eval").classList.add("hidden");
       $("sp-int-card").classList.remove("hidden");
-      alert(ticked >= 4 ? "Strong interview — " + ticked + "/5. Keep that consistency!"
+      UIDialog.alert(ticked >= 4 ? "Strong interview — " + ticked + "/5. Keep that consistency!"
         : "You ticked " + ticked + "/5. Pick one unticked habit and make it your focus next round.");
     });
   }
@@ -2439,7 +2452,7 @@ if (typeof document !== 'undefined') {
       spRecStop();
       btn.textContent = "\ud83c\udf99 Record again";
       var text = spRec.finalText.trim();
-      if (!text) { alert("Nothing was transcribed — check the microphone permission and try again."); return; }
+      if (!text) { UIDialog.alert("Nothing was transcribed — check the microphone permission and try again."); return; }
       $("sp-transcript").value = text;
       spRecUpdateStats();
       $("sp-rec-edit").classList.remove("hidden");
@@ -2470,7 +2483,7 @@ if (typeof document !== 'undefined') {
       if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
         spRecStop();
         $("sp-rec-btn").textContent = "\ud83c\udf99 Start recording";
-        alert("Microphone access was blocked. Allow the microphone for this site and try again.");
+        UIDialog.alert("Microphone access was blocked. Allow the microphone for this site and try again.");
       }
     };
     spRec.engine = eng;
@@ -2491,10 +2504,10 @@ if (typeof document !== 'undefined') {
 
   function spSendForFeedback() {
     var transcript = $("sp-transcript").value.trim();
-    if (countWords(transcript) < 15) { alert("The transcript is too short to grade — speak for longer first."); return; }
+    if (countWords(transcript) < 15) { UIDialog.alert("The transcript is too short to grade — speak for longer first."); return; }
     var token = null;
     try { token = sessionStorage.getItem("sync.token"); } catch (e) {}
-    if (!token) { alert("Sign in with Google first — AI feedback needs your account."); return; }
+    if (!token) { UIDialog.alert("Sign in with Google first — AI feedback needs your account."); return; }
     var btn = $("sp-send");
     var out = $("sp-feedback");
     btn.disabled = true;
@@ -3140,7 +3153,7 @@ if (typeof document !== 'undefined') {
     var run = loadJSON(K_DRUN(), null);
     if (run && run.date === todayStr() && run.queue && run.queue.length && d25Resume(run)) return;
     var entries = d25Compose();
-    if (entries.length < 10) { alert("Not enough questions available at this level yet."); return; }
+    if (entries.length < 10) { UIDialog.alert("Not enough questions available at this level yet."); return; }
     var prev = d25TodayRec() || {};
     prev.refs = d25Refs(entries);
     d25SaveRec(prev);
@@ -3319,12 +3332,13 @@ if (typeof document !== 'undefined') {
       else { dsp.idx++; dspRenderReview(); }
     });
     $("dsp-quit").addEventListener("click", function () {
-      if (!confirm("Quit spelling practice? Today's questions are already saved; the spelling round won't be recorded.")) return;
-      dsp = null;
-      dspSummaryHtml = "";
-      dspHideAll();
-      $("daily-home").classList.remove("hidden");
-      renderDaily();
+      UIDialog.confirm("Quit spelling practice? Today's questions are already saved; the spelling round won't be recorded.", function () {
+        dsp = null;
+        dspSummaryHtml = "";
+        dspHideAll();
+        $("daily-home").classList.remove("hidden");
+        renderDaily();
+      });
     });
     $("dsp-submit").addEventListener("click", dspSubmit);
     $("dsp-input").addEventListener("keydown", function (e) {
@@ -3349,12 +3363,13 @@ if (typeof document !== 'undefined') {
       else startDaily25();
     });
     $("d25-drill-quit").addEventListener("click", function () {
-      if (!confirm("Pause today's Daily 20? Your progress is saved — continue any time, even on another device.")) return;
-      mbStopAudio();
-      d25 = null;
-      $("d25-drill").classList.add("hidden");
-      $("daily-home").classList.remove("hidden");
-      renderDaily();
+      UIDialog.confirm("Pause today's Daily 20? Your progress is saved — continue any time, even on another device.", function () {
+        mbStopAudio();
+        d25 = null;
+        $("d25-drill").classList.add("hidden");
+        $("daily-home").classList.remove("hidden");
+        renderDaily();
+      });
     });
     $("d25-congrats-home").addEventListener("click", function () {
       $("d25-congrats").classList.add("hidden");
@@ -3581,7 +3596,7 @@ if (typeof document !== 'undefined') {
 
   function rvStartMastery() {
     var secs = rvRecentSections();
-    if (!secs.length) { alert("No practice recorded in the last 7 days — do some practice first, then come back to check mastery."); return; }
+    if (!secs.length) { UIDialog.alert("No practice recorded in the last 7 days — do some practice first, then come back to check mastery."); return; }
     var pools = secs.map(rvMasteryPool);
     var items = [], seen = {}, more = true;
     while (items.length < RV_TOTAL && more) {   // round-robin：每個練過的區塊輪流抽一題
@@ -3599,7 +3614,7 @@ if (typeof document !== 'undefined') {
         }
       });
     }
-    if (items.length < 5) { alert("Not enough questions available for a mastery check."); return; }
+    if (items.length < 5) { UIDialog.alert("Not enough questions available for a mastery check."); return; }
     items.forEach(function (e) {
       if (e.kind === "rmc" || e.kind === "rtfng") e.gid = "r|" + e.payload.title;
       else if (e.kind === "lis") e.gid = "l|" + e.payload.title;
@@ -3620,9 +3635,9 @@ if (typeof document !== 'undefined') {
     var days = Array.prototype.slice.call(document.querySelectorAll("#rv-days input:checked"))
       .map(function (c) { return c.value; });
     var includeMb = $("rv-mb").checked;
-    if (!days.length && !includeMb) { alert("Pick at least one day, or include mistake-book questions."); return; }
+    if (!days.length && !includeMb) { UIDialog.alert("Pick at least one day, or include mistake-book questions."); return; }
     var items = rvCompose(days, includeMb);
-    if (items.length < 5) { alert("Not enough questions from that selection — pick more days."); return; }
+    if (items.length < 5) { UIDialog.alert("Not enough questions from that selection — pick more days."); return; }
     mbReviewedThisSession = {};
     rv = { items: items, idx: 0, correct: 0, rushed: 0, t0: Date.now(), days: days, reviewHtml: "" };
     $("rv-home").classList.add("hidden");
@@ -3711,12 +3726,13 @@ if (typeof document !== 'undefined') {
       document.querySelectorAll("#rv-days input").forEach(function (c) { c.checked = false; });
     });
     $("rv-quit").addEventListener("click", function () {
-      if (!confirm("Quit this review test? The attempt won't be scored.")) return;
-      audioStopAll();
-      rv = null;
-      $("rv-quiz").classList.add("hidden");
-      $("rv-home").classList.remove("hidden");
-      rvRenderHome();
+      UIDialog.confirm("Quit this review test? The attempt won't be scored.", function () {
+        audioStopAll();
+        rv = null;
+        $("rv-quiz").classList.add("hidden");
+        $("rv-home").classList.remove("hidden");
+        rvRenderHome();
+      });
     });
     $("rv-home-btn").addEventListener("click", function () {
       $("rv-summary").classList.add("hidden");
@@ -3866,11 +3882,12 @@ if (typeof document !== 'undefined') {
 
   function initProgress() {
     $("mb-drill-quit").addEventListener("click", function () {
-      if (!confirm("Quit mistake review and go back to Progress?")) return;
-      mbStopAudio();
-      $("mb-drill").classList.add("hidden");
-      $("mb-summary").classList.remove("hidden");
-      renderProgress();
+      UIDialog.confirm("Quit mistake review and go back to Progress?", function () {
+        mbStopAudio();
+        $("mb-drill").classList.add("hidden");
+        $("mb-summary").classList.remove("hidden");
+        renderProgress();
+      });
     });
     $("mb-congrats-home").addEventListener("click", function () {
       $("mb-congrats").classList.add("hidden");
@@ -3878,7 +3895,9 @@ if (typeof document !== 'undefined') {
       renderProgress();
     });
     $("pg-clear").addEventListener("click", function () {
-      if (!confirm("Clear all practice records, vocabulary progress and drafts for this level? This cannot be undone.")) return;
+      UIDialog.confirm("Clear all practice records, vocabulary progress and drafts for this level? This cannot be undone.", pgClearNow);
+    });
+    function pgClearNow() {
       try {
         var keys = [];
         for (var i = 0; i < localStorage.length; i++) {
@@ -3895,8 +3914,8 @@ if (typeof document !== 'undefined') {
       } catch (e) {}
       vocabQueue = [];
       renderProgress();
-      alert("Cleared.");
-    });
+      UIDialog.alert("Cleared.");
+    }
     renderProgress();
   }
 
@@ -4091,7 +4110,7 @@ if (typeof document !== 'undefined') {
       ptApi("GET", "/api/progress?level=" + lvl + "&app=lanexammock&owner=" + encodeURIComponent(email), null, function (err, res) {
         if (!err && res && res.blob) found.push({ level: lvl, blob: res.blob, updatedAt: res.updatedAt || 0 });
         if (--pending > 0) return;
-        if (!found.length) { alert("No cloud data for " + email + " yet — they need to sign in and practise first."); return; }
+        if (!found.length) { UIDialog.alert("No cloud data for " + email + " yet — they need to sign in and practise first."); return; }
         found.sort(function (a, b) { return b.updatedAt - a.updatedAt; });
         ptChild = { email: email, levels: found };
         var pick = found[0];
@@ -4174,10 +4193,11 @@ if (typeof document !== 'undefined') {
           del.textContent = "✕";
           del.title = "Revoke access";
           del.addEventListener("click", function () {
-            if (!confirm("Revoke access for " + em + "?")) return;
-            ptApi("DELETE", "/api/grants?app=lanexammock&viewerEmail=" + encodeURIComponent(em), null, function (derr) {
-              if (derr) { alert("Failed: " + derr); return; }
-              renderParent();
+            UIDialog.confirm("Revoke access for " + em + "?", function () {
+              ptApi("DELETE", "/api/grants?app=lanexammock&viewerEmail=" + encodeURIComponent(em), null, function (derr) {
+                if (derr) { UIDialog.alert("Failed: " + derr); return; }
+                renderParent();
+              });
             });
           });
           chip.appendChild(del);
@@ -4196,11 +4216,11 @@ if (typeof document !== 'undefined') {
       btn2.textContent = "Grant access";
       btn2.addEventListener("click", function () {
         var em = (inp.value || "").trim().toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { alert("Please enter a valid email."); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { UIDialog.alert("Please enter a valid email."); return; }
         btn2.disabled = true;
         ptApi("POST", "/api/grants?app=lanexammock", { viewerEmail: em, role: "viewer" }, function (aerr) {
           btn2.disabled = false;
-          if (aerr) { alert("Failed: " + aerr); return; }
+          if (aerr) { UIDialog.alert("Failed: " + aerr); return; }
           renderParent();
         });
       });

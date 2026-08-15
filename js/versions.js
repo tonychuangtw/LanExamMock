@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v17", date: "2026-08-15", items: [
+      "All alerts and confirmation prompts now use in-app dialogs styled to match the site (they used to be native browser popups). Applies to exam exit/submit checks, drill quits, clearing records, sign-out and access management; confirmations keep the two-step OK / Cancel flow."
+    ]
+  },
+  {
     v: "v16", date: "2026-08-15", items: [
       "Fix: the sign-in button was missing when the site was opened inside an in-app browser (LINE / Telegram, etc.). The sign-in button now always shows; if the in-app browser blocks Google Sign-In, tapping it explains how to open the site in Safari or Chrome."
     ]

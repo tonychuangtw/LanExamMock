@@ -135,9 +135,9 @@
       chip.title = (p.email || "") + " — click to sign out";
       chip.textContent = (p.given_name || p.name || "?").charAt(0).toUpperCase();
       chip.addEventListener("click", function () {
-        if (confirm("Sign out of cloud sync? (local progress stays on this device)")) {
+        UIDialog.confirm("Sign out of cloud sync? (local progress stays on this device)", function () {
           clearToken(); lastPushedHash = null; renderUi();
-        }
+        });
       });
       statusEl = document.createElement("span");
       statusEl.className = "sync-status";
@@ -158,7 +158,7 @@
         pill.textContent = "Sign in";
         pill.title = "Sign in with Google to sync progress";
         pill.addEventListener("click", function () {
-          alert("This in-app browser blocks Google Sign-In.\nOpen this site in Safari or Chrome to sign in.");
+          UIDialog.alert("This in-app browser blocks Google Sign-In.\nOpen this site in Safari or Chrome to sign in.");
         });
         slot.appendChild(pill);
       }
