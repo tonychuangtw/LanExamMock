@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v19", date: "2026-08-22", items: [
+      "Stay signed in for 30 days. Sign-in used to rely on the Google credential itself, which expires after an hour and was cleared whenever the browser dropped the tab — so on a phone you were asked to sign in again almost every visit. Signing in now exchanges that for a 30-day pass stored on your device, and every visit renews it, so regular users should not see the sign-in prompt again. The pass stays on your device and is never copied to your other devices by progress sync."
+    ]
+  },
+  {
     v: "v18", date: "2026-08-16", items: [
       "Reading practice expanded: 3 new multiple-choice passages at every level (KET, PET, FCE, CAE, CPE) — 15 texts, 90 questions, each with an answer explanation. New topics include the school lost property box and a street's old lime tree (KET), a bus turned into a village library and a school's pre-loved uniform shop (PET), a community orchard, a theatre costume store and reading tidal causeways (FCE), the economics of empty seats, cockpit automation and office-to-flat conversions (CAE), and essays on unloved architecture, anniversaries and the art of losing well (CPE). Each level now has 28 reading multiple-choice sets."
     ]
