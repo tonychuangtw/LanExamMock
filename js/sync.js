@@ -18,6 +18,7 @@
       !!(window.webkit && window.webkit.messageHandlers);          // 其他 App 的 WKWebView（Safari 本體不會有）
   })();
   var WEBVIEW_MSG = "Google doesn't allow sign-in inside in-app browsers (LINE / Telegram, etc.) — it only shows a blank page.\nUse the menu (⋯ or share button) in the corner to open this site in Safari or Chrome, then sign in.";
+  var GIS_RETRY_MSG = "Can't reach Google's sign-in component (accounts.google.com isn't responding). Usually a flaky network or an ad/content blocker. Try again?";
 
   // UIDialog 可能因混版快取（舊 HTML 沒載 dialog.js + 新 sync.js）不存在——退回原生框保底
   function dlgAlert(msg) { if (window.UIDialog) UIDialog.alert(msg); else alert(msg); }
@@ -217,7 +218,13 @@
         pill.textContent = "Sign in";
         pill.title = "Sign in with Google to sync progress";
         pill.addEventListener("click", function () {
-          dlgAlert(WEBVIEW_MSG);
+          if (IN_WEBVIEW) {
+            dlgAlert(WEBVIEW_MSG);
+          } else if (gisFailed) {
+            dlgConfirm(GIS_RETRY_MSG, function () { gisFailed = false; gisAttempts = 0; loadGis(); });
+          } else {
+            dlgAlert("The Google sign-in button is still loading — try again in a few seconds.");
+          }
         });
         slot.appendChild(pill);
       }
@@ -251,6 +258,30 @@
     renderUi();
   }
 
+  /* Retry gsi/client loading (2026-08-23 lesson from the poker site: when Google's widget
+     transiently fails to load, a bare "use an external browser" message misleads users who
+     are already in a real browser). Up to 3 attempts, 8s each. */
+  var gisAttempts = 0, gisFailed = false;
+  function loadGis() {
+    gisAttempts++;
+    var settled = false;
+    var s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true;
+    s.onload = function () { settled = true; gisFailed = false; initGis(); };
+    s.onerror = function () { if (!settled) { settled = true; gisRetryOrFail(); } };
+    setTimeout(function () {
+      if (settled || (window.google && google.accounts && google.accounts.id)) return;
+      settled = true;
+      gisRetryOrFail();
+    }, 8000);
+    document.head.appendChild(s);
+  }
+  function gisRetryOrFail() {
+    if (gisAttempts < 3) { loadGis(); return; }
+    gisFailed = true;
+  }
+
   function boot() {
     var header = document.querySelector(".app-header");
     if (!header) return;
@@ -259,13 +290,7 @@
     header.appendChild(ui);
     renderUi(); // 先畫出登入鈕：GSI 被擋時入口也不能消失（2026-08-15 Tony 回報）
 
-    if (!IN_WEBVIEW) {
-      var s = document.createElement("script");
-      s.src = "https://accounts.google.com/gsi/client";
-      s.async = true;
-      s.onload = initGis;
-      document.head.appendChild(s);
-    }
+    if (!IN_WEBVIEW) loadGis();
 
     setInterval(function () { if (signedIn()) push(currentLevel()); }, PUSH_INTERVAL_MS);
     document.addEventListener("visibilitychange", function () {
