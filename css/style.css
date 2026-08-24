@@ -905,6 +905,18 @@ input[type="number"]:focus {
 .d25-size .sub { font-size: 0.78rem; font-weight: 400; color: var(--text2); }
 .d25-size.selected .sub { color: inherit; }
 
+/* ---- 每日任務完成後的逐題回顧（可摺疊） ---- */
+.d25-recap { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.d25-recap > summary {
+  cursor: pointer; font-weight: 700; padding: 8px 0; list-style: none;
+}
+.d25-recap > summary::-webkit-details-marker { display: none; }
+.d25-recap > summary::before { content: "▸ "; color: var(--text2); }
+.d25-recap[open] > summary::before { content: "▾ "; }
+.d25-recap .review-item { margin-top: 10px; }
+.retro-guess { margin-top: 10px; }
+.retro-guess[disabled] { opacity: 1; border-color: var(--accent); color: var(--accent); }
+
 /* ---- Daily 20 防亂做：作答鎖與提示 ---- */
 .answers-locked .option-btn, .answers-locked .letter-btn {
   pointer-events: none; opacity: 0.45;

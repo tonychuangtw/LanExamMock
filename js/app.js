@@ -458,6 +458,31 @@ if (typeof document !== 'undefined') {
     return g;
   }
 
+  /* ---- 事後補標「🤔 I was guessing」（2026-08-24 Tony 要求）----
+   * 交卷後的檢討清單上，每題都給一顆補標按鈕：作答當下忘了按的，看到答案時還能補，
+   * 補了就收進錯題本（已經在本子裡的會被重設回盒 1，等於重新排隊複習）。
+   * 只在「這題還沒進錯題本」時出現 —— 答錯的、作答時就標過的不會重複給。 */
+  var retroSeq = 0, retroMap = {};
+  function retroGuessHtml(kind, payload, alreadyInBook) {
+    if (alreadyInBook || !kind || !payload) return "";
+    var id = "rg" + (++retroSeq);
+    retroMap[id] = { kind: kind, payload: payload };
+    return '<button type="button" class="ghost-btn small retro-guess" data-retro="' + id +
+      '">🤔 I was guessing</button>';
+  }
+  function initRetroGuess() {
+    document.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest(".retro-guess") : null;
+      if (!b || b.disabled) return;
+      var it = retroMap[b.getAttribute("data-retro")];
+      if (!it) return;
+      try { mbAdd(it.kind, it.payload); } catch (e) {}
+      b.disabled = true;
+      b.classList.add("selected");
+      b.textContent = "🤔 added to the mistake book";
+    });
+  }
+
   /* 逐題作答共用的旗標：每畫一題就歸零，作答當下讀值（guessTaken） */
   var guessOne = { on: false };
   function addGuessOne(container) {
@@ -616,6 +641,7 @@ if (typeof document !== 'undefined') {
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(userAnsText(item, quiz.answers[i])) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(correctAnsText(item)) + "</div>" +
         '<div class="expl">' + esc(q.explanation) + "</div>" +
+        retroGuessHtml("uoe", { part: item.part, q: item.q }, !isCorrect || quiz.guessed[i]) +
         "</div>";
     });
 
@@ -1268,6 +1294,19 @@ if (typeof document !== 'undefined') {
     gradeReadingNow();
   }
 
+  /* 第 j 題對應的錯題本條目（交卷收題與事後補標共用，payload 形狀要跟 mbKey/renderMbDrillItemInto 一致） */
+  function rdMbEntry(j) {
+    var s0 = rd.set;
+    if (rd.type === "mc") return { kind: "rmc", payload: { title: s0.title, text: s0.text, q: s0.questions[j] } };
+    if (rd.type === "tfng") return { kind: "rtfng", payload: { title: s0.title, text: s0.text, q: s0.questions[j] } };
+    if (rd.type === "head") return { kind: "rhead", payload: { title: s0.title, sections: s0.sections, options: s0.options,
+      q: s0.questions[j].q, answer: s0.questions[j].answer, explanation: s0.questions[j].explanation } };
+    if (rd.type === "gap") return { kind: "rgap", payload: { title: s0.title, segments: s0.segments, options: s0.options,
+      gapCount: s0.answers.length, gapIndex: j, answer: s0.answers[j], explanation: s0.explanations[j] } };
+    return { kind: "rmatch", payload: { title: s0.title, sections: s0.sections, q: s0.questions[j].q,
+      answer: s0.questions[j].answer, explanation: s0.questions[j].explanation } };
+  }
+
   function gradeReadingNow() {
     var n = rdCount(rd.type);
     var score = 0;
@@ -1278,24 +1317,9 @@ if (typeof document !== 'undefined') {
       var wasGuess = !!(rd.guessed && rd.guessed[j]);
       if (isCorrect) score++;
       recordResult(statKey, isCorrect);
+      var mbe = rdMbEntry(j);
       if (!isCorrect || wasGuess) {   // 猜對的也收進錯題本
-        try {
-          var s0 = rd.set;
-          if (rd.type === "mc") {
-            mbAdd("rmc", { title: s0.title, text: s0.text, q: s0.questions[j] });
-          } else if (rd.type === "tfng") {
-            mbAdd("rtfng", { title: s0.title, text: s0.text, q: s0.questions[j] });
-          } else if (rd.type === "head") {
-            mbAdd("rhead", { title: s0.title, sections: s0.sections, options: s0.options,
-              q: s0.questions[j].q, answer: s0.questions[j].answer, explanation: s0.questions[j].explanation });
-          } else if (rd.type === "gap") {
-            mbAdd("rgap", { title: s0.title, segments: s0.segments, options: s0.options,
-              gapCount: s0.answers.length, gapIndex: j, answer: s0.answers[j], explanation: s0.explanations[j] });
-          } else {
-            mbAdd("rmatch", { title: s0.title, sections: s0.sections, q: s0.questions[j].q,
-              answer: s0.questions[j].answer, explanation: s0.questions[j].explanation });
-          }
-        } catch (e) {}
+        try { mbAdd(mbe.kind, mbe.payload); } catch (e) {}
       }
       reviewHtml +=
         '<div class="review-item ' + (isCorrect ? "ok" : "bad") + '">' +
@@ -1306,6 +1330,7 @@ if (typeof document !== 'undefined') {
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(rdAnswerText(j, rd.answers[j])) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(rdAnswerText(j, rdCorrectAnswer(j))) + "</div>" +
         '<div class="expl">' + esc(rdExplanation(j)) + "</div>" +
+        retroGuessHtml(mbe.kind, mbe.payload, !isCorrect || wasGuess) +
         "</div>";
     }
     var pct = Math.round(100 * score / n);
@@ -1460,7 +1485,9 @@ if (typeof document !== 'undefined') {
         "<p>" + esc(q.q) + "</p>" +
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(q.options[sr.answers[qi]]) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(q.options[q.answer]) + "</div>" +
-        '<div class="expl">' + esc(q.explanation || "") + "</div></div>";
+        '<div class="expl">' + esc(q.explanation || "") + "</div>" +
+        retroGuessHtml(sr.kind || "rmc", { title: sr.set.title, text: sr.set.text, q: q }, !ok || wasGuess) +
+        "</div>";
     });
     var wpm = Math.round(sr.words / (sr.ms / 60000));
     var acc = Math.round(100 * score / sr.qs.length);
@@ -1710,6 +1737,8 @@ if (typeof document !== 'undefined') {
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(lsAnswerText(j, ls.answers[j])) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(lsAnswerText(j, qs[j].answer)) + "</div>" +
         '<div class="expl">' + esc(qs[j].explanation) + "</div>" +
+        retroGuessHtml("lis", { title: ls.set.title, kind: ls.set.kind, script: ls.set.script, q: qs[j] },
+          !isCorrect || wasGuess) +
         "</div>";
     }
     var pct = Math.round(100 * score / n);
@@ -3175,7 +3204,8 @@ if (typeof document !== 'undefined') {
     });
     saveJSON(K_DRUN(), {
       date: todayStr(), queue: q, firstTotal: d25.firstTotal,
-      firstOk: d25.firstOk, rush: d25.rush || 0, elapsed: Date.now() - d25.t0
+      firstOk: d25.firstOk, rush: d25.rush || 0, elapsed: Date.now() - d25.t0,
+      log: d25.log || []
     });
   }
 
@@ -3197,6 +3227,7 @@ if (typeof document !== 'undefined') {
     mbReviewedThisSession = {};
     d25 = { seen: {}, firstOk: run.firstOk || 0, firstTotal: run.firstTotal || items.length,
             t0: Date.now() - (run.elapsed || 0), rush: run.rush || 0, rushStreak: 0,
+            log: Array.isArray(run.log) ? run.log : [],
             slowdown: false, passSeen: {}, lisPlayed: {} };
     items.forEach(function (e, i) { if (e._seen) d25.seen[i] = true; });
     switchTab("tab-daily");
@@ -3228,6 +3259,10 @@ if (typeof document !== 'undefined') {
             if (!ok) { try { wlogAdd(e.stat || e.kind, wlogQText(e), txt, mbCorrectText(e)); } catch (err) {} }
             /* 猜對的照樣進錯題本（已經在本子裡的由 mbReview 處理） */
             if (ok && guessTaken() && !e.key) { try { mbAdd(e.kind, e.payload); } catch (err) {} }
+            /* 逐題紀錄，供完成後的「今天做了哪些題」回顧與事後補標 */
+            try {
+              d25.log.push({ r: e.key ? { mb: e.key } : d25RefOf(e), ok: ok ? 1 : 0, g: guessTaken() ? 1 : 0 });
+            } catch (err) {}
           }
           done(ok, txt);
           try { d25SaveRun(); } catch (err) {}   // 每答一題就把剩餘隊列存檔（換裝置可續做）
@@ -3257,7 +3292,7 @@ if (typeof document !== 'undefined') {
     prev.refs = d25Refs(entries);
     d25SaveRec(prev);
     mbReviewedThisSession = {};
-    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now(),
+    d25 = { seen: {}, firstOk: 0, firstTotal: entries.length, t0: Date.now(), log: [],
             rush: 0, rushStreak: 0, slowdown: false, passSeen: {}, lisPlayed: {} };
     switchTab("tab-daily");
     startDrillGeneric(d25DrillCfg(entries));
@@ -3269,7 +3304,7 @@ if (typeof document !== 'undefined') {
     var prevRec = d25TodayRec() || {};
     d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
                  rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs,
-                 spell: prevRec.spell });
+                 log: d25.log || [], spell: prevRec.spell });
     saveJSON(K_DRUN(), null);   // 今日已完成，清掉中途進度
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
@@ -3412,7 +3447,10 @@ if (typeof document !== 'undefined') {
         "</strong> right first try" +
         (d.firstOk === d.total ? " — perfect! 🐝" : " — and you mastered every word in the redo loop.");
     }
-    html += (html ? "<br>" : "") + "Come back tomorrow — a fresh mission arrives at midnight.";
+    html += (html ? "<br>" : "") +
+      "Back on the Daily tab you can go through today's questions one by one — if you got one right " +
+      "but were really guessing, tap “🤔 I was guessing” there and it joins your mistake book." +
+      "<br>Come back tomorrow — a fresh mission arrives at midnight.";
     $("dsp-congrats-text").innerHTML = html;
     $("dsp-congrats").classList.remove("hidden");
     dropConfetti($("dsp-congrats"));
@@ -3537,6 +3575,7 @@ if (typeof document !== 'undefined') {
         html += "<p class='hint'>One thing left: today's " + d25Quota(size).spell + "-word spelling round.</p>" +
           '<button id="dsp-start-late" class="primary-btn">✍️ Start spelling practice</button>';
       }
+      html += d25RecapHtml(rec);
     } else {
       var run = loadJSON(K_DRUN(), null);
       var resumable = run && run.date === todayStr() && run.queue && run.queue.length;
@@ -3581,6 +3620,42 @@ if (typeof document !== 'undefined') {
         } else apply();
       });
     });
+  }
+
+  /* 今天做了哪些題（2026-08-24 Tony 要求）：完成後在 Daily 頁列出逐題對錯與解析，
+   * 每題附「🤔 I was guessing」，作答當下忘了按的可以事後補標，補了就進錯題本。
+   * 資料來自當日紀錄的 log（參照式，隨 <level>.daily25 雲端同步）。 */
+  function d25RecapHtml(rec) {
+    var log = (rec && rec.log) || [];
+    if (!log.length) return "";
+    var book = mbLoad();
+    var rows = "", shown = 0;
+    log.forEach(function (it) {
+      var e = null;
+      if (it.r && it.r.mb) {
+        for (var k = 0; k < book.length; k++) {
+          if (book[k].key === it.r.mb) { e = { key: book[k].key, kind: book[k].kind, payload: book[k].payload }; break; }
+        }
+      } else if (it.r) {
+        e = rvDecodeRef(it.r);
+      }
+      if (!e) return;   // 題庫改版後參照失效就略過，不要整段壞掉
+      shown++;
+      rows +=
+        '<div class="review-item ' + (it.ok ? "ok" : "bad") + '">' +
+        '<div class="review-verdict">' + (it.ok ? "✓" : "✗") + " Question " + shown +
+        (it.g ? ' <span class="guess-tag">🤔 guessed — in the mistake book</span>' : "") + "</div>" +
+        "<p>" + esc(wlogQText(e)) + "</p>" +
+        '<div class="review-ans"><strong>Correct answer: </strong>' + esc(mbCorrectText(e)) + "</div>" +
+        '<div class="expl">' + esc(mbExplText(e)) + "</div>" +
+        retroGuessHtml(e.kind, e.payload, !!(it.g || e.key)) +
+        "</div>";
+    });
+    if (!shown) return "";
+    return '<details class="d25-recap"><summary>📋 Today\'s questions — check the ones you guessed (' +
+      shown + ")</summary>" +
+      "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” on it and " +
+      "it goes into the mistake book, so it comes back another day.</p>" + rows + "</details>";
   }
 
   /* 任務長度選擇（10 / 15 / 20），每個級數各記各的，隨 <level>.* 雲端同步 */
@@ -3837,6 +3912,7 @@ if (typeof document !== 'undefined') {
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(txt) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(mbCorrectText(e)) + "</div>" +
         (ok ? "" : '<div class="expl">' + esc(mbExplText(e)) + "</div>") +
+        retroGuessHtml(e.kind, e.payload, !ok || wasGuess || e.src === "mb") +
         "</div>";
       $("rv-area").querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
       var fb = $("rv-feedback");
@@ -4525,6 +4601,7 @@ if (typeof document !== 'undefined') {
     booted = true;
     safeInit("level", function () { setLevel(level); });
     safeInit("tabs", initTabs);
+    safeInit("retroguess", initRetroGuess);
     safeInit("uoe", initUoe);
     safeInit("reading", initReading);
     safeInit("speedreading", initSpeedReading);

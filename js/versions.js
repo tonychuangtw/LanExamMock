@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v23", date: "2026-08-24", items: [
+      "Flag a guess after the fact. Every question in a results list now carries a “🤔 I was guessing” button — mock exams, reading, listening, speed reading and the Review Test — so a question you got right but were really unsure about can be sent to the mistake book while you are looking at the answer, not only in the moment before you answer it.",
+      "The Daily tab now keeps a record of the mission you finished today: tap “📋 Today's questions” to go through every question with your result, the correct answer and the explanation — and to flag any you guessed. Questions you already flagged during the run are marked and not offered again."
+    ]
+  },
+  {
     v: "v22", date: "2026-08-24", items: [
       "Reading wave 8: a new True/False/Not Given passage and a new Matching Headings passage at every level (10 texts, 85 questions, each with an explanation). These two task types had only two sets each — the thinnest banks on the site — and now have three. New topics: the world's first postage stamp and a school that learned to cook (KET), how the world agreed on time zones and a Saturday farmers' market (PET), how the wristwatch won its place and living in a tiny house (FCE), the nineteenth-century trade in shipped ice and the city after midnight (CAE), and the invention of the weekend and the afterlife of old buildings (CPE)."
     ]

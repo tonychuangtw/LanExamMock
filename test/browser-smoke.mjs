@@ -111,6 +111,57 @@ try {
     await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`) === rdQs);
   check('猜對的那幾題標示已送進錯題本', /guessed — sent to mistake book/.test(rdReview) || !/✓/.test(rdReview), rdReview.slice(0, 200));
 
+  check('作答時已標過的題目，檢討清單不再重複給補標按鈕',
+    await js(`document.querySelectorAll('#rd-review .retro-guess').length === 0`));
+
+  /* ---------- 事後補標「🤔 I was guessing」（交卷後才想起來是猜的） ---------- */
+  console.log('\n事後補標（檢討清單）');
+  await js(`document.getElementById('rd-back').click()`);
+  await sleep(300);
+  await js(`localStorage.setItem('cae.mistake_book','[]')`);
+  await js(`document.querySelector('#rd-picker .mode-btn[data-rtype="mc"]').click()`);
+  await sleep(600);
+  // 這次不標，正常作答 → 答對的題目才會出現補標按鈕
+  await js(`document.querySelectorAll('#rd-area .rd-q').forEach(function (c) { c.querySelector('.option-btn').click(); })`);
+  await js(`document.getElementById('rd-submit').click()`);
+  await sleep(600);
+  const okCount = await js(`document.querySelectorAll('#rd-review .review-item.ok').length`);
+  const retroCount = await js(`document.querySelectorAll('#rd-review .retro-guess').length`);
+  check('答對且沒進錯題本的題目，每題都有補標按鈕', retroCount === okCount, `ok=${okCount} retro=${retroCount}`);
+  const mbBefore = await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`);
+  if (retroCount > 0) {
+    await js(`document.querySelector('#rd-review .retro-guess').click()`);
+    await sleep(200);
+    check('按下補標 → 題目進錯題本',
+      await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`) === mbBefore + 1);
+    check('補標後按鈕鎖住並顯示已加入', await js(`(function(){
+      var b = document.querySelector('#rd-review .retro-guess');
+      return b.disabled && /added to the mistake book/.test(b.textContent); })()`));
+  } else {
+    check('答對且沒進錯題本的題目要有補標按鈕（本輪全錯，無法驗證）', false, '全部答錯');
+  }
+
+  // 每日任務完成後的逐題回顧也要有補標按鈕
+  await js(`(function () {
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    var t = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    var rec = {}; rec[t] = { done: true, total: 2, firstOk: 2, ms: 120000, spell: { done: true, firstOk: 5, total: 5 },
+      log: [{ r: { k: 'part1', i: 0 }, ok: 1, g: 0 }, { r: { k: 'part1', i: 1 }, ok: 1, g: 1 }] };
+    localStorage.setItem('cae.daily25', JSON.stringify(rec));
+    localStorage.setItem('cae.daily_run', 'null');
+  })()`);
+  await js(`document.querySelector('.tab-btn[data-tab="tab-daily"]').click()`);
+  await sleep(500);
+  check('完成後的每日任務頁列出逐題回顧',
+    await js(`document.querySelectorAll('#pg-daily .d25-recap .review-item').length === 2`));
+  check('回顧裡沒標過的題目有補標按鈕，作答時標過的不再給',
+    await js(`document.querySelectorAll('#pg-daily .d25-recap .retro-guess').length === 1`));
+  const mb2 = await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`);
+  await js(`document.querySelector('#pg-daily .d25-recap .retro-guess').click()`);
+  await sleep(200);
+  check('每日回顧補標 → 進錯題本',
+    await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`) === mb2 + 1);
+
   // 配對題（字母列版面）每題也要有
   await js(`document.getElementById('rd-back').click()`);
   await sleep(300);
