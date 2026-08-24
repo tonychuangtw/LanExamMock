@@ -72,7 +72,7 @@ function shuffle(arr) {
   return a;
 }
 
-/* ---------- Daily 20：種子化亂數與組卷（純函式，供測試；函式名沿用 d25 前綴） ---------- */
+/* ---------- Daily mission：種子化亂數與組卷（純函式，供測試；函式名沿用 d25 前綴） ---------- */
 
 /** 字串種子 → 決定性亂數產生器（mulberry32 變形）。同種子必產生同序列。 */
 function d25Rng(seedStr) {
@@ -99,20 +99,38 @@ function d25Pick(arr, n, rng) {
   return out;
 }
 
-/** 每日 20 題的類別配額：UoE 各 part 2 題 + 閱讀 6（3 篇×2）+ 聽力 4 = 18（另混入至多 2 題到期錯題湊 20）。
- *  弱點加權：rated = [{key,n,acc}]；答過 ≥10 題的類別中，正確率最低 +2、最高 −2（不低於 1）；
- *  差距 <10 個百分點就不加權（與 K12Review 同規則）。 */
-function d25Counts(rated) {
-  var counts = { part1: 2, part2: 2, part3: 2, part4: 2, rmc: 6, lis: 4 };
+/** 每日任務長度：可選 10 / 15 / 20 題（2026-08-24 加）。
+ *  每種長度一張配額表：UoE 四個 part ＋ 閱讀 rmc 題（psg 篇文章）＋ 聽力 lis 題，
+ *  另混入至多 due 題到期錯題湊滿 size；spell = 收尾拼寫字數。
+ *  高級數（CAE/CPE）一題的閱讀量是低級數的好幾倍，所以短版**先砍文章篇數**（3→2→1）：
+ *  時間主要花在讀長文，不是答題本身。 */
+var D25_SIZES = [10, 15, 20];
+var D25_QUOTAS = {
+  10: { part1: 1, part2: 1, part3: 1, part4: 1, rmc: 3, lis: 2, psg: 1, due: 1, spell: 5 },
+  15: { part1: 2, part2: 1, part3: 2, part4: 1, rmc: 4, lis: 3, psg: 2, due: 2, spell: 8 },
+  20: { part1: 2, part2: 2, part3: 2, part4: 2, rmc: 6, lis: 4, psg: 3, due: 2, spell: 10 }
+};
+
+/** 取合法的任務長度（不認得的值一律回 20，舊紀錄與壞掉的設定都安全） */
+function d25Quota(size) { return D25_QUOTAS[size] || D25_QUOTAS[20]; }
+
+/** 依長度給出類別配額（只含六個題型 key，供組卷用）。
+ *  弱點加權：rated = [{key,n,acc}]；答過 ≥10 題的類別中，正確率最低 +delta、最高 −delta（不低於 1）；
+ *  差距 <10 個百分點就不加權（與 K12Review 同規則）。短版配額小，delta 收斂成 1 免得直接歸零。 */
+function d25Counts(rated, size) {
+  var q = d25Quota(size);
+  var counts = { part1: q.part1, part2: q.part2, part3: q.part3, part4: q.part4, rmc: q.rmc, lis: q.lis };
+  var delta = q.rmc >= 6 ? 2 : 1;
   var eligible = (rated || []).filter(function (r) { return r.n >= 10 && counts[r.key] != null; });
   if (eligible.length >= 2) {
     eligible.sort(function (a, b) { return a.acc - b.acc; });
     var weak = eligible[0], strong = eligible[eligible.length - 1];
     if (strong.acc - weak.acc >= 10) {
-      counts[weak.key] += 2;
-      counts[strong.key] = Math.max(1, counts[strong.key] - 2);
+      counts[weak.key] += delta;
+      counts[strong.key] = Math.max(1, counts[strong.key] - delta);
     }
   }
+  counts.psg = q.psg;
   return counts;
 }
 
@@ -145,6 +163,8 @@ if (typeof module !== 'undefined') {
     d25Rng: d25Rng,
     d25Pick: d25Pick,
     d25Counts: d25Counts,
+    d25Quota: d25Quota,
+    D25_SIZES: D25_SIZES,
     d25Blocks: d25Blocks
   };
 }
@@ -2908,12 +2928,34 @@ if (typeof document !== 'undefined') {
     else { switchTab("tab-listening"); var b = document.querySelector("#ls-picker .mode-btn[data-lkind]"); if (b) b.click(); }
   }
 
-  /* ================= Daily 20 — K12 式每日任務 =================
-   * 每天 20 題：UoE 8（弱點加權）＋閱讀 6（3 篇×2，同篇連續）＋聽力 4（同錄音連續）＋到期錯題至多 2。
-   * 種子 = 日期|級數 → 同一天永遠同一組題；答錯排回隊尾重做到全對（精熟迴圈）。
+  /* ================= Daily mission — K12 式每日任務 =================
+   * 每天 10 / 15 / 20 題（使用者可選，見 d25SizeGet）：UoE（弱點加權）＋閱讀（同篇連續）
+   * ＋聽力（同錄音連續）＋到期錯題，配額表在 D25_QUOTAS。
+   * 種子 = 日期|級數|長度 → 同一天同一設定永遠同一組題；答錯排回隊尾重做到全對（精熟迴圈）。
    * 紀錄存 <level>.daily25，連續天數沿用 <level>.streak，皆隨雲端同步。 */
   var K_D25 = function () { return LEVEL + ".daily25"; };
   var d25 = null;
+
+  /* ---- 任務長度（2026-08-24）：預設依級數 —— CAE/CPE 一題的閱讀量遠大於 KET/PET，
+   *      同樣 20 題實際時間差 2–3 倍，所以高級數預設短一點，使用者仍可自己調。 */
+  var K_DSIZE = function () { return LEVEL + ".daily_size"; };
+  var D25_DEFAULT_SIZE = { ket: 20, pet: 20, fce: 15, cae: 10, cpe: 10 };
+  /* 每題平均分鐘數（估給使用者看的，含讀文章／聽錄音與重做錯題） */
+  var D25_MIN_PER_Q = { ket: 0.8, pet: 0.9, fce: 1.1, cae: 1.3, cpe: 1.4 };
+
+  function d25SizeDefault() { return D25_DEFAULT_SIZE[LEVEL] || 20; }
+
+  function d25SizeGet() {
+    var n = loadJSON(K_DSIZE(), null);
+    return D25_SIZES.indexOf(n) >= 0 ? n : d25SizeDefault();
+  }
+
+  function d25SizeSet(n) { saveJSON(K_DSIZE(), n); }
+
+  /* 完成一輪要花多久（分鐘，含收尾拼寫約 3 分鐘）——按鈕上標給使用者判斷今天做不做得完 */
+  function d25EstMins(size) {
+    return Math.max(5, Math.round(size * (D25_MIN_PER_Q[LEVEL] || 1) + 3));
+  }
 
   function d25TodayRec() { return loadJSON(K_D25(), {})[todayStr()]; }
 
@@ -2925,7 +2967,7 @@ if (typeof document !== 'undefined') {
     saveJSON(K_D25(), all);
   }
 
-  /* 依配額組出 UoE＋閱讀（3 篇×2，同篇共用 gid）＋聽力（同錄音共用 gid）的基本題組。
+  /* 依配額組出 UoE＋閱讀（counts.psg 篇，同篇共用 gid）＋聽力（同錄音共用 gid）的基本題組。
    * 只吃 rng 與 counts → 同種子同配額必出同一組（Review Test 重組舊日題目也用它）。 */
   function d25ComposeBase(rng, counts) {
     var entries = [];
@@ -2934,7 +2976,8 @@ if (typeof document !== 'undefined') {
         entries.push({ kind: "uoe", stat: p, payload: { part: p, q: q } });
       });
     });
-    var mcSets = d25Pick(rdPool("mc"), Math.min(3, Math.max(1, Math.ceil(counts.rmc / 2))), rng);
+    var psg = counts.psg || Math.min(3, Math.max(1, Math.ceil(counts.rmc / 2)));
+    var mcSets = d25Pick(rdPool("mc"), Math.min(psg, counts.rmc), rng);
     var rNeed = counts.rmc;
     mcSets.forEach(function (s, si) {
       if (rNeed <= 0) return;
@@ -2954,19 +2997,20 @@ if (typeof document !== 'undefined') {
     return entries;
   }
 
-  function d25Compose() {
-    var rng = d25Rng(todayStr() + "|" + LEVEL);
+  function d25Compose(size) {
+    size = D25_SIZES.indexOf(size) >= 0 ? size : d25SizeGet();
+    var rng = d25Rng(todayStr() + "|" + LEVEL + "|" + size);
     var stats = loadJSON(K_STATS, {});
     var rated = ["part1", "part2", "part3", "part4", "rmc", "lis"].map(function (k) {
       var s = stats[k] || { attempted: 0, correct: 0 };
       return { key: k, n: s.attempted, acc: s.attempted ? Math.round(100 * s.correct / s.attempted) : 0 };
     });
-    var entries = d25ComposeBase(rng, d25Counts(rated));
-    // 到期錯題混入（最多 2 題）；不足就用備用 UoE 題補滿 20
-    var due = mbDueEntries().slice(0, 2);
+    var entries = d25ComposeBase(rng, d25Counts(rated, size));
+    // 到期錯題混入（配額內）；不足就用備用 UoE 題補滿 size
+    var due = mbDueEntries().slice(0, d25Quota(size).due);
     due.forEach(function (e) { entries.push(e); });
     var spareParts = ["part1", "part2", "part3"];
-    for (var si2 = 0; entries.length < 20 && si2 < spareParts.length; si2++) {
+    for (var si2 = 0; entries.length < size && si2 < spareParts.length; si2++) {
       var pool = (QUESTIONS[spareParts[si2]] || []).filter(function (q) {
         return !entries.some(function (e) { return e.kind === "uoe" && e.payload.q === q; });
       });
@@ -3152,8 +3196,9 @@ if (typeof document !== 'undefined') {
     if (rec && rec.done) { switchTab("tab-daily"); return; }
     var run = loadJSON(K_DRUN(), null);
     if (run && run.date === todayStr() && run.queue && run.queue.length && d25Resume(run)) return;
-    var entries = d25Compose();
-    if (entries.length < 10) { UIDialog.alert("Not enough questions available at this level yet."); return; }
+    var size = d25SizeGet();
+    var entries = d25Compose(size);
+    if (entries.length < Math.min(10, size)) { UIDialog.alert("Not enough questions available at this level yet."); return; }
     var prev = d25TodayRec() || {};
     prev.refs = d25Refs(entries);
     d25SaveRec(prev);
@@ -3187,16 +3232,17 @@ if (typeof document !== 'undefined') {
   }
 
   /* ================= Daily Spelling — 每日任務收尾的拼寫練習 =================
-   * 完成 Daily 20 後：以「日期|級數|spell」種子決定性抽出當天 10 個本級單字，
+   * 完成每日任務後：以「日期|級數|spell」種子決定性抽出當天 5–10 個本級單字（依任務長度），
    * 先逐張複習（單字＋定義＋例句），再看定義拼出單字；拼錯排回隊尾重做到全對。
    * 第一次作答結果餵 Leitner 字彙盒與 word_wrong/wrong_log；紀錄存當日 rec.spell。 */
   var dsp = null;           // { words, idx, queue, first, firstOk, total }
-  var dspSummaryHtml = "";  // Daily 20 成績摘要，最後與拼寫成績一起顯示
+  var dspSummaryHtml = "";  // 每日任務成績摘要，最後與拼寫成績一起顯示
 
   function dspWords() {
     var pool = (typeof VOCAB !== "undefined" && VOCAB && VOCAB.length) ? VOCAB : [];
+    var n = d25Quota(d25SizeGet()).spell;   // 任務縮短時拼寫也跟著縮（10 題版 5 字）
     var rng = d25Rng(todayStr() + "|" + LEVEL + "|spell");
-    return d25Pick(pool, Math.min(10, pool.length), rng);
+    return d25Pick(pool, Math.min(n, pool.length), rng);
   }
 
   function dspHideAll() {
@@ -3363,7 +3409,7 @@ if (typeof document !== 'undefined') {
       else startDaily25();
     });
     $("d25-drill-quit").addEventListener("click", function () {
-      UIDialog.confirm("Pause today's Daily 20? Your progress is saved — continue any time, even on another device.", function () {
+      UIDialog.confirm("Pause today's mission? Your progress is saved — continue any time, even on another device.", function () {
         mbStopAudio();
         d25 = null;
         $("d25-drill").classList.add("hidden");
@@ -3385,11 +3431,11 @@ if (typeof document !== 'undefined') {
     var rec = d25TodayRec();
     var s = loadJSON(K_STREAK(), { current: 0 });
     if (rec && rec.done) {
-      el.innerHTML = "🎯 Daily 20 &nbsp;✅ " + rec.firstOk + "/" + rec.total + " today" +
+      el.innerHTML = "🎯 Daily " + rec.total + " &nbsp;✅ " + rec.firstOk + "/" + rec.total + " today" +
         (s.current ? " &nbsp;·&nbsp; 🔥 " + s.current + " day" + (s.current === 1 ? "" : "s") : "");
       el.classList.add("done");
     } else {
-      el.innerHTML = "🎯 <strong>Daily 20</strong> — start today's mission" +
+      el.innerHTML = "🎯 <strong>Daily " + d25SizeGet() + "</strong> — start today's mission" +
         (s.current ? " &nbsp;·&nbsp; 🔥 " + s.current + " day" + (s.current === 1 ? "" : "s") + " — keep it alive!" : "");
       el.classList.remove("done");
     }
@@ -3421,8 +3467,9 @@ if (typeof document !== 'undefined') {
     var s = checkStreak(!!(rec && rec.done));
     var hist = loadJSON(K_D25(), {});
     var wk = weakestArea();
+    var size = d25SizeGet();
 
-    var html = "<h3>🎯 Daily 20" +
+    var html = "<h3>🎯 Daily " + size +
       '<span class="streak-tag">🔥 ' + s.current + " day" + (s.current === 1 ? "" : "s") +
       (s.best > s.current ? " · best " + s.best : "") + "</span></h3>";
     if (rec && rec.done) {
@@ -3433,18 +3480,20 @@ if (typeof document !== 'undefined') {
         (rec.spell && rec.spell.done ? " · ✍️ spelling " + rec.spell.firstOk + " / " + rec.spell.total + " first try" : "") +
         ". See you tomorrow!</p>";
       if (!(rec.spell && rec.spell.done)) {
-        html += "<p class='hint'>One thing left: today's 10-word spelling round.</p>" +
+        html += "<p class='hint'>One thing left: today's " + d25Quota(size).spell + "-word spelling round.</p>" +
           '<button id="dsp-start-late" class="primary-btn">✍️ Start spelling practice</button>';
       }
     } else {
       var run = loadJSON(K_DRUN(), null);
       var resumable = run && run.date === todayStr() && run.queue && run.queue.length;
-      html += "<p>Your mission today: <strong>20 questions</strong> mixed from Use of English, Reading and Listening" +
+      html += "<p>Your mission today: <strong>" + size + " questions</strong> mixed from Use of English, Reading and Listening" +
         (wk && wk.acc >= 0 && wk.acc < 100 ? ", tuned toward your weakest area (" + esc(wk.area.label) + ")" : "") +
-        ", then a <strong>10-word spelling round</strong>. Wrong answers go back in the queue until you master every one.</p>" +
+        ", then a <strong>" + d25Quota(size).spell + "-word spelling round</strong>. Wrong answers go back in the queue until you master every one.</p>" +
+        d25SizeChipsHtml(size, resumable) +
         (resumable
           ? '<button id="d25-start" class="primary-btn">Continue today\'s mission (' + run.queue.length + ' left)</button>'
-          : '<button id="d25-start" class="primary-btn">Start today\'s mission</button>');
+          : '<button id="d25-start" class="primary-btn">Start today\'s mission · ' + size +
+            " questions · about " + d25EstMins(size) + " min</button>");
     }
     var dots = "";
     for (var i = 6; i >= 0; i--) {
@@ -3454,17 +3503,44 @@ if (typeof document !== 'undefined') {
         (r && r.done ? " · " + r.firstOk + "/" + r.total : "") + '">' + (r && r.done ? "✓" : "·") + "</span>";
     }
     html += '<div class="d25-week">' + dots + "</div>";
-    html += "<p class='hint'>Same set all day — a fresh 20 arrives at midnight. Due mistake-book items are mixed in automatically.</p>";
+    html += "<p class='hint'>Same set all day — a fresh one arrives at midnight. Due mistake-book items are mixed in automatically.</p>";
     el.innerHTML = html;
 
     var b = $("d25-start");
     if (b) b.addEventListener("click", startDaily25);
     var sb = $("dsp-start-late");
     if (sb) sb.addEventListener("click", function () { dspSummaryHtml = ""; dspBegin(); });
+    el.querySelectorAll("[data-d25size]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var n = parseInt(btn.getAttribute("data-d25size"), 10);
+        if (n === d25SizeGet()) return;
+        var run = loadJSON(K_DRUN(), null);
+        var live = run && run.date === todayStr() && run.queue && run.queue.length;
+        function apply() {
+          d25SizeSet(n);
+          if (live) saveJSON(K_DRUN(), null);   // 換長度 → 今天重新組卷，舊的半套進度作廢
+          renderDaily();
+          renderDailyBanner();
+        }
+        if (live) {
+          UIDialog.confirm("Switch to " + n + " questions a day? Today's half-finished set will be replaced by a fresh one.", apply);
+        } else apply();
+      });
+    });
+  }
+
+  /* 任務長度選擇（10 / 15 / 20），每個級數各記各的，隨 <level>.* 雲端同步 */
+  function d25SizeChipsHtml(size, resumable) {
+    var chips = D25_SIZES.map(function (n) {
+      return '<button type="button" class="ghost-btn small d25-size' + (n === size ? " selected" : "") +
+        '" data-d25size="' + n + '">' + n + ' <span class="sub">≈' + d25EstMins(n) + " min</span></button>";
+    }).join("");
+    return '<div class="d25-size-row"><span class="hint">Questions per day' +
+      (resumable ? " — changing this starts a fresh set for today" : "") + ":</span>" + chips + "</div>";
   }
 
   /* ================= Review Test — 挑日期＋錯題出 100 分考卷 =================
-   * 題源：所選日期的 Daily 20 題目（新紀錄有 rec.refs 可精確重組；舊紀錄無 refs
+   * 題源：所選日期的每日任務題目（新紀錄有 rec.refs 可精確重組；舊紀錄無 refs
    * 則以中性配額＋當日種子近似重組）＋錯題本隨機抽題。真隨機組卷（每次不同），
    * 同篇文章/同段錄音的題目連續出現；每題等分、滿分 100。答錯照樣進錯題本。 */
   var K_RV = function () { return LEVEL + ".review_tests"; };
@@ -3528,7 +3604,7 @@ if (typeof document !== 'undefined') {
     var all = loadJSON(K_D25(), {});
     var days = Object.keys(all).sort().reverse().slice(0, 21);
     if (!days.length) {
-      el.innerHTML = "<p class='hint'>No Daily 20 records yet — finish a daily mission first, then come back to test it.</p>";
+      el.innerHTML = "<p class='hint'>No daily records yet — finish a daily mission first, then come back to test it.</p>";
     } else {
       el.innerHTML = days.map(function (d) {
         var r = all[d];

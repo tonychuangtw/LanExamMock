@@ -461,6 +461,30 @@ check("shuffle does not mutate input", orig.join() === "1,2,3,4,5");
   ]);
   check("d25Counts never trims a category below 1", floor.part3 >= 1 && floor.part2 === 4);
 
+  /* 任務長度 10 / 15 / 20（2026-08-24）：配額＋到期錯題必須剛好湊滿該長度，短版少抽文章 */
+  logic.D25_SIZES.forEach(size => {
+    const c = logic.d25Counts([], size), q = logic.d25Quota(size);
+    check(`d25Counts size ${size}: quota + due mistakes fills exactly ${size}`,
+      sum(c) + q.due === size);
+    check(`d25Counts size ${size}: every category keeps at least 1 question`,
+      ["part1", "part2", "part3", "part4", "rmc", "lis"].every(k => c[k] >= 1));
+    check(`d25Counts size ${size}: passages never exceed reading questions`,
+      c.psg >= 1 && c.psg <= c.rmc);
+    check(`d25Quota size ${size}: spelling round scales with the mission`,
+      q.spell >= 5 && q.spell <= 10);
+  });
+  check("d25Quota: shorter missions draw fewer reading passages (the real time sink)",
+    logic.d25Quota(10).psg < logic.d25Quota(15).psg && logic.d25Quota(15).psg < logic.d25Quota(20).psg);
+  check("d25Quota: unknown/missing size falls back to the 20-question row",
+    logic.d25Quota(7).psg === logic.d25Quota(20).psg && logic.d25Quota().spell === 10);
+  check("d25Counts: default size still allocates 18 (unchanged behaviour)",
+    sum(logic.d25Counts([])) === 18);
+  const shortBoost = logic.d25Counts([
+    { key: "part1", n: 20, acc: 30 }, { key: "rmc", n: 20, acc: 95 }
+  ], 10);
+  check("d25Counts: short missions weight by ±1 so no category empties out",
+    shortBoost.part1 === 2 && shortBoost.rmc === 2 && sum(shortBoost) === 9);
+
   /* d25Blocks：同 gid 條目必須連續出現，且不掉題、不重複 */
   const mkEntries = () => [
     { id: "u1" }, { id: "u2" }, { id: "u3" }, { id: "u4" },

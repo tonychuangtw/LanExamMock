@@ -898,6 +898,13 @@ input[type="number"]:focus {
 }
 .d25-dot.on { background: var(--accent); color: var(--accent-contrast); }
 
+/* ---- 每日任務長度（10 / 15 / 20 題）選擇列 ---- */
+.d25-size-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 14px; }
+.d25-size-row .hint { margin: 0; flex: 1 1 100%; }
+.d25-size { display: inline-flex; align-items: baseline; gap: 6px; font-weight: 700; }
+.d25-size .sub { font-size: 0.78rem; font-weight: 400; color: var(--text2); }
+.d25-size.selected .sub { color: inherit; }
+
 /* ---- Daily 20 防亂做：作答鎖與提示 ---- */
 .answers-locked .option-btn, .answers-locked .letter-btn {
   pointer-events: none; opacity: 0.45;
