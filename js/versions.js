@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v22", date: "2026-08-24", items: [
+      "Reading wave 8: a new True/False/Not Given passage and a new Matching Headings passage at every level (10 texts, 85 questions, each with an explanation). These two task types had only two sets each — the thinnest banks on the site — and now have three. New topics: the world's first postage stamp and a school that learned to cook (KET), how the world agreed on time zones and a Saturday farmers' market (PET), how the wristwatch won its place and living in a tiny house (FCE), the nineteenth-century trade in shipped ice and the city after midnight (CAE), and the invention of the weekend and the afterlife of old buildings (CPE)."
+    ]
+  },
+  {
     v: "v21", date: "2026-08-24", items: [
       "“🤔 I'm guessing” is now under every question. It used to appear only in Use of English mock exams; it is now in reading, listening, speed reading, the daily mission, the Review Test and mistake practice too. A flagged answer that happens to be right still counts for your score, but it goes into the mistake book, does not move up a review box, and shows you the explanation straight away — so a lucky guess can never masquerade as mastery.",
       "The Review Test and the mastery check can also be 10, 15 or 20 questions (they follow your daily mission length unless you set them separately). Both are still scored out of 100 — a shorter test just makes each question worth more."

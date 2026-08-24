@@ -6,7 +6,9 @@
  *   需要 python3（起靜態 server）與 node ≥ 22（內建 WebSocket）。
  */
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { dirname, resolve } from 'node:path';
@@ -26,7 +28,11 @@ const check = (n, c, x = '') => { console.log((c ? '  ✓ ' : '  ✗ ') + n + (c
 
 const PORT = 8791, CDP = 9391;
 const server = spawn('python3', ['-m', 'http.server', String(PORT)], { cwd: ROOT, stdio: 'ignore' });
-const chrome = spawn(SHELL, [`--remote-debugging-port=${CDP}`, '--no-sandbox', '--disable-gpu', 'about:blank'], { stdio: 'ignore' });
+/* 每次跑都用全新的 profile：chrome 預設 profile 會把上一輪的 localStorage 留著，
+ * 級數／任務長度就會從上一輪漏進來（2026-08-24 實測踩到） */
+const PROFILE = mkdtempSync(join(tmpdir(), 'lanexam-smoke-'));
+const chrome = spawn(SHELL, [`--remote-debugging-port=${CDP}`, '--no-sandbox', '--disable-gpu',
+  `--user-data-dir=${PROFILE}`, 'about:blank'], { stdio: 'ignore' });
 try {
   await sleep(1500);
   const list = await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json();
@@ -45,6 +51,13 @@ try {
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `if (!localStorage.getItem('cpe.level')) localStorage.setItem('cpe.level','cae');` });
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/index.html` });
   await sleep(4000);
+
+  /* 題庫真的被 loader 載進來（BANK_FILES 漏登記時 test.js 抓不到，只有瀏覽器看得出來） */
+  check('reading 題庫全部載入（含 tfng / head）', await js(`(function(){
+    var R = window.READING || {};
+    return R.mc.length >= 28 && R.gap.length >= 18 && R.match.length >= 12 &&
+           (R.tfng || []).length >= 3 && (R.head || []).length >= 3; })()`),
+    JSON.stringify(await js(`(function(){var R=window.READING||{};return {mc:R.mc.length,gap:R.gap.length,match:R.match.length,tfng:(R.tfng||[]).length,head:(R.head||[]).length};})()`)));
 
   await js(`document.querySelector('.tab-btn[data-tab="tab-daily"]').click()`);
   await sleep(500);
@@ -164,6 +177,9 @@ try {
   check('KET 預設 20 題（各級數各記各的）', /Daily 20/.test(ket), ket.slice(0, 120));
 
   ws.close();
-} finally { chrome.kill(); server.kill(); }
+} finally {
+  chrome.kill(); server.kill();
+  try { rmSync(PROFILE, { recursive: true, force: true }); } catch (e) {}
+}
 console.log(fails.length ? `\n${fails.length} 項失敗` : '\n全部通過');
 process.exit(fails.length ? 1 : 0);
