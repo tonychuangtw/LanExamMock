@@ -439,16 +439,35 @@ if (typeof document !== 'undefined') {
     window.scrollTo(0, 0);
   }
 
-  /* 信心標記：按下 = 這題是猜的；猜對也會進錯題本（抓「假會」） */
-  function addGuessToggle(container) {
+  /* ---- 信心標記「🤔 I'm guessing」（2026-08-24 起全站題型都有）----
+   * 按下 = 這題是猜的。猜對照樣算分，但會進錯題本、而且不讓 Leitner 盒升級（抓「假會」）。
+   * store[key] 存旗標：多題一頁的（閱讀／聽力／速讀）記在各自的 guessed 陣列，
+   * 逐題作答的（模擬考／每日任務／Review Test／錯題練習）記在 quiz.guessed 或 guessOne。 */
+  function guessBtn(store, key, small) {
     var g = document.createElement("button");
-    g.className = "ghost-btn guess-btn";
+    g.type = "button";
+    g.className = "ghost-btn guess-btn" + (small ? " small" : "");
     g.textContent = "🤔 I'm guessing";
+    g.classList.toggle("selected", !!store[key]);
+    g.setAttribute("aria-pressed", store[key] ? "true" : "false");
     g.addEventListener("click", function () {
-      quiz.guessed[quiz.idx] = !quiz.guessed[quiz.idx];
-      g.classList.toggle("selected", !!quiz.guessed[quiz.idx]);
+      store[key] = !store[key];
+      g.classList.toggle("selected", !!store[key]);
+      g.setAttribute("aria-pressed", store[key] ? "true" : "false");
     });
-    container.appendChild(g);
+    return g;
+  }
+
+  /* 逐題作答共用的旗標：每畫一題就歸零，作答當下讀值（guessTaken） */
+  var guessOne = { on: false };
+  function addGuessOne(container) {
+    guessOne.on = false;
+    if (container) container.appendChild(guessBtn(guessOne, "on"));
+  }
+  function guessTaken() { return !!guessOne.on; }
+
+  function addGuessToggle(container) {
+    container.appendChild(guessBtn(quiz.guessed, quiz.idx));
   }
 
   function renderUoeItemInto(item, qBox, aBox, onAnswer) {
@@ -769,6 +788,7 @@ if (typeof document !== 'undefined') {
     fb.innerHTML = "";
     drill.answeredState = false;
     drill.render(drill.queue[0], drillAnswered);
+    addGuessOne($(p + "-drill-area"));   // 每日任務／錯題練習也能標「這題是猜的」
     if (drill.snaps.length) {
       var pb = document.createElement("button");
       pb.className = "ghost-btn small";
@@ -867,7 +887,13 @@ if (typeof document !== 'undefined') {
 
     var fb = $(p + "-drill-feedback");
     if (isCorrect) {
-      fb.innerHTML = '<div class="review-item ok"><div class="review-verdict">✓ Correct — mastered!</div></div>';
+      fb.innerHTML = '<div class="review-item ok"><div class="review-verdict">✓ Correct' +
+        (guessTaken()
+          ? ' <span class="guess-tag">🤔 guessed — kept in the mistake book</span></div>' +
+            '<div class="review-ans"><strong>Correct answer: </strong>' + esc(drill.correctText(item)) + "</div>" +
+            '<div class="expl">' + esc(drill.explText(item)) + "</div>"
+          : " — mastered!</div>") +
+        "</div>";
     } else {
       fb.innerHTML =
         '<div class="review-item bad">' +
@@ -1037,6 +1063,7 @@ if (typeof document !== 'undefined') {
     rd.type = type;
     rd.set = pool[Math.floor(Math.random() * pool.length)];
     rd.answers = [];
+    rd.guessed = [];
     rd.t0 = Date.now();
     $("rd-picker").classList.add("hidden");
     $("rd-summary").classList.add("hidden");
@@ -1103,6 +1130,7 @@ if (typeof document !== 'undefined') {
           });
           card.appendChild(b);
         });
+        card.appendChild(guessBtn(rd.guessed, qi));
         area.appendChild(card);
       });
     } else if (rd.type === "gap") {
@@ -1141,6 +1169,7 @@ if (typeof document !== 'undefined') {
             rd.answers[g] = idx;
             updateRdProgress();
           }));
+          row.appendChild(guessBtn(rd.guessed, g, true));
           pickCard.appendChild(row);
         })(gi);
       }
@@ -1174,6 +1203,7 @@ if (typeof document !== 'undefined') {
           rd.answers[qi] = idx;
           updateRdProgress();
         }));
+        wrap.appendChild(guessBtn(rd.guessed, qi, true));
         hqCard.appendChild(wrap);
       });
       area.appendChild(hqCard);
@@ -1198,6 +1228,7 @@ if (typeof document !== 'undefined') {
           rd.answers[qi] = idx;
           updateRdProgress();
         }));
+        wrap.appendChild(guessBtn(rd.guessed, qi, true));
         qCard.appendChild(wrap);
       });
       area.appendChild(qCard);
@@ -1244,9 +1275,10 @@ if (typeof document !== 'undefined') {
     var statKey = "r" + rd.type;
     for (var j = 0; j < n; j++) {
       var isCorrect = rd.answers[j] === rdCorrectAnswer(j);
+      var wasGuess = !!(rd.guessed && rd.guessed[j]);
       if (isCorrect) score++;
       recordResult(statKey, isCorrect);
-      if (!isCorrect) {
+      if (!isCorrect || wasGuess) {   // 猜對的也收進錯題本
         try {
           var s0 = rd.set;
           if (rd.type === "mc") {
@@ -1267,7 +1299,9 @@ if (typeof document !== 'undefined') {
       }
       reviewHtml +=
         '<div class="review-item ' + (isCorrect ? "ok" : "bad") + '">' +
-        '<div class="review-verdict">' + (isCorrect ? "✓" : "✗") + " Question " + (j + 1) + "</div>" +
+        '<div class="review-verdict">' + (isCorrect ? "✓" : "✗") + " Question " + (j + 1) +
+        (wasGuess ? ' <span class="guess-tag">🤔 guessed' + (isCorrect ? " — sent to mistake book" : "") + "</span>" : "") +
+        "</div>" +
         "<p>" + esc(rdQuestionLabel(j)) + "</p>" +
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(rdAnswerText(j, rd.answers[j])) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(rdAnswerText(j, rdCorrectAnswer(j))) + "</div>" +
@@ -1327,7 +1361,7 @@ if (typeof document !== 'undefined') {
   /* ================= §4.6 Speed reading（WPM 訓練） ================= */
   var SR_TARGET = { ket: 90, pet: 110, fce: 140, cae: 170, cpe: 200 };
   var SR_QN = 3;
-  var sr = { set: null, words: 0, t0: 0, ms: 0, qs: [], answers: [] };
+  var sr = { set: null, kind: "rmc", words: 0, t0: 0, ms: 0, qs: [], answers: [], guessed: [] };
   var srTicker = null;
 
   function srKey() { return LEVEL + ".speedread"; }
@@ -1346,12 +1380,17 @@ if (typeof document !== 'undefined') {
 
   function startSpeed() {
     if (needLogin()) return;
-    var pool = rdPool("mc").concat(rdPool("tfng"));
+    /* 題源同時記下是哪一種閱讀題（rmc / rtfng），錯或猜的才收得進錯題本 */
+    var pool = rdPool("mc").map(function (x) { return { kind: "rmc", set: x }; })
+      .concat(rdPool("tfng").map(function (x) { return { kind: "rtfng", set: x }; }));
     if (!pool.length) { UIDialog.alert("The reading banks haven't loaded. Please try again later."); return; }
-    sr.set = pool[Math.floor(Math.random() * pool.length)];
+    var picked = pool[Math.floor(Math.random() * pool.length)];
+    sr.set = picked.set;
+    sr.kind = picked.kind;
     sr.words = countWords(sr.set.text);
     sr.qs = shuffle(sr.set.questions).slice(0, SR_QN);
     sr.answers = [];
+    sr.guessed = [];
     var area = $("sr-passage");
     area.innerHTML = "";
     var head = document.createElement("div");
@@ -1393,6 +1432,7 @@ if (typeof document !== 'undefined') {
         });
         card.appendChild(b);
       });
+      card.appendChild(guessBtn(sr.guessed, qi));
       qarea.appendChild(card);
     });
     $("sr-quiz-info").textContent = "⏱ " + fmtSecs(Math.round(sr.ms / 1000)) + " · " + sr.words + " words";
@@ -1407,10 +1447,16 @@ if (typeof document !== 'undefined') {
     var reviewHtml = "";
     sr.qs.forEach(function (q, qi) {
       var ok = sr.answers[qi] === q.answer;
+      var wasGuess = !!(sr.guessed && sr.guessed[qi]);
       if (ok) score++;
+      if (!ok || wasGuess) {   // 答錯或自承用猜的 → 收進錯題本
+        try { mbAdd(sr.kind || "rmc", { title: sr.set.title, text: sr.set.text, q: q }); } catch (e) {}
+      }
       reviewHtml +=
         '<div class="review-item ' + (ok ? "ok" : "bad") + '">' +
-        '<div class="review-verdict">' + (ok ? "✓" : "✗") + " Question " + (qi + 1) + "</div>" +
+        '<div class="review-verdict">' + (ok ? "✓" : "✗") + " Question " + (qi + 1) +
+        (wasGuess ? ' <span class="guess-tag">🤔 guessed' + (ok ? " — sent to mistake book" : "") + "</span>" : "") +
+        "</div>" +
         "<p>" + esc(q.q) + "</p>" +
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(q.options[sr.answers[qi]]) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(q.options[q.answer]) + "</div>" +
@@ -1583,6 +1629,7 @@ if (typeof document !== 'undefined') {
     if (!pool.length) { UIDialog.alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
     ls.set = pool[Math.floor(Math.random() * pool.length)];
     ls.answers = [];
+    ls.guessed = [];
     ls.playsUsed = 0;
     ls.drillMode = false;
     lsStopAudio();
@@ -1623,6 +1670,7 @@ if (typeof document !== 'undefined') {
         });
         card.appendChild(b);
       });
+      card.appendChild(guessBtn(ls.guessed, qi));
       area.appendChild(card);
     });
   }
@@ -1647,14 +1695,17 @@ if (typeof document !== 'undefined') {
     var score = 0, reviewHtml = "";
     for (var j = 0; j < n; j++) {
       var isCorrect = ls.answers[j] === qs[j].answer;
+      var wasGuess = !!(ls.guessed && ls.guessed[j]);
       if (isCorrect) score++;
       recordResult("lis", isCorrect);
-      if (!isCorrect) {
+      if (!isCorrect || wasGuess) {   // 猜對的也收進錯題本
         try { mbAdd("lis", { title: ls.set.title, kind: ls.set.kind, script: ls.set.script, q: qs[j] }); } catch (e) {}
       }
       reviewHtml +=
         '<div class="review-item ' + (isCorrect ? "ok" : "bad") + '">' +
-        '<div class="review-verdict">' + (isCorrect ? "✓" : "✗") + " Question " + (j + 1) + "</div>" +
+        '<div class="review-verdict">' + (isCorrect ? "✓" : "✗") + " Question " + (j + 1) +
+        (wasGuess ? ' <span class="guess-tag">🤔 guessed' + (isCorrect ? " — sent to mistake book" : "") + "</span>" : "") +
+        "</div>" +
         "<p>" + esc(qs[j].q) + "</p>" +
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(lsAnswerText(j, ls.answers[j])) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(lsAnswerText(j, qs[j].answer)) + "</div>" +
@@ -1926,7 +1977,8 @@ if (typeof document !== 'undefined') {
 
     function answered(isCorrect, userText) {
       mbStopAudio();
-      mbReview(e.key, isCorrect);
+      /* 自承用猜的 → 這題當作沒答對來升降盒子，免得猜對就畢業 */
+      mbReview(e.key, isCorrect && !guessTaken());
       done(isCorrect, userText);
     }
 
@@ -3174,6 +3226,8 @@ if (typeof document !== 'undefined') {
             if (ok) d25.firstOk++;
             if (e.stat) { try { recordResult(e.stat, ok); } catch (err) {} }
             if (!ok) { try { wlogAdd(e.stat || e.kind, wlogQText(e), txt, mbCorrectText(e)); } catch (err) {} }
+            /* 猜對的照樣進錯題本（已經在本子裡的由 mbReview 處理） */
+            if (ok && guessTaken() && !e.key) { try { mbAdd(e.kind, e.payload); } catch (err) {} }
           }
           done(ok, txt);
           try { d25SaveRun(); } catch (err) {}   // 每答一題就把剩餘隊列存檔（換裝置可續做）
@@ -3544,8 +3598,19 @@ if (typeof document !== 'undefined') {
    * 則以中性配額＋當日種子近似重組）＋錯題本隨機抽題。真隨機組卷（每次不同），
    * 同篇文章/同段錄音的題目連續出現；每題等分、滿分 100。答錯照樣進錯題本。 */
   var K_RV = function () { return LEVEL + ".review_tests"; };
-  var RV_TOTAL = 20, RV_MB_SHARE = 6;
+  /* 考卷長度可選 10 / 15 / 20（2026-08-24，與每日任務同一組選項；分數一律換算成滿分 100）。
+   * 錯題本佔比固定約三成，長度縮短時跟著縮。 */
+  var RV_SIZES = [10, 15, 20];
+  var RV_MB_SHARE_OF = { 10: 3, 15: 5, 20: 6 };
+  var K_RVSIZE = function () { return LEVEL + ".review_size"; };
   var rv = null;
+
+  function rvSize() {
+    var n = loadJSON(K_RVSIZE(), null);
+    if (RV_SIZES.indexOf(n) >= 0) return n;
+    return d25SizeGet();   // 沒特別設就跟著每日任務的長度（高級數預設短一點）
+  }
+  function rvMbShare(size) { return RV_MB_SHARE_OF[size] || 6; }
 
   function rvDecodeRef(r) {
     if (r.k === "rmc") {
@@ -3571,8 +3636,9 @@ if (typeof document !== 'undefined') {
     return d25ComposeBase(d25Rng(date + "|" + LEVEL), d25Counts([]));
   }
 
-  function rvCompose(dates, includeMb) {
+  function rvCompose(dates, includeMb, total) {
     var seen = {}, pool = [], items = [];
+    total = total || rvSize();
     dates.forEach(function (d) {
       rvEntriesForDate(d).forEach(function (e) {
         var k = mbKey(e.kind, e.payload);
@@ -3583,12 +3649,12 @@ if (typeof document !== 'undefined') {
     });
     if (includeMb) {
       shuffle(mbLoad()).forEach(function (m) {
-        if (items.length >= RV_MB_SHARE || seen[m.key]) return;
+        if (items.length >= rvMbShare(total) || seen[m.key]) return;
         seen[m.key] = true;
         items.push({ kind: m.kind, key: m.key, payload: m.payload, src: "mb" });
       });
     }
-    shuffle(pool).slice(0, Math.max(0, RV_TOTAL - items.length)).forEach(function (e) { items.push(e); });
+    shuffle(pool).slice(0, Math.max(0, total - items.length)).forEach(function (e) { items.push(e); });
     // 同篇文章/同段錄音共用 gid（跨日期也合併），洗牌後仍連續出現
     items.forEach(function (e) {
       if (e.kind === "rmc" || e.kind === "rtfng") e.gid = "r|" + e.payload.title;
@@ -3613,7 +3679,30 @@ if (typeof document !== 'undefined') {
           '</span><span class="rv-day-sub">' + sub + "</span></label>";
       }).join("");
     }
+    rvRenderSize();
     rvRenderHistory();
+  }
+
+  /* 考卷長度晶片（10 / 15 / 20），與 mastery check 共用同一個設定 */
+  function rvRenderSize() {
+    var box = $("rv-size");
+    if (!box) return;
+    var size = rvSize();
+    box.innerHTML = RV_SIZES.map(function (n) {
+      return '<button type="button" class="ghost-btn small d25-size' + (n === size ? " selected" : "") +
+        '" data-rvsize="' + n + '">' + n + ' <span class="sub">questions</span></button>';
+    }).join("") +
+      "<p class='hint'>Scored out of 100 either way — a shorter test just means each question is worth more." +
+      (rvMbShare(size) ? " About " + rvMbShare(size) + " of them come from your mistake book." : "") + "</p>";
+    box.className = "d25-size-row";
+    box.querySelectorAll("[data-rvsize]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        saveJSON(K_RVSIZE(), parseInt(b.getAttribute("data-rvsize"), 10));
+        rvRenderSize();
+      });
+    });
+    var mn = $("rv-mastery-n");
+    if (mn) mn.textContent = size;
   }
 
   function rvRenderHistory() {
@@ -3674,11 +3763,12 @@ if (typeof document !== 'undefined') {
     var secs = rvRecentSections();
     if (!secs.length) { UIDialog.alert("No practice recorded in the last 7 days — do some practice first, then come back to check mastery."); return; }
     var pools = secs.map(rvMasteryPool);
+    var total = rvSize();
     var items = [], seen = {}, more = true;
-    while (items.length < RV_TOTAL && more) {   // round-robin：每個練過的區塊輪流抽一題
+    while (items.length < total && more) {   // round-robin：每個練過的區塊輪流抽一題
       more = false;
       pools.forEach(function (p) {
-        if (items.length >= RV_TOTAL) return;
+        if (items.length >= total) return;
         while (p.length) {
           var e = p.pop();
           var kk = mbKey(e.kind, e.payload);
@@ -3731,16 +3821,19 @@ if (typeof document !== 'undefined') {
     var shownAt = Date.now();
     renderMbDrillItemInto($("rv-area"), e, function (ok, txt) {
       audioStopAll();
+      var wasGuess = guessTaken();
       if (ok) rv.correct++;
       else if (Date.now() - shownAt < 2500) rv.rushed++;
       if (e.stat) { try { recordResult(e.stat, ok); } catch (err) {} }
-      if (!ok && e.src !== "mb" && (e.kind === "uoe" || e.kind === "rmc" || e.kind === "lis")) {
+      if ((!ok || wasGuess) && e.src !== "mb" && (e.kind === "uoe" || e.kind === "rmc" || e.kind === "lis")) {
         try { mbAdd(e.kind, e.payload); } catch (err) {}
       }
       rv.reviewHtml +=
         '<div class="review-item ' + (ok ? "ok" : "bad") + '">' +
         '<div class="review-verdict">' + (ok ? "✓" : "✗") + " Question " + (rv.idx + 1) +
-        ' <span class="rv-src-tag">(from ' + esc(rvSrc(e)) + ")</span></div>" +
+        ' <span class="rv-src-tag">(from ' + esc(rvSrc(e)) + ")</span>" +
+        (wasGuess ? ' <span class="guess-tag">🤔 guessed' + (ok ? " — sent to mistake book" : "") + "</span>" : "") +
+        "</div>" +
         '<div class="review-ans"><strong>Your answer: </strong>' + esc(txt) + "</div>" +
         '<div class="review-ans"><strong>Correct answer: </strong>' + esc(mbCorrectText(e)) + "</div>" +
         (ok ? "" : '<div class="expl">' + esc(mbExplText(e)) + "</div>") +
@@ -3748,7 +3841,9 @@ if (typeof document !== 'undefined') {
       $("rv-area").querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
       var fb = $("rv-feedback");
       fb.innerHTML = ok
-        ? '<div class="review-item ok"><div class="review-verdict">✓ Correct</div></div>'
+        ? '<div class="review-item ok"><div class="review-verdict">✓ Correct' +
+          (wasGuess ? ' <span class="guess-tag">🤔 guessed — sent to mistake book</span></div>' +
+            '<div class="expl">' + esc(mbExplText(e)) + "</div>" : "</div>") + "</div>"
         : '<div class="review-item bad"><div class="review-verdict">✗ Wrong</div>' +
           '<div class="review-ans"><strong>Correct answer: </strong>' + esc(mbCorrectText(e)) + "</div>" +
           '<div class="expl">' + esc(mbExplText(e)) + "</div></div>";
@@ -3763,6 +3858,7 @@ if (typeof document !== 'undefined') {
       fb.appendChild(btn);
       btn.focus();
     });
+    addGuessOne($("rv-area"));   // Review Test 也能標「這題是猜的」
   }
 
   function rvFinish() {

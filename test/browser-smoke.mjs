@@ -73,6 +73,87 @@ try {
   const prog = await js(`document.getElementById('d25-drill-progress').textContent`);
   check('開始 10 題任務 → 隊列剛好 10 題', /Mastered 0 \/ 10/.test(prog), prog);
 
+  /* ---------- 信心標記「🤔 I'm guessing」：每個題型都要有 ---------- */
+  console.log("\n信心標記「🤔 I'm guessing」");
+  check('每日任務有信心標記', await js(`!!document.querySelector('#d25-drill-area .guess-btn')`));
+  check('按下會標選', await js(`(function(){
+    var g = document.querySelector('#d25-drill-area .guess-btn');
+    g.click(); return g.classList.contains('selected') && g.getAttribute('aria-pressed') === 'true'; })()`));
+
+  // 閱讀（多選題卷）：每題都有，全部標「用猜的」交卷 → 全部進錯題本
+  await js(`localStorage.setItem('cae.mistake_book','[]')`);
+  await js(`document.querySelector('.tab-btn[data-tab="tab-reading"]').click()`);
+  await sleep(300);
+  await js(`document.querySelector('#rd-picker .mode-btn[data-rtype="mc"]').click()`);
+  await sleep(600);
+  const rdQs = await js(`document.querySelectorAll('#rd-area .rd-q').length`);
+  check('閱讀每題都有信心標記', await js(`document.querySelectorAll('#rd-area .rd-q .guess-btn').length`) === rdQs, 'q=' + rdQs);
+  await js(`document.querySelectorAll('#rd-area .rd-q').forEach(function (c) {
+    c.querySelector('.option-btn').click(); c.querySelector('.guess-btn').click(); })`);
+  await js(`document.getElementById('rd-submit').click()`);
+  await sleep(600);
+  const rdReview = await js(`document.getElementById('rd-review').textContent`);
+  check('交卷後每題標明是猜的', (rdReview.match(/🤔 guessed/g) || []).length === rdQs, rdReview.slice(0, 120));
+  check('猜的題目（含猜對的）全進錯題本',
+    await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`) === rdQs);
+  check('猜對的那幾題標示已送進錯題本', /guessed — sent to mistake book/.test(rdReview) || !/✓/.test(rdReview), rdReview.slice(0, 200));
+
+  // 配對題（字母列版面）每題也要有
+  await js(`document.getElementById('rd-back').click()`);
+  await sleep(300);
+  await js(`document.querySelector('#rd-picker .mode-btn[data-rtype="match"]').click()`);
+  await sleep(600);
+  const matchRows = await js(`document.querySelectorAll('#rd-area .match-row').length`);
+  check('配對題每題都有信心標記',
+    matchRows > 0 && await js(`document.querySelectorAll('#rd-area .match-row .guess-btn').length`) === matchRows,
+    'rows=' + matchRows);
+
+  // 速讀：讀完文章後的理解題
+  await js(`document.getElementById('rd-back').click()`);
+  await sleep(300);
+  await js(`document.getElementById('sr-start').click()`);
+  await sleep(600);
+  await js(`document.getElementById('sr-done').click()`);
+  await sleep(5200);   // <5 秒會被擋（「太快了，先真的讀」），等過門檻再按一次
+  await js(`document.getElementById('sr-done').click()`);
+  await sleep(600);
+  const srQs = await js(`document.querySelectorAll('#sr-qarea .rd-q').length`);
+  check('速讀理解題每題都有信心標記',
+    srQs > 0 && await js(`document.querySelectorAll('#sr-qarea .rd-q .guess-btn').length`) === srQs, 'q=' + srQs);
+
+  // 聽力／模擬考／Review Test 都要有
+  await js(`document.querySelector('.tab-btn[data-tab="tab-listening"]').click()`);
+  await sleep(300);
+  await js(`document.querySelector('#ls-picker .mode-btn[data-lkind]').click()`);
+  await sleep(600);
+  const lsQs = await js(`document.querySelectorAll('#ls-area .rd-q').length`);
+  check('聽力每題都有信心標記',
+    lsQs > 0 && await js(`document.querySelectorAll('#ls-area .rd-q .guess-btn').length`) === lsQs, 'q=' + lsQs);
+
+  await js(`document.querySelector('.tab-btn[data-tab="tab-uoe"]').click()`);
+  await sleep(300);
+  await js(`document.querySelector('#uoe-picker .mode-btn[data-part]').click()`);
+  await sleep(600);
+  check('模擬考有信心標記', await js(`!!document.querySelector('#uoe-answer-area .guess-btn')`));
+
+  await js(`document.querySelector('.tab-btn[data-tab="tab-review"]').click()`);
+  await sleep(400);
+  check('Review Test 有三種長度可選', await js(`document.querySelectorAll('[data-rvsize]').length === 3`));
+  check('Review Test 預設跟著每日任務長度（CAE 10）',
+    await js(`document.querySelector('[data-rvsize="10"]').classList.contains('selected')`));
+  await js(`document.querySelector('[data-rvsize="15"]').click()`);
+  await sleep(200);
+  check('換長度會記起來', (await js(`localStorage.getItem('cae.review_size')`)) === '15');
+  check('Mastery check 題數跟著改', (await js(`document.getElementById('rv-mastery-n').textContent`)) === '15');
+  // 題源：今天的每日任務（開場就存了 refs）＋錯題本 → 湊得滿 15 題
+  await js(`document.querySelectorAll('#rv-days input').forEach(function (c) { c.checked = true; });
+            document.getElementById('rv-mb').checked = true;
+            document.getElementById('rv-start').click()`);
+  await sleep(800);
+  const rvProg = await js(`document.getElementById('rv-progress').textContent`);
+  check('Review Test 出 15 題', /\/ 15$/.test(rvProg), rvProg);
+  check('Review Test 有信心標記', await js(`!!document.querySelector('#rv-area .guess-btn')`));
+
   // 換 KET：預設應為 20（每級各記各的）
   await js(`localStorage.setItem('cpe.level','ket')`);
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/index.html` });

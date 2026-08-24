@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v21", date: "2026-08-24", items: [
+      "“🤔 I'm guessing” is now under every question. It used to appear only in Use of English mock exams; it is now in reading, listening, speed reading, the daily mission, the Review Test and mistake practice too. A flagged answer that happens to be right still counts for your score, but it goes into the mistake book, does not move up a review box, and shows you the explanation straight away — so a lucky guess can never masquerade as mastery.",
+      "The Review Test and the mastery check can also be 10, 15 or 20 questions (they follow your daily mission length unless you set them separately). Both are still scored out of 100 — a shorter test just makes each question worth more."
+    ]
+  },
+  {
     v: "v20", date: "2026-08-24", items: [
       "Choose how long the daily mission is: 10, 15 or 20 questions. Higher levels now start shorter by default (CAE and CPE 10, FCE 15, KET and PET 20), because one C1/C2 question carries several times the reading of an A2 one — the same 20 questions took two to three times as long. The setting is per level, syncs with your progress, and the start button shows the estimated time.",
       "Shorter missions are balanced, not just cut off: the mix of Use of English, Reading and Listening keeps its proportions, the reading share comes from fewer passages (1 instead of 3) since long texts are what really costs time, and the closing spelling round scales with it (5 words on a 10-question mission)."
