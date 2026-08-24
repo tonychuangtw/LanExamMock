@@ -11,11 +11,14 @@
   // accounts.google.com page (Tony confirmed on device, 2026-08-15).
   var IN_WEBVIEW = (function () {
     var ua = navigator.userAgent || "";
+    // ⚠️ Never use window.webkit.messageHandlers as a signal: Chrome/Edge/Firefox on
+    // iOS/iPadOS are WKWebView shells that all inject it — 2026-08-24 it false-positived
+    // Tony's iPad Chrome as an in-app browser and locked sign-in out entirely (Google
+    // sign-in works fine in those real browsers).
     return /\bwv\b/.test(ua) ||
       (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) ||
       /Line\/|FBAN|FBAV|Instagram|MicroMessenger|Telegram|LIFF/i.test(ua) ||
-      !!window.TelegramWebviewProxy ||                             // Telegram iOS（UA 無任何標記，只能認注入物件）
-      !!(window.webkit && window.webkit.messageHandlers);          // 其他 App 的 WKWebView（Safari 本體不會有）
+      !!window.TelegramWebviewProxy;                               // Telegram iOS（UA 無任何標記，只能認注入物件）
   })();
   var WEBVIEW_MSG = "Google doesn't allow sign-in inside in-app browsers (LINE / Telegram, etc.) — it only shows a blank page.\nUse the menu (⋯ or share button) in the corner to open this site in Safari or Chrome, then sign in.";
   var GIS_RETRY_MSG = "Can't reach Google's sign-in component (accounts.google.com isn't responding). Usually a flaky network or an ad/content blocker. Try again?";
