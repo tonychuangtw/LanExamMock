@@ -20,6 +20,15 @@
       /Line\/|FBAN|FBAV|Instagram|MicroMessenger|Telegram|LIFF/i.test(ua) ||
       !!window.TelegramWebviewProxy;                               // Telegram iOS（UA 無任何標記，只能認注入物件）
   })();
+
+  // LINE's in-app browser honors an official escape hatch: a URL carrying
+  // openExternalBrowser=1 is opened in the external browser automatically. Redirect once
+  // when opened inside LINE so shared links "just work" (Tony 2026-08-24). Harmless in real
+  // browsers; the query guard prevents a reload loop on old LINE versions that ignore it.
+  if (/Line\//i.test(navigator.userAgent || "") && !/[?&]openExternalBrowser=/.test(location.search)) {
+    var q = location.search ? location.search + "&openExternalBrowser=1" : "?openExternalBrowser=1";
+    location.replace(location.origin + location.pathname + q + location.hash);
+  }
   var WEBVIEW_MSG = "Google doesn't allow sign-in inside in-app browsers (LINE / Telegram, etc.) — it only shows a blank page.\nUse the menu (⋯ or share button) in the corner to open this site in Safari or Chrome, then sign in.";
   var GIS_RETRY_MSG = "Can't reach Google's sign-in component (accounts.google.com isn't responding). Usually a flaky network or an ad/content blocker. Try again?";
 
