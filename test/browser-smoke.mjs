@@ -6,7 +6,7 @@
  *   需要 python3（起靜態 server）與 node ≥ 22（內建 WebSocket）。
  */
 import { spawn } from 'node:child_process';
-import { existsSync, rmSync, mkdtempSync } from 'node:fs';
+import { existsSync, rmSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -26,15 +26,25 @@ console.log('每日任務長度（10 / 15 / 20 題）');
 const fails = [];
 const check = (n, c, x = '') => { console.log((c ? '  ✓ ' : '  ✗ ') + n + (c ? '' : ' — ' + x)); if (!c) fails.push(n); };
 
-const PORT = 8791, CDP = 9391;
+const PORT = 8791;
 const server = spawn('python3', ['-m', 'http.server', String(PORT)], { cwd: ROOT, stdio: 'ignore' });
-/* 每次跑都用全新的 profile：chrome 預設 profile 會把上一輪的 localStorage 留著，
- * 級數／任務長度就會從上一輪漏進來（2026-08-24 實測踩到） */
+/* 每次跑都用全新的 profile，debug port 也讓 chrome 自己挑（寫在 profile 的 DevToolsActivePort）。
+ * 固定 port ＋ 預設 profile 會在上一輪的 chrome 沒收乾淨時接到舊瀏覽器，
+ * 連帶讀到上一輪的 localStorage，跑出一堆假的失敗（2026-08-24 實測踩到）。 */
 const PROFILE = mkdtempSync(join(tmpdir(), 'lanexam-smoke-'));
-const chrome = spawn(SHELL, [`--remote-debugging-port=${CDP}`, '--no-sandbox', '--disable-gpu',
+const chrome = spawn(SHELL, ['--remote-debugging-port=0', '--no-sandbox', '--disable-gpu',
   `--user-data-dir=${PROFILE}`, 'about:blank'], { stdio: 'ignore' });
+
+async function cdpPort() {
+  for (let i = 0; i < 60; i++) {
+    try { return parseInt(readFileSync(join(PROFILE, 'DevToolsActivePort'), 'utf8').split('\n')[0], 10); }
+    catch (e) { await sleep(250); }
+  }
+  throw new Error('chrome 沒有寫出 DevToolsActivePort');
+}
+
 try {
-  await sleep(1500);
+  const CDP = await cdpPort();
   const list = await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json();
   const ws = new WebSocket(list.find(t => t.type === 'page').webSocketDebuggerUrl);
   await new Promise(r => ws.addEventListener('open', r));
@@ -55,7 +65,8 @@ try {
   /* 題庫真的被 loader 載進來（BANK_FILES 漏登記時 test.js 抓不到，只有瀏覽器看得出來） */
   check('reading 題庫全部載入（含 tfng / head）', await js(`(function(){
     var R = window.READING || {};
-    return R.mc.length >= 28 && R.gap.length >= 18 && R.match.length >= 12 &&
+    return R.mc.length >= 28 &&
+           R.gap.length >= 19 && R.match.length >= 13 &&
            (R.tfng || []).length >= 3 && (R.head || []).length >= 3; })()`),
     JSON.stringify(await js(`(function(){var R=window.READING||{};return {mc:R.mc.length,gap:R.gap.length,match:R.match.length,tfng:(R.tfng||[]).length,head:(R.head||[]).length};})()`)));
 
@@ -229,7 +240,8 @@ try {
 
   ws.close();
 } finally {
-  chrome.kill(); server.kill();
+  chrome.kill('SIGKILL'); server.kill('SIGKILL');
+  await sleep(300);
   try { rmSync(PROFILE, { recursive: true, force: true }); } catch (e) {}
 }
 console.log(fails.length ? `\n${fails.length} 項失敗` : '\n全部通過');

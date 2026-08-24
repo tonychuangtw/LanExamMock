@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v24", date: "2026-08-24", items: [
+      "Reading wave 9: a new multiple matching set and a new gapped text at every level (10 texts, 79 questions). Multiple matching was the thinnest reading bank left at 12 sets per level and is now 13; gapped text goes from 18 to 19. New topics: favourite seasons and painting the classroom (KET), learning to drive and the dog on platform two (PET), a year living abroad and a summer at a lighthouse museum (FCE), conservators repairing damaged objects and an abandoned orchard (CAE), film editors on what they cut and an apprenticeship in silence (CPE)."
+    ]
+  },
+  {
     v: "v23", date: "2026-08-24", items: [
       "Flag a guess after the fact. Every question in a results list now carries a “🤔 I was guessing” button — mock exams, reading, listening, speed reading and the Review Test — so a question you got right but were really unsure about can be sent to the mistake book while you are looking at the answer, not only in the moment before you answer it.",
       "The Daily tab now keeps a record of the mission you finished today: tap “📋 Today's questions” to go through every question with your result, the correct answer and the explanation — and to flag any you guessed. Questions you already flagged during the run are marked and not offered again."
