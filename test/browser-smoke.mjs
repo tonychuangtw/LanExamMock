@@ -238,6 +238,46 @@ try {
   const ket = await js(`document.getElementById('pg-daily').textContent`);
   check('KET 預設 20 題（各級數各記各的）', /Daily 20/.test(ket), ket.slice(0, 120));
 
+  /* ---- 字彙卡：一輪 N 張、錯的排回來、收尾清單可以補標 guessing（2026-08-25 Tony 要求）---- */
+  await js(`document.querySelector('.tab-btn[data-tab="tab-vocab"]').click()`);
+  await sleep(500);
+  check('字彙卡有張數選擇（5/10/15/20）',
+    await js(`document.querySelectorAll('#vb-size-row .vb-size').length === 4`),
+    await js(`document.getElementById('vb-size-row').textContent`));
+  check('字彙卡預設 10 張',
+    (await js(`(document.querySelector('#vb-size-row .vb-size.selected')||{}).textContent`) || '').trim() === '10');
+  await js(`document.querySelector('#vb-size-row .vb-size[data-vbsize="5"]').click()`);
+  await sleep(400);
+  check('選 5 張後開始出卡', await js(`!document.getElementById('vb-card-wrap').classList.contains('hidden')`));
+  for (let i = 0; i < 5; i++) { await js(`document.getElementById('vb-no').click()`); await sleep(60); }
+  check('答錯的卡片會排回來重複出現',
+    await js(`!document.getElementById('vb-card-wrap').classList.contains('hidden')`));
+  for (let i = 0; i < 25; i++) {
+    if (await js(`document.getElementById('vb-card-wrap').classList.contains('hidden')`)) break;
+    await js(`document.getElementById('vb-yes').click()`); await sleep(60);
+  }
+  const vbSum = await js(`document.getElementById('vb-status').textContent`);
+  check('一輪做完出現收尾統計', /Session complete/.test(vbSum), vbSum.slice(0, 100));
+  check('收尾清單就是這一輪的 5 張',
+    (await js(`document.querySelectorAll('#vb-status .review-item').length`)) === 5,
+    String(await js(`document.querySelectorAll('#vb-status .review-item').length`)));
+  check('第一次答錯的不給「I was guessing」',
+    (await js(`document.querySelectorAll('#vb-status .review-item.bad .vb-guess').length`)) === 0);
+  check('第一次答對的每張都有「I was guessing」',
+    await js(`(function(){ var ok = document.querySelectorAll('#vb-status .review-item.ok').length;
+      return ok === document.querySelectorAll('#vb-status .review-item.ok .vb-guess').length; })()`));
+  check('有「下一輪」按鈕', await js(`!!document.getElementById('vb-again')`));
+  const vbGuess = await js(`(function(){
+    var b = document.querySelector('#vb-status .vb-guess');
+    if (!b) return 'none';
+    var f = b.getAttribute('data-front');
+    b.click();
+    var st = JSON.parse(localStorage.getItem('ket.vocab_state') || '{}');
+    return { box: (st[f] && st[f].box) || 0, disabled: b.disabled };
+  })()`);
+  check('補標 guessing → 降回 Box 1 並鎖住按鈕',
+    vbGuess === 'none' || (vbGuess.box === 1 && vbGuess.disabled === true), JSON.stringify(vbGuess));
+
   ws.close();
 } finally {
   chrome.kill('SIGKILL'); server.kill('SIGKILL');

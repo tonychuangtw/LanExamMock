@@ -2755,9 +2755,23 @@ if (typeof document !== 'undefined') {
     $("sp-transcript").addEventListener("input", spRecUpdateStats);
   }
 
-  /* ================= §7 字彙卡 (Leitner) ================= */
+  /* ================= §7 字彙卡 (Leitner) =================
+     2026-08-25 Tony：「一次 2000 多個全部出來太多了，要能選今天做幾張；錯的放回去重複出現，
+     對的就過去；最後的統計一樣要能按 I was guessing。」
+     → 一輪固定 5/10/15/20 張（各級數各記各的）；答錯的排回佇列隔兩張再出現，直到答對；
+       Leitner 一律以「第一次」的結果計；收尾清單可以補標 guessing，補標的降回 Box 1。 */
   var vocabQueue = [];
   var vbMode = "flip"; // "flip" 自評翻卡 | "type" 拼寫主動回憶
+  var VB_SIZES = [5, 10, 15, 20];
+  var VB_DEFAULT_SIZE = 10;
+  var vbSess = null;   // { total, results: [{front, ok, again, guessed}], seen: {} }
+
+  function K_VBSIZE() { return LEVEL + ".vocab_size"; }
+  function vbSize() {
+    var n = loadJSON(K_VBSIZE(), null);
+    return VB_SIZES.indexOf(n) >= 0 ? n : VB_DEFAULT_SIZE;
+  }
+  function vbSizeSet(n) { saveJSON(K_VBSIZE(), n); }
 
   function getVocabState() {
     var st = loadJSON(K_VOCAB, {});
@@ -2767,31 +2781,111 @@ if (typeof document !== 'undefined') {
     return st;
   }
 
-  function buildVocabQueue() {
+  function vocabDue() {
     var st = getVocabState();
     var now = Date.now();
-    vocabQueue = shuffle(VOCAB.filter(function (c) { return leitnerIsDue(st[c.front], now); }));
+    return VOCAB.filter(function (c) { return leitnerIsDue(st[c.front], now); });
+  }
+
+  function buildVocabQueue() {
+    var due = shuffle(vocabDue());
+    var n = Math.min(vbSize(), due.length);
+    vocabQueue = due.slice(0, n);
+    vbSess = { total: n, results: [], seen: {} };
+  }
+
+  /* 一張卡作答：第一次的結果才進 Leitner／統計；答錯的排回佇列，隔兩張再出現直到答對 */
+  function vbAnswer(card, ok) {
+    if (!vbSess) buildVocabQueue();
+    var st = getVocabState();
+    var rec = null;
+    for (var i = 0; i < vbSess.results.length; i++) {
+      if (vbSess.results[i].front === card.front) { rec = vbSess.results[i]; break; }
+    }
+    if (!vbSess.seen[card.front]) {
+      vbSess.seen[card.front] = true;
+      st[card.front] = leitnerReview(st[card.front], ok, Date.now());
+      saveJSON(K_VOCAB, st);
+      rec = { front: card.front, def: card.def, ok: ok, again: 0, guessed: false };
+      vbSess.results.push(rec);
+      try { actBump("v"); } catch (e) {}
+    }
+    if (!ok) {
+      if (rec) rec.again++;
+      wwBump(card.front);
+    }
+    vocabQueue.shift();
+    if (!ok) vocabQueue.splice(Math.min(2, vocabQueue.length), 0, card);
+  }
+
+  function vbProgressHtml() {
+    var total = vbSess ? vbSess.total : 0;
+    var seen = vbSess ? Object.keys(vbSess.seen).length : 0;
+    return "<p>New cards seen: <strong>" + seen + " / " + total +
+      "</strong> · still in the pile (including ones you missed): <strong>" + vocabQueue.length + "</strong></p>";
+  }
+
+  /* 一輪做完的收尾清單：每張卡都能補標「🤔 I was guessing」（補標＝降回 Box 1 重新排隊） */
+  function showVocabSummary() {
+    $("vb-card-wrap").classList.add("hidden");
+    var tw = $("vb-type-wrap");
+    if (tw) tw.classList.add("hidden");
+    var res = (vbSess && vbSess.results) || [];
+    var right = res.filter(function (r) { return r.ok; }).length;
+    var rows = res.map(function (r) {
+      return '<div class="review-item ' + (r.ok ? "ok" : "bad") + '">' +
+        '<div class="review-verdict">' + (r.ok ? "✓" : "✗") + " " + esc(r.front) +
+        (r.again ? ' <span class="guess-tag">came back ' + r.again + "×</span>" : "") + "</div>" +
+        '<div class="review-ans">' + esc(r.def || "") + "</div>" +
+        (r.ok ? '<button type="button" class="ghost-btn small vb-guess" data-front="' + esc(r.front) +
+          '">🤔 I was guessing</button>' : "") +
+        "</div>";
+    }).join("");
+    var more = vocabDue().length;
+    $("vb-status").innerHTML =
+      "<h3>Session complete — " + right + " / " + res.length + " right first time</h3>" +
+      "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” and that card drops back to Box 1, so it comes back tomorrow.</p>" +
+      rows +
+      "<div class='timer-row center'>" +
+      (more ? '<button id="vb-again" class="primary-btn">Next ' + Math.min(vbSize(), more) + " cards (" + more + " still due)</button>" : "<p>🎉 No cards due today.</p>") +
+      "</div>";
+    var again = $("vb-again");
+    if (again) again.addEventListener("click", function () { vbSess = null; vocabQueue = []; renderVocabStatus(); });
+  }
+
+  function vbSizeChipsHtml() {
+    var cur = vbSize();
+    return '<div class="d25-size-row"><span class="hint">Cards this session:</span>' +
+      VB_SIZES.map(function (n) {
+        return '<button type="button" class="ghost-btn small vb-size' + (n === cur ? " selected" : "") +
+          '" data-vbsize="' + n + '">' + n + "</button>";
+      }).join("") + "</div>";
   }
 
   function renderVocabStatus() {
+    var sizeRow = $("vb-size-row");
     if (window.CloudSync && CloudSync.promptLogin && !CloudSync.signedIn()) {
       $("vb-status").innerHTML = "<p>🔒 Please sign in (top right) to review vocabulary — so your progress syncs to the cloud.</p>";
       $("vb-card-wrap").classList.add("hidden");
       var tw = $("vb-type-wrap");
       if (tw) tw.classList.add("hidden");
+      if (sizeRow) sizeRow.innerHTML = "";
       return;
     }
-    var st = getVocabState();
-    var now = Date.now();
-    var due = VOCAB.filter(function (c) { return leitnerIsDue(st[c.front], now); }).length;
+    if (sizeRow) sizeRow.innerHTML = vbSizeChipsHtml();
+    var due = vocabDue().length;
     var statusEl = $("vb-status");
+    if (vbSess && vocabQueue.length === 0) { showVocabSummary(); return; }   // 這一輪做完了
     if (due === 0) {
       statusEl.innerHTML = "<p>🎉 No cards due today.</p>";
       $("vb-card-wrap").classList.add("hidden");
+      var tw2 = $("vb-type-wrap");
+      if (tw2) tw2.classList.add("hidden");
       return;
     }
-    statusEl.innerHTML = "<p>Cards due: <strong>" + due + "</strong> / " + VOCAB.length + "</p>";
     if (vocabQueue.length === 0) buildVocabQueue();
+    statusEl.innerHTML = "<p>Cards due today: <strong>" + due + "</strong> / " + VOCAB.length +
+      " — this session: <strong>" + (vbSess ? vbSess.total : 0) + "</strong></p>";
     if (vocabQueue.length > 0) {
       if (vbMode === "type") {
         $("vb-card-wrap").classList.add("hidden");
@@ -2823,11 +2917,7 @@ if (typeof document !== 'undefined') {
   function showVocabTypeCard() {
     var c = vocabQueue[0];
     var wrap = $("vb-type-wrap");
-    if (!c) {
-      wrap.classList.add("hidden");
-      $("vb-status").innerHTML = "<p>✅ Review session complete!</p>";
-      return;
-    }
+    if (!c) { showVocabSummary(); return; }
     var st = getVocabState();
     var cloze = clozeExample(c.example, c.front);
     $("vb-type-q").innerHTML =
@@ -2862,30 +2952,17 @@ if (typeof document !== 'undefined') {
 
   function nextVocabType() {
     var ok = $("vb-type-next").dataset.ok === "1";
-    var c = vocabQueue.shift();
-    if (c) {
-      var st = getVocabState();
-      st[c.front] = leitnerReview(st[c.front], ok, Date.now());
-      saveJSON(K_VOCAB, st);
-      try { actBump("v"); } catch (e) {}
-      if (!ok) wwBump(c.front);
-    }
+    var c = vocabQueue[0];
+    if (c) vbAnswer(c, ok);
     if (vocabQueue.length > 0) {
-      $("vb-status").innerHTML = "<p>Remaining this session: <strong>" + vocabQueue.length + "</strong></p>";
+      $("vb-status").innerHTML = vbProgressHtml();
       showVocabTypeCard();
-    } else {
-      $("vb-type-wrap").classList.add("hidden");
-      $("vb-status").innerHTML = "<p>✅ Review session complete!</p>";
-    }
+    } else showVocabSummary();
   }
 
   function showVocabCard() {
     var c = vocabQueue[0];
-    if (!c) {
-      $("vb-card-wrap").classList.add("hidden");
-      $("vb-status").innerHTML = "<p>✅ Review session complete!</p>";
-      return;
-    }
+    if (!c) { showVocabSummary(); return; }
     var st = getVocabState();
     var box = st[c.front].box;
     $("vb-card").classList.remove("flipped");
@@ -2899,24 +2976,39 @@ if (typeof document !== 'undefined') {
   }
 
   function reviewVocab(known) {
-    var c = vocabQueue.shift();
+    var c = vocabQueue[0];
     if (!c) return;
-    var st = getVocabState();
-    st[c.front] = leitnerReview(st[c.front], known, Date.now());
-    saveJSON(K_VOCAB, st);
-    try { actBump("v"); } catch (e) {}
-    if (!known) wwBump(c.front);
-    showVocabCard();
-    // update due count text
-    var st2 = getVocabState();
-    var now = Date.now();
-    var remaining = vocabQueue.length;
-    if (remaining > 0) {
-      $("vb-status").innerHTML = "<p>Remaining this session: <strong>" + remaining + "</strong></p>";
-    }
+    vbAnswer(c, known);
+    if (vocabQueue.length > 0) {
+      $("vb-status").innerHTML = vbProgressHtml();
+      showVocabCard();
+    } else showVocabSummary();
   }
 
   function initVocab() {
+    // 張數選擇（5/10/15/20）——換張數等於重開一輪
+    var sizeRow = $("vb-size-row");
+    if (sizeRow) sizeRow.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest(".vb-size") : null;
+      if (!b) return;
+      vbSizeSet(parseInt(b.dataset.vbsize, 10));
+      vbSess = null; vocabQueue = [];
+      renderVocabStatus();
+    });
+    // 收尾清單的「🤔 I was guessing」：對的卡片補標後降回 Box 1，明天再出現
+    document.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest(".vb-guess") : null;
+      if (!b || b.disabled) return;
+      var front = b.getAttribute("data-front");
+      var st = getVocabState();
+      st[front] = leitnerReview(st[front], false, Date.now());
+      saveJSON(K_VOCAB, st);
+      wwBump(front);
+      if (vbSess) vbSess.results.forEach(function (r) { if (r.front === front) r.guessed = true; });
+      b.disabled = true;
+      b.classList.add("selected");
+      b.textContent = "🤔 back to Box 1 — you'll see it again";
+    });
     $("vb-card").addEventListener("click", function () {
       $("vb-card").classList.toggle("flipped");
     });

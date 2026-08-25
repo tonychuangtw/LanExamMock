@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v27", date: "2026-08-25", items: [
+      "Vocabulary is no longer a pile of 2,000+ cards. Pick how many you want to do now — 5, 10, 15 or 20 — and that is your session. The choice is remembered per level.",
+      "Cards you miss go back into the pile and come round again a couple of cards later, until you get them right. Cards you know are done for the session. Your Leitner box always moves on the FIRST answer, so a card you had to see twice still drops back to Box 1.",
+      "Every session ends with a summary of the cards you did, with the ones you missed marked. Any card you got right but were really guessing about has a “🤔 I was guessing” button — tap it and that card goes back to Box 1 so it returns tomorrow. From the summary you can start the next batch straight away."
+    ]
+  },
+  {
     v: "v26", date: "2026-08-25", items: [
       "Reading answers no longer sit still. Every time you open a reading task the options are reshuffled, so doing the same text twice will not put the answer back in the same place. Multiple choice, gapped text and matching headings shuffle their options; True/False/Not Given and multiple matching keep their fixed options but shuffle the question order instead.",
       "New at the end of every multiple choice and True/False/Not Given set: an Evidence check question — which sentence in the text supports the answer to one of the questions you just did? All four options are sentences taken from that same text, so remembering the answer does not help; you have to go back and read.",
