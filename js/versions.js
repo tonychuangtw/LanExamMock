@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v30", date: "2026-08-25", items: [
+      "Reading wave 13: one more True/False/Not Given text and one more Matching Headings text at every level (10 texts, 65 questions). Both banks now hold 6 sets per level, and every reading task type has grown today.",
+      "New topics: why bread rises and learning to swim at the town pool (KET), why roundabouts work and the bakery that works at night (PET), why ships keep getting bigger and learning a language after forty (FCE), the insects we stopped counting and the second life of the shipping container (CAE), the women who measured the sky and the museum of the ordinary (CPE)."
+    ]
+  },
+  {
     v: "v29", date: "2026-08-25", items: [
       "Reading wave 12: a new multiple matching set and a new gapped text at every level (10 texts, 75 questions). Multiple matching goes from 13 sets per level to 14, gapped text from 19 to 20.",
       "New multiple matching topics: how four students get to school (KET), four people remembering their first job (PET), four volunteers coaching a junior team (FCE), four researchers on fieldwork that went wrong (CAE) and four translators on the sentence they could not solve (CPE).",
