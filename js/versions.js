@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v28", date: "2026-08-25", items: [
+      "Reading wave 11: another True/False/Not Given text and another Matching Headings text at every level (10 texts, 65 questions). Both IELTS-style banks now hold 5 sets per level. New topics: the story of popcorn and a Saturday at the animal shelter (KET), the codes that sort your post and learning to cook at sixty (PET), selling bottled water and the return of the repair shop (FCE), noise as pollution and who owns the view upwards (CAE), a history of the fingerprint and the argument inside every map (CPE).",
+      "Every one of these texts also feeds the Evidence check question added in v26, so the new sets ask you to go back and find the sentence, not just remember the answer."
+    ]
+  },
+  {
     v: "v27", date: "2026-08-25", items: [
       "Vocabulary is no longer a pile of 2,000+ cards. Pick how many you want to do now — 5, 10, 15 or 20 — and that is your session. The choice is remembered per level.",
       "Cards you miss go back into the pile and come round again a couple of cards later, until you get them right. Cards you know are done for the session. Your Leitner box always moves on the FIRST answer, so a card you had to see twice still drops back to Box 1.",
