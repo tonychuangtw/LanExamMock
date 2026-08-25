@@ -75,7 +75,8 @@ Object.keys(LEVEL_SPECS).forEach(level => {
   ["reading-mc", "reading-gap", "reading-match", "listening"].forEach(p => {
     for (let w = 1; w <= 2; w++) expectedBanks.push(`${p}-w${w}.js`);
   });
-  expectedBanks.push("reading-match-w5.js", "reading-gap-w5.js");
+  expectedBanks.push("reading-match-w5.js", "reading-gap-w5.js",
+                     "reading-match-w6.js", "reading-gap-w6.js");
   expectedBanks.push("reading-tfng-w1.js", "reading-tfng-w2.js", "reading-tfng-w3.js", "reading-tfng-w4.js",
                      "reading-head-w1.js", "reading-head-w2.js", "reading-head-w3.js", "reading-head-w4.js");
   const bankFiles = fs.readdirSync(banksDir).sort();

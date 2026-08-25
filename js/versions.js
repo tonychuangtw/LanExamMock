@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v29", date: "2026-08-25", items: [
+      "Reading wave 12: a new multiple matching set and a new gapped text at every level (10 texts, 75 questions). Multiple matching goes from 13 sets per level to 14, gapped text from 19 to 20.",
+      "New multiple matching topics: how four students get to school (KET), four people remembering their first job (PET), four volunteers coaching a junior team (FCE), four researchers on fieldwork that went wrong (CAE) and four translators on the sentence they could not solve (CPE).",
+      "New gapped texts: the morning the school lift broke (KET), how one street got a bench (PET), a summer working in a bookshop (FCE), the museum label that took four years (CAE) and the river that became a legal person (CPE)."
+    ]
+  },
+  {
     v: "v28", date: "2026-08-25", items: [
       "Reading wave 11: another True/False/Not Given text and another Matching Headings text at every level (10 texts, 65 questions). Both IELTS-style banks now hold 5 sets per level. New topics: the story of popcorn and a Saturday at the animal shelter (KET), the codes that sort your post and learning to cook at sixty (PET), selling bottled water and the return of the repair shop (FCE), noise as pollution and who owns the view upwards (CAE), a history of the fingerprint and the argument inside every map (CPE).",
       "Every one of these texts also feeds the Evidence check question added in v26, so the new sets ask you to go back and find the sentence, not just remember the answer."
