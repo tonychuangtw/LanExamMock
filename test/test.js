@@ -248,6 +248,59 @@ Object.keys(LEVEL_SPECS).forEach(level => {
     });
   });
 
+  /* ---------- 防「背答案」：選項重排 + Evidence check（2026-08-25） ---------- */
+  {
+    let bad = [];
+    READING.mc.forEach(set => {
+      const p = logic.rdPrepareSet("mc", set);
+      set.questions.forEach((q, i) => {
+        const pq = p.questions[i];
+        if (pq.options[pq.answer] !== q.options[q.answer]) bad.push(`mc ${set.id}#${i} answer moved wrong`);
+        if (pq.options.slice().sort().join("|") !== q.options.slice().sort().join("|")) bad.push(`mc ${set.id}#${i} options changed`);
+      });
+    });
+    READING.head.forEach(set => {
+      const p = logic.rdPrepareSet("head", set);
+      set.questions.forEach((q, i) => {
+        if (p.options[p.questions[i].answer] !== set.options[q.answer]) bad.push(`head ${set.id}#${i}`);
+      });
+    });
+    READING.gap.forEach(set => {
+      const p = logic.rdPrepareSet("gap", set);
+      set.answers.forEach((a, i) => {
+        if (p.options[p.answers[i]] !== set.options[a]) bad.push(`gap ${set.id}#${i}`);
+      });
+    });
+    ["tfng", "match"].forEach(t => READING[t].forEach(set => {
+      const p = logic.rdPrepareSet(t, set);
+      if (p.questions.length !== set.questions.length) bad.push(`${t} ${set.id} question lost`);
+      p.questions.forEach(q => {
+        const src = set.questions.find(x => x.q === q.q);
+        if (!src || src.answer !== q.answer) bad.push(`${t} ${set.id} answer changed`);
+      });
+    }));
+    check(L + `reading option shuffle keeps answers intact (${bad.length} issue(s))`, bad.length === 0);
+    // 位置真的會變（同一組抽 30 次，正解不會永遠在同一格）
+    const mcSet = READING.mc[0];
+    const pos = new Set();
+    for (let t = 0; t < 30; t++) pos.add(logic.rdPrepareSet("mc", mcSet).questions[0].answer);
+    check(L + "reading options really get reshuffled", pos.size > 1);
+
+    let evOk = 0, evBad = [];
+    ["mc", "tfng"].forEach(t => READING[t].forEach(set => {
+      const q = logic.rdEvidenceQuestion(set);
+      if (!q) return;
+      evOk++;
+      if (q.options.length !== 4 || new Set(q.options).size !== 4) evBad.push(`${set.id} options`);
+      const sents = logic.rdSentences(set.text);
+      if (!q.options.every(o => sents.includes(o))) evBad.push(`${set.id} distractor not from text`);
+      if (set.text.replace(/\s+/g, " ").indexOf(q.options[q.answer].slice(0, 30)) < 0) evBad.push(`${set.id} answer not in text`);
+    }));
+    check(L + `evidence check questions generate for most reading sets (${evOk}/${READING.mc.length + READING.tfng.length})`,
+      evOk >= READING.mc.length + READING.tfng.length - 2);
+    check(L + `evidence check options all come from the passage (${evBad.length} issue(s))`, evBad.length === 0);
+  }
+
   /* ---------- IELTS Writing Task 1 ---------- */
   const IW = WRITING.filter(w => w.part === "IELTS Task 1");
   check(L + "ielts writing has >= 3 prompts", IW.length >= 3);

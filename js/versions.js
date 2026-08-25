@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v26", date: "2026-08-25", items: [
+      "Reading answers no longer sit still. Every time you open a reading task the options are reshuffled, so doing the same text twice will not put the answer back in the same place. Multiple choice, gapped text and matching headings shuffle their options; True/False/Not Given and multiple matching keep their fixed options but shuffle the question order instead.",
+      "New at the end of every multiple choice and True/False/Not Given set: an Evidence check question — which sentence in the text supports the answer to one of the questions you just did? All four options are sentences taken from that same text, so remembering the answer does not help; you have to go back and read.",
+      "Reading tasks now come from the sets you have practised least, instead of being picked at random each time."
+    ]
+  },
+  {
     v: "v25", date: "2026-08-25", items: [
       "Reading wave 10: a new True/False/Not Given text and a new Matching Headings text at every level (10 texts, 65 questions). These two IELTS-style banks were the thinnest reading sets left at 3 per level and are now 4. New topics: the story of the umbrella and our school garden (KET), the return of the night train and the village that shares its tools (PET), light pollution and working from a small town (FCE), the second-hand clothing trade and the return of the tram (CAE), retiring the standard kilogram and the digital archive problem (CPE)."
     ]

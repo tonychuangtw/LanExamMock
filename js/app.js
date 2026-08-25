@@ -151,6 +151,81 @@ function d25Blocks(entries, rng) {
   return out;
 }
 
+
+/* ---- Reading 防「背答案、不看文章」（2026-08-25 Tony 提問後加）----
+   1) 每次作答前把選項重新排列，答案索引跟著搬 —— 同一組再做一次，答案不會還在原位
+      （True/False/Not Given 的三個選項有固定意義、Multiple matching 的解析會提到段落字母，
+       這兩種改成打散題目順序）
+   2) mc / tfng 題組最後追加一題 Evidence check：四個選項全是本文的句子，不回文章挑不出來 */
+
+function rdPrepareSet(type, set) {
+  var s = JSON.parse(JSON.stringify(set));
+  if (type === "mc") {
+    s.questions.forEach(function (q) {
+      var order = shuffle(q.options.map(function (_, i) { return i; }));
+      var opts = order.map(function (i) { return q.options[i]; });
+      q.answer = order.indexOf(q.answer);
+      q.options = opts;
+    });
+  } else if (type === "head" || type === "gap") {
+    var ord = shuffle(s.options.map(function (_, i) { return i; }));
+    var newOpts = ord.map(function (i) { return s.options[i]; });
+    if (type === "gap") {
+      s.answers = s.answers.map(function (a) { return ord.indexOf(a); });
+    } else {
+      s.questions.forEach(function (q) { q.answer = ord.indexOf(q.answer); });
+    }
+    s.options = newOpts;
+  } else if (type === "tfng" || type === "match") {
+    s.questions = shuffle(s.questions);
+  }
+  return s;
+}
+
+function rdSentences(text) {
+  return String(text || "").split(/\n+/).join(" ").split(/(?<=[.!?])\s+/)
+    .map(function (x) { return x.trim(); })
+    .filter(function (x) { return x.length >= 40 && x.length <= 220; });
+}
+
+/* 解析裡常引用原文（'...'），把那句話在文章裡找回來 */
+function rdEvidenceSentence(set, q) {
+  var flat = String(set && set.text || "").replace(/\s+/g, " ");
+  var quotes = String(q && q.explanation || "").match(/['"\u201c\u201d\u2018\u2019][^'"\u201c\u201d\u2018\u2019]{20,}['"\u201c\u201d\u2018\u2019]/g) || [];
+  var sents = null;
+  for (var i = 0; i < quotes.length; i++) {
+    var key = quotes[i].slice(1, -1).trim().slice(0, 25);
+    if (key.length < 20 || flat.indexOf(key) < 0) continue;
+    sents = sents || rdSentences(set.text);
+    for (var k = 0; k < sents.length; k++) if (sents[k].indexOf(key) >= 0) return sents[k];
+  }
+  return null;
+}
+
+function rdEvidenceQuestion(set, rand) {
+  if (!set || !set.text || !Array.isArray(set.questions)) return null;
+  var sents = rdSentences(set.text);
+  if (sents.length < 4) return null;
+  var cands = [];
+  set.questions.forEach(function (q) {
+    var ev = rdEvidenceSentence(set, q);
+    if (ev) cands.push({ q: q, ev: ev });
+  });
+  if (!cands.length) return null;
+  var r = rand || Math.random;
+  var pick = cands[Math.floor(r() * cands.length)];
+  var pool = sents.filter(function (x) { return x !== pick.ev; });
+  if (pool.length < 3) return null;
+  var opts = shuffle(shuffle(pool).slice(0, 3).concat([pick.ev]));
+  return {
+    q: 'Evidence check \u2014 which sentence in the text supports the answer to: "' + pick.q.q + '"',
+    options: opts,
+    answer: opts.indexOf(pick.ev),
+    explanation: 'The text says: "' + pick.ev + '" \u2014 ' + (pick.q.explanation || ""),
+    evidence: true
+  };
+}
+
 /* Node export（測試用） */
 if (typeof module !== 'undefined') {
   module.exports = {
@@ -165,7 +240,11 @@ if (typeof module !== 'undefined') {
     d25Counts: d25Counts,
     d25Quota: d25Quota,
     D25_SIZES: D25_SIZES,
-    d25Blocks: d25Blocks
+    d25Blocks: d25Blocks,
+    rdPrepareSet: rdPrepareSet,
+    rdSentences: rdSentences,
+    rdEvidenceSentence: rdEvidenceSentence,
+    rdEvidenceQuestion: rdEvidenceQuestion
   };
 }
 
@@ -1072,6 +1151,23 @@ if (typeof document !== 'undefined') {
 
   var rd = { type: null, set: null, answers: [] };
 
+  /* 出題優先給做過次數最少的題組，不會一直碰到同幾篇 */
+  var RD_SEEN_KEY = "lem-rd-seen";
+  function rdSeenMap() {
+    try { return JSON.parse(localStorage.getItem(RD_SEEN_KEY) || "{}"); } catch (e) { return {}; }
+  }
+  function rdPickSet(pool) {
+    var seen = rdSeenMap();
+    return shuffle(pool.slice()).sort(function (a, b) {
+      return (seen[a.id] || 0) - (seen[b.id] || 0);
+    })[0];
+  }
+  function rdMarkSeen(set) {
+    var seen = rdSeenMap();
+    seen[set.id] = (seen[set.id] || 0) + 1;
+    try { localStorage.setItem(RD_SEEN_KEY, JSON.stringify(seen)); } catch (e) {}
+  }
+
   function rdPool(type) {
     var R = window.READING;
     return (R && R[type]) ? R[type] : [];
@@ -1087,7 +1183,13 @@ if (typeof document !== 'undefined') {
     var pool = rdPool(type);
     if (!pool.length) { UIDialog.alert("The question bank for this task type hasn't loaded. Please try again later."); return; }
     rd.type = type;
-    rd.set = pool[Math.floor(Math.random() * pool.length)];
+    var chosen = rdPickSet(pool);
+    rd.set = rdPrepareSet(type, chosen);   // 選項每次重排（防背位置）
+    if (type === "mc" || type === "tfng") {
+      var evq = rdEvidenceQuestion(rd.set);   // 追加一題「回文章找證據」
+      if (evq) rd.set.questions.push(evq);
+    }
+    rdMarkSeen(chosen);
     rd.answers = [];
     rd.guessed = [];
     rd.t0 = Date.now();
