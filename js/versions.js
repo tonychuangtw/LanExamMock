@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v25", date: "2026-08-25", items: [
+      "Reading wave 10: a new True/False/Not Given text and a new Matching Headings text at every level (10 texts, 65 questions). These two IELTS-style banks were the thinnest reading sets left at 3 per level and are now 4. New topics: the story of the umbrella and our school garden (KET), the return of the night train and the village that shares its tools (PET), light pollution and working from a small town (FCE), the second-hand clothing trade and the return of the tram (CAE), retiring the standard kilogram and the digital archive problem (CPE)."
+    ]
+  },
+  {
     v: "v24", date: "2026-08-24", items: [
       "Reading wave 9: a new multiple matching set and a new gapped text at every level (10 texts, 79 questions). Multiple matching was the thinnest reading bank left at 12 sets per level and is now 13; gapped text goes from 18 to 19. New topics: favourite seasons and painting the classroom (KET), learning to drive and the dog on platform two (PET), a year living abroad and a summer at a lighthouse museum (FCE), conservators repairing damaged objects and an abandoned orchard (CAE), film editors on what they cut and an apprenticeship in silence (CPE)."
     ]
