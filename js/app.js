@@ -4827,26 +4827,41 @@ if (typeof document !== 'undefined') {
       if (e.key === "Escape") closeSheet();
     });
 
-    /* text size: 85–175% in 10% steps, global like the theme */
+    /* text size: 固定級距表，85–175%，表上一定有 100%。
+       ⚠️ 不要改回「±10 再夾在 85..175」：撞到 85 這個下限之後級距會整個偏掉，
+       之後變成 95 → 105 → 115…，使用者再也回不到 100%
+       （2026-08-26 Tony 在 CamReview 回報，這裡是同一份邏輯，一起修）。 */
     var K_FS = "cpe_fontsize";
+    var FS_STEPS = [85, 90, 100, 110, 120, 130, 140, 150, 160, 175];
     var fsMinus = $("fs-minus"), fsPlus = $("fs-plus"), fsVal = $("fs-val");
     if (fsMinus && fsPlus && fsVal) {
       function fsGet() {
         var v = 100;
         try { v = parseInt(localStorage.getItem(K_FS), 10) || 100; } catch (e) {}
-        return Math.min(175, Math.max(85, v));
+        v = Math.min(175, Math.max(85, v));
+        /* 舊資料可能存了不在表上的值（就是上面那個 bug 留下的），靠到最近的一級 */
+        var best = FS_STEPS[0];
+        for (var i = 0; i < FS_STEPS.length; i++) {
+          if (Math.abs(FS_STEPS[i] - v) < Math.abs(best - v)) best = FS_STEPS[i];
+        }
+        return best;
       }
       function fsApply(v) {
         v = Math.min(175, Math.max(85, v));
         document.documentElement.style.fontSize = (v === 100 ? "" : v + "%");
         try { localStorage.setItem(K_FS, String(v)); } catch (e) {}
         fsVal.textContent = v + "%";
-        fsMinus.disabled = v <= 85;
-        fsPlus.disabled = v >= 175;
+        fsMinus.disabled = v <= FS_STEPS[0];
+        fsPlus.disabled = v >= FS_STEPS[FS_STEPS.length - 1];
+      }
+      function fsStep(dir) {
+        var i = FS_STEPS.indexOf(fsGet());
+        if (i < 0) i = FS_STEPS.indexOf(100);
+        fsApply(FS_STEPS[Math.max(0, Math.min(FS_STEPS.length - 1, i + dir))]);
       }
       fsApply(fsGet());
-      fsMinus.addEventListener("click", function () { fsApply(fsGet() - 10); });
-      fsPlus.addEventListener("click", function () { fsApply(fsGet() + 10); });
+      fsMinus.addEventListener("click", function () { fsStep(-1); });
+      fsPlus.addEventListener("click", function () { fsStep(1); });
     }
   }
 

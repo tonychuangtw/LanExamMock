@@ -153,6 +153,14 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* 連點不要觸發 iOS 的「點兩下放大」。
+   A+ 從 100% 按到 175% 要按好幾下，連著按時第二下會被 Safari 當成放大手勢，
+   整頁被放大且不會自己還原（2026-08-26 Tony 在 CamReview 回報，這裡同一個問題）。
+   manipulation 只關掉 double-tap 放大，點擊、捲動、兩指捏放大都不受影響。 */
+button, a, label, select, input, textarea, summary, [role="button"] {
+  touch-action: manipulation;
+}
+
 html, body {
   margin: 0; padding: 0;
   background: var(--bg);
