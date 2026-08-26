@@ -91,7 +91,7 @@
    * 這裡讓單一級數可以自己追加檔案，不影響其他級數。 */
   var LEVEL_EXTRA_BANKS = {
     fce: [
-      "reading-mc-w8.js"
+      "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js"
     ]
   };
 
