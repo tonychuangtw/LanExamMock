@@ -83,6 +83,18 @@
     "writing-x.js", "ielts-writing-x.js"
   ];
 
+  /* -------- 單一級數才有的 bank 檔 --------
+   * BANK_FILES 是五個級數共用的清單，所以每加一個檔名，五個級數都要有同名檔案，
+   * 否則那四級每次載入都會多四個 404。但擴題常常只針對一個級數
+   * （例如 2026-08-26 Tony 要求擴充 FCE 閱讀，因為 CamReview 課堂版只用 FCE），
+   * 硬要為另外四級生出同等份量的文章並不合理。
+   * 這裡讓單一級數可以自己追加檔案，不影響其他級數。 */
+  var LEVEL_EXTRA_BANKS = {
+    fce: [
+      "reading-mc-w8.js"
+    ]
+  };
+
   function getSavedLevel() {
     try {
       var v = localStorage.getItem(K_LEVEL);
@@ -144,8 +156,9 @@
     appStarted = true;
     applyHeader(lvl);
     var base = "js/levels/" + lvl + "/";
+    var extra = LEVEL_EXTRA_BANKS[lvl] || [];
     var urls = [base + "questions.js", base + "vocab.js"]
-      .concat(BANK_FILES.map(function (f) { return base + "banks/" + f; }));
+      .concat(BANK_FILES.concat(extra).map(function (f) { return base + "banks/" + f; }));
     loadScripts(urls, function (hadError) {
       if (hadError) {
         try { console.error("some data files failed to load; app may be partial"); } catch (e) {}
