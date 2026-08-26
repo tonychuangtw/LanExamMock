@@ -10,7 +10,7 @@ UPDATED: 2026-08-26 21:30 台北
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
-| reading mc（選擇） | 28 | 140 | **48** |
+| reading mc（選擇） | 28 | 140 | **56** |
 | reading gap（克漏字） | 20 | 100 | 20 |
 | reading match（配對） | 14 | 70 | 14 |
 | reading tfng（是非） | 6 | 30 | 6 |
@@ -28,3 +28,14 @@ CamReview（課堂版）的 `js/pick.js` 只抽 `reading.mc`，其他四類只�
 - ⛔ 題庫內容不可交給 subagent 量產（見 CLAUDE.md，之前試過交出來是假貨）。
 - 每組格式：`{id, title, text, questions:[{q, options[4], answer, explanation}]}`，
   文章約 300–400 字原創，解析要引用原文。
+
+## 答案位置要攤平
+
+一題一題手寫時，正解會不自覺集中在 A（wave 11 原始分布是 18/11/14/5），
+學生「不會就選 A」反而會被獎勵。寫完一支檔案就跑：
+
+```bash
+node tools/balance-answers.js js/levels/fce/banks/reading-mc-wN.js
+```
+
+它只旋轉選項陣列的順序、不改任何文字；解析引用的是原文而不是選項字母，所以旋轉是安全的。
