@@ -565,6 +565,38 @@ check("shuffle does not mutate input", orig.join() === "1,2,3,4,5");
     blocked.map(e => e.id).join() === b2.map(e => e.id).join());
 }
 
+/* ---------- listening accent (British / American voice picking) ---------- */
+{
+  const V = (name, lang) => ({ name, lang });
+  const mixed = [V("Samantha", "en-US"), V("Daniel", "en-GB"), V("Karen", "en-AU"), V("Serena", "en-GB")];
+
+  const gb = logic.lsPickVoices(mixed, "en-GB");
+  check("British pick prefers en-GB voices", gb.a.lang === "en-GB" && gb.b.lang === "en-GB");
+  check("British pick reports matched", gb.matched === true && gb.lang === "en-GB");
+
+  const us = logic.lsPickVoices(mixed, "en-US");
+  check("American pick prefers en-US voices", us.a.lang === "en-US" && us.matched === true);
+
+  /* 有些瀏覽器只回報 "en"，得靠聲音名稱認出腔調 */
+  const byName = logic.lsPickVoices([V("Google UK English Female", "en")], "en-GB");
+  check("British pick falls back to voice name when lang is only 'en'", byName.matched === true);
+
+  /* 裝置上沒有想要的口音時，仍要出得了聲，但 matched 必須是 false，UI 才會提示 */
+  const noGb = logic.lsPickVoices([V("Samantha", "en-US"), V("Alex", "en-US")], "en-GB");
+  check("missing accent still returns a voice", noGb.a !== null);
+  check("missing accent reports matched=false", noGb.matched === false);
+
+  const none = logic.lsPickVoices([], "en-GB");
+  check("empty voice list is handled", none.a === null && none.matched === false);
+
+  /* 非英語的聲音一律不列入 */
+  const onlyFr = logic.lsPickVoices([V("Thomas", "fr-FR")], "en-GB");
+  check("non-English voices are excluded", onlyFr.a === null);
+
+  const bad = logic.lsPickVoices(mixed, "zz-ZZ");
+  check("unknown accent falls back to British", bad.lang === "en-GB");
+}
+
 /* ---------- report ---------- */
 Object.keys(totals).forEach(level => {
   const t = totals[level];

@@ -226,6 +226,33 @@ function rdEvidenceQuestion(set, rand) {
   };
 }
 
+/* 光靠 voice.lang 不夠：部分瀏覽器只回報 "en"，得靠聲音名稱補判。
+ * 這兩組名字是各平台內建英式／美式聲音的常見命名。 */
+var GB_NAME = /\b(gb|uk|british|england)\b|daniel|hazel|george|serena|kate|oliver|libby|sonia|ryan|arthur|martha/i;
+var US_NAME = /\b(us|usa|american)\b|samantha|alex|david|zira|mark|aria|guy|jenny|nova|allison/i;
+
+/* 從瀏覽器給的聲音清單挑兩個（對話題要兩個講者）。want 為 "en-GB" 或 "en-US"。
+ * matched=false 代表裝置上根本沒有該口音的聲音，播出來會是別的腔調，UI 必須明講，
+ * 不能像舊版那樣靜默降級成美式。 */
+function lsPickVoices(voices, want) {
+  want = want === "en-US" ? "en-US" : "en-GB";
+  var all = (voices || []).filter(function (v) {
+    return /^en(-|_)/i.test(v.lang || "") || v.lang === "en";
+  });
+  var wantRe = want === "en-US" ? US_NAME : GB_NAME;
+  var otherRe = want === "en-US" ? GB_NAME : US_NAME;
+  function langHit(v) { return String(v.lang || "").replace("_", "-").toUpperCase() === want.toUpperCase(); }
+  var byLang = all.filter(langHit);
+  var byName = all.filter(function (v) { return !langHit(v) && wantRe.test(v.lang + " " + v.name); });
+  var pool = byLang.concat(byName);
+  var matched = pool.length > 0;
+  if (!matched) {
+    /* 挑不到想要的口音時，至少避開明確屬於另一個口音的聲音 */
+    pool = all.filter(function (v) { return !otherRe.test(v.lang + " " + v.name); }).concat(all);
+  }
+  return { a: pool[0] || null, b: pool[1] || pool[0] || null, lang: want, matched: matched };
+}
+
 /* Node export（測試用） */
 if (typeof module !== 'undefined') {
   module.exports = {
@@ -244,7 +271,8 @@ if (typeof module !== 'undefined') {
     rdPrepareSet: rdPrepareSet,
     rdSentences: rdSentences,
     rdEvidenceSentence: rdEvidenceSentence,
-    rdEvidenceQuestion: rdEvidenceQuestion
+    rdEvidenceQuestion: rdEvidenceQuestion,
+    lsPickVoices: lsPickVoices
   };
 }
 
@@ -1673,11 +1701,32 @@ if (typeof document !== 'undefined') {
     return L.filter(function (s) { return s.kind === kind; });
   }
 
-  function lsVoices() {
-    var vs = (window.speechSynthesis ? speechSynthesis.getVoices() : [])
-      .filter(function (v) { return /^en(-|_)/i.test(v.lang) || v.lang === "en"; });
-    var gb = vs.filter(function (v) { return /GB|UK/i.test(v.lang + v.name); });
-    return { a: gb[0] || vs[0] || null, b: gb[1] || vs[1] || gb[0] || vs[0] || null };
+  /* 口音偏好（跨級別共用，屬於裝置上的個人設定，不加 LEVEL 前綴） */
+  var K_ACCENT = "lanexam.accent";
+  function lsAccent() {
+    var a = loadJSON(K_ACCENT, "en-GB");
+    return a === "en-US" ? "en-US" : "en-GB";
+  }
+
+  function lsVoices(accent) {
+    var all = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+    return lsPickVoices(all, accent || lsAccent());
+  }
+
+  /* 聽力頁顯示目前實際使用的聲音；挑不到指定口音時要明講，不能靜默換腔調 */
+  function lsUpdateVoiceHint() {
+    var el = $("ls-voice");
+    if (!el) return;
+    if (!window.speechSynthesis) { el.textContent = "This browser does not support speech synthesis."; return; }
+    var v = lsVoices();
+    if (!v.a) { el.textContent = "Loading voices\u2026"; return; }
+    if (v.matched) {
+      el.textContent = "Voice: " + v.a.name + " (" + v.a.lang + ")";
+    } else {
+      el.textContent = "No " + (v.lang === "en-US" ? "American" : "British") +
+        " voice is installed on this device, so you will hear " + v.a.name + " (" + v.a.lang +
+        ") instead. Add one in your system speech settings to hear the accent you picked.";
+    }
   }
 
   /* 把 script 切成 utterance 清單；dialogue 依 "Name:" 行首交替兩個聲音 */
@@ -1692,6 +1741,8 @@ if (typeof document !== 'undefined') {
       if (!(who in speakers)) speakers[who] = order++;
       var u = new SpeechSynthesisUtterance(text);
       u.rate = rate;
+      /* voice 與 lang 都要設：部分平台（尤其手機）會忽略 voice 而照 lang 挑腔調 */
+      u.lang = voices.lang;
       var second = speakers[who] % 2 === 1;
       var v = second ? voices.b : voices.a;
       if (v) u.voice = v;
@@ -1959,8 +2010,24 @@ if (typeof document !== 'undefined') {
       });
     });
     $("ls-congrats-home").addEventListener("click", lsBackToPicker);
-    /* Chrome 需要先觸發 getVoices 才會載入聲音清單 */
-    if (window.speechSynthesis) speechSynthesis.getVoices();
+    var acc = $("ls-accent");
+    if (acc) {
+      acc.value = lsAccent();
+      acc.addEventListener("change", function () {
+        saveJSON(K_ACCENT, acc.value);
+        lsStopAudio();                         /* 播到一半換口音會半英半美，先停掉 */
+        lsUpdateVoiceHint();
+      });
+    }
+    /* Chrome 第一次 getVoices() 會回空陣列，聲音清單要等 voiceschanged 才載好。
+     * 少了這段，第一次按播放時挑不到指定口音，會靜默用系統預設（通常是美式）。 */
+    if (window.speechSynthesis) {
+      speechSynthesis.getVoices();
+      if ("onvoiceschanged" in speechSynthesis) {
+        speechSynthesis.addEventListener("voiceschanged", lsUpdateVoiceHint);
+      }
+    }
+    lsUpdateVoiceHint();
   }
 
   /* ================= §4.9 長期錯題本 (Leitner spaced repetition) ================= */
@@ -2523,6 +2590,7 @@ if (typeof document !== 'undefined') {
       speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(text);
       var vs = lsVoices();
+      u.lang = vs.lang;
       if (vs.a) u.voice = vs.a;
       u.onend = function () { timer.set(45); timer.start(); };
       speechSynthesis.speak(u);

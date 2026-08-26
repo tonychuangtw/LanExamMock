@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v31", date: "2026-08-26", items: [
+      "Listening now lets you choose the accent. A new Accent selector sits next to Speed in the listening player: British (the default, and the accent Cambridge exams are built around) or American. Your choice is remembered on this device and is used everywhere speech is played \u2014 mock exams, mistake practice and the speaking interview questions.",
+      "Three bugs behind the accent are fixed. The voice list is now reloaded when the browser finishes loading it (Chrome returns an empty list on the first call, so the very first playback used to fall back to the system default), every sentence now carries an explicit language tag as well as a voice (some phones ignore the voice and follow the tag), and British voices are recognised by name as well as by language code.",
+      "The player now shows which voice you are actually hearing. If the accent you picked is not installed on your device, it says so and names the voice being used instead, rather than switching accent silently."
+    ]
+  },
+  {
     v: "v30", date: "2026-08-25", items: [
       "Reading wave 13: one more True/False/Not Given text and one more Matching Headings text at every level (10 texts, 65 questions). Both banks now hold 6 sets per level, and every reading task type has grown today.",
       "New topics: why bread rises and learning to swim at the town pool (KET), why roundabouts work and the bakery that works at night (PET), why ships keep getting bigger and learning a language after forty (FCE), the insects we stopped counting and the second life of the shipping container (CAE), the women who measured the sky and the museum of the ordinary (CPE)."
