@@ -1,10 +1,10 @@
 STATUS: in-progress
 OBJECTIVE: 依 Tony 2026-08-26 指示，FCE 閱讀題庫擴增 5 倍
-NEXT_ACTION: mc 140 ✅、gap 100 ✅、match 70 ✅ 都已達標（2026-08-27）。剩兩類：是非題 tfng（6→30）與標題配對 head（6→30）。新增 `js/levels/fce/banks/reading-tfng-wN.js` / `reading-head-wN.js`（每支 4-5 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rtfng / rhead。每批做完到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
+NEXT_ACTION: mc 140 ✅、gap 100 ✅、match 70 ✅、tfng 30 ✅ 都已達標（2026-08-27）。只剩標題配對 head（6→30）：新增 `js/levels/fce/banks/reading-head-wN.js`（每支 5-6 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rhead。每組＝5 段（各 ≥50 字）＋8 個不重複標題（3 個誘答）＋5 題、答案不可重複。做完到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 11:54 台北
+UPDATED: 2026-08-27 11:57 台北
 
 # FCE 閱讀擴題進度
 
@@ -13,7 +13,7 @@ UPDATED: 2026-08-27 11:54 台北
 | reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
 | reading gap（克漏字） | 20 | 100 | **100 ✅ 達標** |
 | reading match（配對） | 14 | 70 | **70 ✅ 達標** |
-| reading tfng（是非） | 6 | 30 | **24** |
+| reading tfng（是非） | 6 | 30 | **30 ✅ 達標** |
 | reading head（標題） | 6 | 30 | 6 |
 
 ## 為什麼先做 mc
