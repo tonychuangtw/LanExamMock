@@ -1,10 +1,10 @@
 STATUS: in-progress
 OBJECTIVE: 五個級數（KET/PET/FCE/CAE/CPE）的閱讀題庫各擴增 5 倍。FCE 已完工（2026-08-27），其餘四級進行中
-NEXT_ACTION: CPE 多選 140 ✅、克漏字 100 ✅、配對 70 ✅ 皆完工。接著 CPE 是非題 tfng 6→30（正文 ≥250 字、8 題、options 固定 ["True","False","Not Given"]，同一篇三種答案都要出現），檔案 `js/levels/cpe/banks/reading-tfng-wN.js`；最後 head 6→30（5 段各 ≥50 字、8 個標題選項、5 題答案相異）。新檔要註冊到 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.cpe`。⚠️ 只有 FCE 需要同步 CamReview
+NEXT_ACTION: CPE 只剩最後一種題型：標題配對 head 6→30（每篇 5 段各 ≥50 字、8 個標題選項含 3 個誘答、5 題答案相異且為選項索引），檔案 `js/levels/cpe/banks/reading-head-wN.js`，並註冊到 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.cpe`。做完 5 級 5 倍工程全部完工，屆時把 STATUS 改成 done。⚠️ 只有 FCE 需要同步 CamReview
 VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
 PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
-UPDATED: 2026-08-27 20:44 台北
+UPDATED: 2026-08-27 20:46 台北
 
 # 五級閱讀擴題進度
 
@@ -19,7 +19,7 @@ tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 | **KET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **PET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **CAE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
-| **CPE** | 140 ✅ | 100 ✅ | 70 ✅ | 24 | 6 |
+| **CPE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 6 |
 
 ## 各級規格差異（動筆前必看）
 
