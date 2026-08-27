@@ -92,11 +92,11 @@
   var LEVEL_EXTRA_BANKS = {
     ket: [
       "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js",
-      "reading-mc-w11.js"
+      "reading-mc-w11.js", "reading-mc-w12.js"
     ],
     fce: [
       "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js",
-      "reading-mc-w11.js", "reading-mc-w10.js", "reading-mc-w11.js",
+      "reading-mc-w11.js", "reading-mc-w12.js", "reading-mc-w10.js", "reading-mc-w11.js", "reading-mc-w12.js",
       "reading-mc-w12.js", "reading-mc-w13.js",
       "reading-mc-w14.js", "reading-mc-w15.js",
       "reading-mc-w16.js", "reading-mc-w17.js",
