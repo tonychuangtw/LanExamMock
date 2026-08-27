@@ -4,7 +4,7 @@ NEXT_ACTION: mc 已達標 140 組（2026-08-27）。接著做克漏字：新增 
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 17:20 台北
+UPDATED: 2026-08-27 10:39 台北
 
 # FCE 閱讀擴題進度
 
