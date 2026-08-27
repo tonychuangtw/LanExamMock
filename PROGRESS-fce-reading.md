@@ -4,14 +4,14 @@ NEXT_ACTION: mc 已達標 140 組（2026-08-27）。接著做克漏字：新增 
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 10:48 台北
+UPDATED: 2026-08-27 10:51 台北
 
 # FCE 閱讀擴題進度
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
 | reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
-| reading gap（克漏字） | 20 | 100 | **35** |
+| reading gap（克漏字） | 20 | 100 | **40** |
 | reading match（配對） | 14 | 70 | 14 |
 | reading tfng（是非） | 6 | 30 | 6 |
 | reading head（標題） | 6 | 30 | 6 |
