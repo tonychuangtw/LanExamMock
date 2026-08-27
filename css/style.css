@@ -990,6 +990,31 @@ input[type="number"]:focus {
 }
 .pt-num { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
 .pt-label { color: var(--muted); font-size: 0.78rem; margin-top: 4px; line-height: 1.35; }
+/* 家長頁：分項時間與正確率總覽（2026-08-27） */
+.pt-range { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.pt-range .mode-btn {
+  min-height: 0; padding: 5px 12px; text-align: center;
+  font-size: 0.82rem; border-radius: 999px;
+}
+.pt-range .mode-btn.active {
+  background: var(--accent); border-color: var(--accent); color: #0b2513; font-weight: 600;
+}
+.pt-tbl {
+  width: 100%; border-collapse: collapse; margin: 8px 0 4px;
+  font-size: 0.88rem;
+}
+.pt-tbl th, .pt-tbl td { padding: 6px 8px; text-align: right; }
+.pt-tbl th:first-child, .pt-tbl td:first-child { text-align: left; }
+.pt-tbl th {
+  color: var(--muted); font-size: 0.74rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+.pt-tbl td { border-bottom: 1px solid var(--border); }
+.pt-tbl tr.pt-tr-total td {
+  font-weight: 700; color: var(--accent);
+  border-top: 2px solid var(--border); border-bottom: none;
+}
 .pt-words { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .pt-word {
   background: var(--red-soft); border: 1px solid var(--border);

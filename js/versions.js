@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v32", date: "2026-08-27", items: [
+      "The Parent / Teacher view now breaks the day down by activity. A new \u201cTime & accuracy by activity\u201d table lists Daily practice, the spelling round, Use of English, Reading, Listening, Vocabulary, Writing, Speaking and Review tests on separate lines \u2014 questions answered, first-try accuracy and time spent for each \u2014 with a total row underneath. You can switch it between today, the last 7 days and the last 30 days.",
+      "Time is now measured honestly. Every activity is timed on its own, and the timer stops after two minutes with no input, so a tab left open is no longer counted as study time. This also fixes the history rows that showed absurd totals such as \u201c568 min\u201d for a single daily mission.",
+      "The spelling round is timed too. Until now the daily mission stopped its clock before the spelling round began, so the minutes shown for a day never included the spelling practice. Daily practice history now shows the spelling time in brackets next to the spelling score."
+    ]
+  },
+  {
     v: "v31", date: "2026-08-26", items: [
       "Listening now lets you choose the accent. A new Accent selector sits next to Speed in the listening player: British (the default, and the accent Cambridge exams are built around) or American. Your choice is remembered on this device and is used everywhere speech is played \u2014 mock exams, mistake practice and the speaking interview questions.",
       "Three bugs behind the accent are fixed. The voice list is now reloaded when the browser finishes loading it (Chrome returns an empty list on the first call, so the very first playback used to fall back to the system default), every sentence now carries an explicit language tag as well as a voice (some phones ignore the voice and follow the tag), and British voices are recognised by name as well as by language code.",

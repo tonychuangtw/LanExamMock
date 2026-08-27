@@ -278,6 +278,37 @@ try {
   check('補標 guessing → 降回 Box 1 並鎖住按鈕',
     vbGuess === 'none' || (vbGuess.box === 1 && vbGuess.disabled === true), JSON.stringify(vbGuess));
 
+  /* 家長頁：分項時間與正確率總覽（2026-08-27 Tony：「只看得到 daily practice 那部份」） */
+  console.log('家長頁分項統計');
+  await js(`(function(){
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    var t = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    var tlog = {}; tlog[t] = {
+      daily: { ms: 720000, n: 15, ok: 9 },
+      spell: { ms: 180000, n: 8, ok: 7 },
+      reading: { ms: 300000, n: 6, ok: 4 } };
+    localStorage.setItem('ket.tlog', JSON.stringify(tlog));
+    var hist = {}; hist[t] = { done: true, total: 15, firstOk: 9, ms: 720000,
+      spell: { done: true, total: 8, firstOk: 7 } };
+    localStorage.setItem('ket.daily25', JSON.stringify(hist));
+  })()`);
+  await js(`location.reload()`);
+  await sleep(1200);
+  await js(`document.getElementById('pg-parent-btn').click()`);
+  await sleep(500);
+  const ptTxt = await js(`(document.querySelector('#parent-body .pt-tbl') || {}).textContent || ''`);
+  check('家長頁列出每一種練習', /Daily practice/.test(ptTxt) && /Spelling round/.test(ptTxt)
+    && /Reading/.test(ptTxt), ptTxt.slice(0, 140));
+  check('家長頁有全部加總的 Total 列', /Total/.test(ptTxt), ptTxt.slice(0, 140));
+  check('拼寫回合的時間分開列（不再混進每日任務）', /3 min/.test(ptTxt), ptTxt.slice(0, 160));
+  check('每日任務用時來自分項總帳（12 min）', /12 min/.test(ptTxt), ptTxt.slice(0, 160));
+  await js(`document.querySelector('#pt-range [data-tld="7"]').click()`);
+  await sleep(300);
+  check('切到近 7 天仍列得出表',
+    await js(`!!document.querySelector('#parent-body .pt-tbl')`));
+  const mh = await js(`(document.querySelector('.mock-history') || {}).textContent || ''`);
+  check('Daily practice history 標出拼寫回合的時間', /✍️ 7\/8 \(3 min\)/.test(mh), mh.slice(0, 160));
+
   ws.close();
 } finally {
   chrome.kill('SIGKILL'); server.kill('SIGKILL');

@@ -442,6 +442,78 @@ if (typeof document !== 'undefined') {
     var days = Object.keys(act).sort();
     while (days.length > 60) { delete act[days.shift()]; }
     saveJSON(K_ACT(), act);
+    if (field === "a") tlogAdd(curAct(), n || 1, 0);
+    else if (field === "c") tlogAdd(curAct(), 0, n || 1);
+  }
+
+  /* ---- 分項計時與分項成績（Tony 2026-08-27）--------------------------------
+     舊版只有每日任務記得到用時（daily25[date].ms），而且那個 ms 還不含收尾的拼寫回合，
+     所以家長看到「4 min」根本分不出涵蓋什麼。改成一本總帳：
+       LEVEL.tlog[日期][練習項目] = { ms, n, ok }
+       ms  ＝ 實際停在那個練習分頁上的時間（超過 2 分鐘沒有任何操作就不再累計）
+       n/ok＝ 第一次作答的題數／答對數
+     項目＝分頁（daily/uoe/reading/listening/vocab/writing/speaking/review）＋
+     拼寫回合另外算成 spell。只留 60 天。key 有 LEVEL 前綴，所以會跟著 sync.js 自動上雲。 */
+  var K_TLOG = function () { return LEVEL + ".tlog"; };
+  var ACT_LABELS = {
+    daily: "Daily practice", spell: "Spelling round", uoe: "Use of English",
+    reading: "Reading", listening: "Listening", vocab: "Vocabulary",
+    writing: "Writing", speaking: "Speaking", review: "Review tests"
+  };
+  var ACT_ORDER = ["daily", "spell", "uoe", "reading", "listening", "vocab",
+    "writing", "speaking", "review"];
+  var TAB_ACT = {
+    "tab-daily": "daily", "tab-uoe": "uoe", "tab-reading": "reading",
+    "tab-listening": "listening", "tab-vocab": "vocab", "tab-writing": "writing",
+    "tab-speaking": "speaking", "tab-review": "review"
+  };
+  /* 現在算哪一項：拼寫回合優先（它跑在 Daily 分頁裡），其餘看目前開著的分頁。
+     Progress／家長頁不算學習時間。 */
+  function curAct() {
+    try {
+      if (typeof dsp !== "undefined" && dsp) return "spell";
+      var p = document.querySelector(".tab-panel.active");
+      return (p && TAB_ACT[p.id]) || "";
+    } catch (e) { return ""; }
+  }
+  function tlogTouch(act, fn) {
+    if (!act || !ACT_LABELS[act]) return;
+    var t = loadJSON(K_TLOG(), {});
+    var days = Object.keys(t).sort();
+    while (days.length > 60) { delete t[days.shift()]; }
+    var d = t[todayStr()] || (t[todayStr()] = {});
+    var r = d[act] || (d[act] = { ms: 0, n: 0, ok: 0 });
+    fn(r);
+    saveJSON(K_TLOG(), t);
+  }
+  function tlogAdd(act, n, ok) {
+    if (!n && !ok) return;
+    tlogTouch(act, function (r) { r.n += n || 0; r.ok += ok || 0; });
+  }
+
+  var TL_IDLE_MS = 120000;
+  var tlClk = { act: "", last: 0, seen: 0 };
+  function tlTick() {
+    var now = Date.now();
+    var d = now - tlClk.last;
+    tlClk.last = now;
+    if (tlClk.act && d > 0 && now - tlClk.seen <= TL_IDLE_MS) {
+      var add = Math.min(d, TL_IDLE_MS);
+      tlogTouch(tlClk.act, function (r) { r.ms += add; });
+    }
+    tlClk.act = curAct();          // 下一段掛在「現在在做的那一項」上
+  }
+  if (typeof document !== "undefined" && document.addEventListener) {
+    tlClk.last = tlClk.seen = Date.now();
+    tlClk.act = "";
+    ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, function () { tlTick(); tlClk.seen = Date.now(); }, true);
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) { tlTick(); tlClk.seen = 0; }
+      else { tlClk.last = tlClk.seen = Date.now(); }
+    });
+    setInterval(tlTick, 15000);
   }
 
   function recordResult(part, isCorrect) {
@@ -2876,7 +2948,7 @@ if (typeof document !== 'undefined') {
       saveJSON(K_VOCAB, st);
       rec = { front: card.front, def: card.def, ok: ok, again: 0, guessed: false };
       vbSess.results.push(rec);
-      try { actBump("v"); } catch (e) {}
+      try { actBump("v"); tlogAdd("vocab", 1, ok ? 1 : 0); } catch (e) {}
     }
     if (!ok) {
       if (rec) rec.again++;
@@ -3560,9 +3632,10 @@ if (typeof document !== 'undefined') {
     startDrillGeneric(d25DrillCfg(entries));
   }
 
+  var D25_MS_CAP = 2 * 60 * 60 * 1000;   // 每日任務用時上限：分頁開著沒人在不算學習時間
   function d25Complete() {
     if (!d25) return;
-    var ms = Date.now() - d25.t0;
+    var ms = Math.min(Date.now() - d25.t0, D25_MS_CAP);
     var prevRec = d25TodayRec() || {};
     d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
                  rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs,
@@ -3667,6 +3740,7 @@ if (typeof document !== 'undefined') {
         st[c.front] = leitnerReview(st[c.front], ok, Date.now());
         saveJSON(K_VOCAB, st);
         actBump("v");
+        tlogAdd("spell", 1, ok ? 1 : 0);
       } catch (e) {}
       if (!ok) {
         wwBump(c.front);
@@ -4455,6 +4529,7 @@ if (typeof document !== 'undefined') {
     }
     var lvlLabel = (ext ? ext.level : LEVEL).toUpperCase();
     var hist = sget("daily25", {});
+    var tlog = sget("tlog", {});
     var s = sget("streak", { current: 0, best: 0 });
     var act = sget("activity", {});   // 每日活動：所有練習（模擬考/閱讀/聽力/每日/複習測驗）的作答數
     var todayRec = hist[todayStr()];
@@ -4470,6 +4545,77 @@ if (typeof document !== 'undefined') {
           (todayRec.spell && todayRec.spell.done ? " · ✍️ spelling " + todayRec.spell.firstOk + " / " + todayRec.spell.total : "") + ".</p>"
         : "<p class='verdict-text bad'>⬜ Today's daily practice is not done yet" +
           (actToday && actToday.a ? " — but " + actToday.a + " question" + (actToday.a === 1 ? "" : "s") + " answered in other practice today" : "") + ".</p>");
+    /* Time & accuracy by activity（Tony 2026-08-27：「只看得到 daily practice 那部份」）。
+       每一種練習分開列題數／首次答對率／用時，最後一列全部加總。 */
+    function tlAgg(days) {
+      var out = { acts: {}, total: { n: 0, ok: 0, ms: 0 }, legacy: false, any: false };
+      function add(a, n, ok, ms) {
+        if (!n && !ms) return;
+        out.any = true;
+        var t = out.acts[a] || (out.acts[a] = { n: 0, ok: 0, ms: 0 });
+        t.n += n; t.ok += ok; t.ms += ms;
+        out.total.n += n; out.total.ok += ok; out.total.ms += ms;
+      }
+      for (var i = 0; i < days; i++) {
+        var dk3 = todayStr(Date.now() - i * DAY_MS);
+        var day = tlog[dk3] || {};
+        Object.keys(day).forEach(function (a) {
+          var r = day[a] || {};
+          add(a, r.n || 0, r.ok || 0, r.ms || 0);
+        });
+        /* 舊資料補位：每日任務與拼寫回合本來就存了題數（用時只有每日任務有，而且不含拼寫） */
+        var hr = hist[dk3];
+        if (!hr || !hr.done) continue;
+        if (!day.daily) {
+          out.legacy = true;
+          add("daily", hr.total || 0, hr.firstOk || 0, Math.min(hr.ms || 0, D25_MS_CAP));
+        }
+        if (hr.spell && hr.spell.done && !day.spell) {
+          out.legacy = true;
+          add("spell", hr.spell.total || 0, hr.spell.firstOk || 0, 0);
+        }
+      }
+      return out;
+    }
+    function tlMin(ms) {
+      if (!ms) return "—";
+      var sec = Math.round(ms / 1000);
+      if (sec < 60) return sec + " sec";
+      var m = Math.round(sec / 60);
+      return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min";
+    }
+    function tlPct(n, ok) { return n ? Math.round(100 * ok / n) + "%" : "—"; }
+    function tlTable(days) {
+      var agg = tlAgg(days);
+      if (!agg.any) {
+        return "<p class='hint'>" + (days === 1 ? "No practice recorded today yet."
+          : "No practice recorded in this period.") + "</p>";
+      }
+      var rows = "";
+      var keys = ACT_ORDER.filter(function (a) { return agg.acts[a]; })
+        .concat(Object.keys(agg.acts).filter(function (a) { return ACT_ORDER.indexOf(a) < 0; }));
+      keys.forEach(function (a) {
+        var r = agg.acts[a];
+        rows += "<tr><td>" + esc(ACT_LABELS[a] || a) + "</td><td>" + r.n + "</td><td>" +
+          tlPct(r.n, r.ok) + "</td><td>" + tlMin(r.ms) + "</td></tr>";
+      });
+      rows += '<tr class="pt-tr-total"><td>Total</td><td>' + agg.total.n + "</td><td>" +
+        tlPct(agg.total.n, agg.total.ok) + "</td><td>" + tlMin(agg.total.ms) + "</td></tr>";
+      return '<table class="pt-tbl"><tr><th>Activity</th><th>Questions</th>' +
+        "<th>First try</th><th>Time</th></tr>" + rows + "</table>" +
+        "<p class='hint'>Time counts only while someone is actually working — after 2 minutes with no " +
+        "input it stops, so a tab left open is not counted as study time. " +
+        "“First try” always uses the first answer; retries are not counted again." +
+        (agg.legacy ? " ⚠️ Per-activity timing starts from the 2026-08-27 update; before that only the daily " +
+          "mission was timed (and that timer did not include the spelling round)." : "") + "</p>";
+    }
+    html += '<div class="card"><h3>Time &amp; accuracy by activity</h3>' +
+      '<div class="pt-range" id="pt-range">' +
+      [[1, "Today"], [7, "Last 7 days"], [30, "Last 30 days"]].map(function (o, i) {
+        return '<button class="mode-btn' + (i === 0 ? " active" : "") + '" data-tld="' + o[0] + '">' +
+          o[1] + "</button>";
+      }).join("") + "</div><div id=\"pt-tl\">" + tlTable(1) + "</div></div>";
+
     html += "<p class='hint'>Last 14 days · ✓ daily mission done · <span class='pt-cell half' style='width:14px;height:14px'>•</span> practised without finishing the mission</p><div class='pt-strip'>";
     for (var i = 13; i >= 0; i--) {
       var dk = todayStr(Date.now() - i * DAY_MS);
@@ -4572,15 +4718,34 @@ if (typeof document !== 'undefined') {
       var r2 = hist[dk2];
       if (!r2 || !r2.done) return;
       var pct = r2.total ? Math.round(100 * r2.firstOk / r2.total) : 0;
+      /* 用時優先用分項總帳（會扣掉發呆時間），沒有才退回舊的 rec.ms，並套上限 —— 
+         舊資料有「分頁開著沒人在」而記成 568 min 的（Tony 2026-08-27 截圖） */
+      var tld = tlog[dk2] || {};
+      var dMs = (tld.daily && tld.daily.ms) || Math.min(r2.ms || 0, D25_MS_CAP);
+      var spMs = (tld.spell && tld.spell.ms) || 0;
       rows += '<li><span class="mh-date">' + esc(dk2) + "</span>" +
-        '<span class="mh-label">' + Math.max(1, Math.round((r2.ms || 0) / 60000)) + " min" +
-        (r2.spell && r2.spell.done ? " · ✍️ " + r2.spell.firstOk + "/" + r2.spell.total : "") + "</span>" +
+        '<span class="mh-label">' + Math.max(1, Math.round(dMs / 60000)) + " min" +
+        (r2.spell && r2.spell.done
+          ? " · ✍️ " + r2.spell.firstOk + "/" + r2.spell.total +
+            (spMs ? " (" + Math.max(1, Math.round(spMs / 60000)) + " min)" : "")
+          : "") + "</span>" +
         '<span class="mh-score ' + (pct >= 75 ? "ok" : pct >= 60 ? "mid" : "bad") + '">' +
         r2.firstOk + "/" + r2.total + " (" + pct + "%)</span></li>";
     });
     if (rows) html += '<div class="card"><h3>Daily practice history</h3><ul class="mock-history">' + rows + "</ul></div>";
 
     body.innerHTML = html;
+    var rangeBox = body.querySelector("#pt-range");
+    if (rangeBox) {
+      rangeBox.addEventListener("click", function (e) {
+        var b = e.target.closest ? e.target.closest("[data-tld]") : null;
+        if (!b) return;
+        rangeBox.querySelectorAll("[data-tld]").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        var box = body.querySelector("#pt-tl");
+        if (box) box.innerHTML = tlTable(parseInt(b.dataset.tld, 10) || 1);
+      });
+    }
     renderParentCloud(body, ext);
   }
 
