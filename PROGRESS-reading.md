@@ -4,7 +4,7 @@ NEXT_ACTION: 依 KET → PET → CAE → CPE 順序做。每級新增 `js/levels
 VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
 PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
-UPDATED: 2026-08-27 15:30 台北
+UPDATED: 2026-08-27 15:34 台北
 
 # 五級閱讀擴題進度
 
@@ -17,7 +17,7 @@ tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 | --- | --- | --- | --- | --- | --- |
 | **FCE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **KET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
-| **PET** | 82 | 20 | 14 | 6 | 6 |
+| **PET** | 88 | 20 | 14 | 6 | 6 |
 | **CAE** | 28 | 20 | 14 | 6 | 6 |
 | **CPE** | 28 | 20 | 14 | 6 | 6 |
 
@@ -136,3 +136,17 @@ node tools/balance-answers.js js/levels/fce/banks/reading-mc-wN.js
 ```
 
 它只旋轉選項陣列的順序、不改任何文字；解析引用的是原文而不是選項字母，所以旋轉是安全的。
+
+### heredoc 寫檔時的換行陷阱（2026-08-27）
+
+用 `cat > file <<'EOF'` 寫 bank 檔時，引號括住的 heredoc **不做任何跳脫處理**：
+- 檔案裡寫 `\n` → JS 解析成真正換行 ✅（這是要的）
+- 檔案裡寫 `\\n` → JS 解析成「反斜線 + n」兩個字元 ❌（正文會出現看得見的 \n）
+
+pet reading-mc w9–w17 全中這個坑，test 不會抓（只檢字數／證據引用），是自己寫的
+evidence 自檢 `ev=0` 才發現。寫完一律加驗：
+
+```bash
+node -e "const b=require('./檔案');console.log(b[0].text.includes(String.fromCharCode(92)+'n')?'BAD':'OK')"
+```
+
