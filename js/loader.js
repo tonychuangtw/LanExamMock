@@ -97,7 +97,8 @@
       "reading-mc-w16.js", "reading-mc-w17.js",
       "reading-mc-w18.js", "reading-mc-w19.js",
       "reading-mc-w20.js", "reading-mc-w21.js",
-      "reading-mc-w22.js"
+      "reading-mc-w22.js",
+      "reading-gap-w7.js"
     ]
   };
 
