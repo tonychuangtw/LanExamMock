@@ -1,25 +1,38 @@
-STATUS: done
-OBJECTIVE: 依 Tony 2026-08-26 指示，FCE 閱讀題庫擴增 5 倍
-NEXT_ACTION: 2026-08-27 全數完工。五類都到 5 倍：mc 140、gap 100、match 70、tfng 30、head 30。無待辦
-VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
+STATUS: in-progress
+OBJECTIVE: 五個級數（KET/PET/FCE/CAE/CPE）的閱讀題庫各擴增 5 倍。FCE 已完工（2026-08-27），其餘四級進行中
+NEXT_ACTION: 依 KET → PET → CAE → CPE 順序做。每級新增 `js/levels/<級>/banks/reading-<類型>-wN.js`，並在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.<級>` 加檔名（fce 以外的三個 key 要自己建）。跑 `node test/test.js` 看該級的 rmc/rgap/rmatch/rtfng/rhead。⚠️ 其它四級**不必**同步 CamReview（課堂版只用 FCE）
+VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
-PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 12:07 台北
+PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
+UPDATED: 2026-08-27 13:44 台北
 
-# FCE 閱讀擴題進度（2026-08-27 完工）
+# 五級閱讀擴題進度
 
 一天之內把 FCE 閱讀五個題型全部擴到 5 倍，共新增 **242 篇原創文章／題組**：
 mc 84 篇（504 題）、gap 65 篇、match 51 組（各 4 段人物敘述＋10 題）、
 tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 
 
-| 類型 | 原本 | 目標(5×) | 目前 |
+| 級數 | mc 28→140 | gap 20→100 | match 14→70 | tfng 6→30 | head 6→30 |
+| --- | --- | --- | --- | --- | --- |
+| **FCE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
+| **KET** | **36** | 20 | 14 | 6 | 6 |
+| **PET** | 28 | 20 | 14 | 6 | 6 |
+| **CAE** | 28 | 20 | 14 | 6 | 6 |
+| **CPE** | 28 | 20 | 14 | 6 | 6 |
+
+## 各級規格差異（動筆前必看）
+
+| 級數 | CEFR | mc 正文長度 | 克漏字結構 |
 | --- | --- | --- | --- |
-| reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
-| reading gap（克漏字） | 20 | 100 | **100 ✅ 達標** |
-| reading match（配對） | 14 | 70 | **70 ✅ 達標** |
-| reading tfng（是非） | 6 | 30 | **30 ✅ 達標** |
-| reading head（標題） | 6 | 30 | **30 ✅ 達標** |
+| KET | A2 | 約 280 字、生活題材、用字簡單 | 6 段 / 6 選項 / 5 空 |
+| PET | B1 | 約 300 字、敘事為主 | 6 段 / 6 選項 / 5 空 |
+| FCE | B2 | 約 320 字 | 7 段 / 7 選項 / 6 空 |
+| CAE | C1 | 約 400 字、論說與抽象概念 | 7 段 / 7 選項 / 6 空 |
+| CPE | C2 | 約 420 字、密度最高 | 8 段 / 8 選項 / 7 空 |
+
+配對（4-6 段各 ≥50 字＋10 題）、是非（正文 ≥250 字、6-8 題、三種答案都要有）、
+標題（5 段各 ≥50 字＋8 個標題＋5 題）四級規格相同。
 
 ## 為什麼先做 mc
 
