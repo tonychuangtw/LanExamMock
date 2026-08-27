@@ -92,7 +92,7 @@
   var LEVEL_EXTRA_BANKS = {
     fce: [
       "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js", "reading-mc-w11.js",
-      "reading-mc-w12.js"
+      "reading-mc-w12.js", "reading-mc-w13.js"
     ]
   };
 
