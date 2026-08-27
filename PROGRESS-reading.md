@@ -4,7 +4,7 @@ NEXT_ACTION: CPE 多選已完工（140 ✅）。接著 CPE 克漏字 20→100（
 VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
 PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
-UPDATED: 2026-08-27 19:34 台北
+UPDATED: 2026-08-27 19:38 台北
 
 # 五級閱讀擴題進度
 
@@ -19,7 +19,7 @@ tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 | **KET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **PET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **CAE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
-| **CPE** | 140 ✅ | 32 | 14 | 6 | 6 |
+| **CPE** | 140 ✅ | 38 | 14 | 6 | 6 |
 
 ## 各級規格差異（動筆前必看）
 
