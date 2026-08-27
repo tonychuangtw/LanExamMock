@@ -1,17 +1,17 @@
 STATUS: in-progress
 OBJECTIVE: 依 Tony 2026-08-26 指示，FCE 閱讀題庫擴增 5 倍
-NEXT_ACTION: mc 已達標 140 組（2026-08-27）。接著做克漏字：新增 `js/levels/fce/banks/reading-gap-wN.js`（每支 4-5 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rgap 數字（20 → 目標 100）。gap 做完再做 match（14→70）、tfng（6→30）、head（6→30）。每批做完要到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
+NEXT_ACTION: mc 140 ✅、gap 100 ✅ 都已達標（2026-08-27）。接著做配對：新增 `js/levels/fce/banks/reading-match-wN.js`（每支 4-5 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rmatch（14 → 目標 70）。之後 tfng（6→30）、head（6→30）。每批做完到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 11:17 台北
+UPDATED: 2026-08-27 11:19 台北
 
 # FCE 閱讀擴題進度
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
 | reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
-| reading gap（克漏字） | 20 | 100 | **95** |
+| reading gap（克漏字） | 20 | 100 | **100 ✅ 達標** |
 | reading match（配對） | 14 | 70 | 14 |
 | reading tfng（是非） | 6 | 30 | 6 |
 | reading head（標題） | 6 | 30 | 6 |
