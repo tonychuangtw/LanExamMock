@@ -111,7 +111,8 @@
       "reading-match-w11.js", "reading-match-w12.js",
       "reading-match-w13.js", "reading-match-w14.js",
       "reading-match-w15.js", "reading-match-w16.js",
-      "reading-match-w17.js"
+      "reading-match-w17.js",
+      "reading-tfng-w7.js"
     ]
   };
 
