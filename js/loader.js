@@ -114,7 +114,7 @@
       "reading-match-w17.js",
       "reading-tfng-w7.js", "reading-tfng-w8.js",
       "reading-tfng-w9.js", "reading-tfng-w10.js",
-      "reading-head-w7.js"
+      "reading-head-w7.js", "reading-head-w8.js"
     ]
   };
 
