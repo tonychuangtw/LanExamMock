@@ -1,12 +1,17 @@
-STATUS: in-progress
+STATUS: done
 OBJECTIVE: 依 Tony 2026-08-26 指示，FCE 閱讀題庫擴增 5 倍
-NEXT_ACTION: mc 140 ✅、gap 100 ✅、match 70 ✅、tfng 30 ✅ 都已達標（2026-08-27）。只剩標題配對 head（6→30）：新增 `js/levels/fce/banks/reading-head-wN.js`（每支 5-6 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rhead。每組＝5 段（各 ≥50 字）＋8 個不重複標題（3 個誘答）＋5 題、答案不可重複。做完到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
+NEXT_ACTION: 2026-08-27 全數完工。五類都到 5 倍：mc 140、gap 100、match 70、tfng 30、head 30。無待辦
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 12:04 台北
+UPDATED: 2026-08-27 12:07 台北
 
-# FCE 閱讀擴題進度
+# FCE 閱讀擴題進度（2026-08-27 完工）
+
+一天之內把 FCE 閱讀五個題型全部擴到 5 倍，共新增 **242 篇原創文章／題組**：
+mc 84 篇（504 題）、gap 65 篇、match 51 組（各 4 段人物敘述＋10 題）、
+tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
+
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
@@ -14,7 +19,7 @@ UPDATED: 2026-08-27 12:04 台北
 | reading gap（克漏字） | 20 | 100 | **100 ✅ 達標** |
 | reading match（配對） | 14 | 70 | **70 ✅ 達標** |
 | reading tfng（是非） | 6 | 30 | **30 ✅ 達標** |
-| reading head（標題） | 6 | 30 | **24** |
+| reading head（標題） | 6 | 30 | **30 ✅ 達標** |
 
 ## 為什麼先做 mc
 
