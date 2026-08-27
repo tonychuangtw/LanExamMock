@@ -4,7 +4,7 @@ NEXT_ACTION: 依 KET → PET → CAE → CPE 順序做。每級新增 `js/levels
 VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
 PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
-UPDATED: 2026-08-27 14:38 台北
+UPDATED: 2026-08-27 14:40 台北
 
 # 五級閱讀擴題進度
 
@@ -16,7 +16,7 @@ tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 | 級數 | mc 28→140 | gap 20→100 | match 14→70 | tfng 6→30 | head 6→30 |
 | --- | --- | --- | --- | --- | --- |
 | **FCE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
-| **KET** | **140 ✅** | **100 ✅** | **19** | 6 | 6 |
+| **KET** | **140 ✅** | **100 ✅** | **24** | 6 | 6 |
 | **PET** | 28 | 20 | 14 | 6 | 6 |
 | **CAE** | 28 | 20 | 14 | 6 | 6 |
 | **CPE** | 28 | 20 | 14 | 6 | 6 |
@@ -107,6 +107,15 @@ KET 因為句子短，很容易寫到 245 字就以為夠了（wave 9 有兩篇�
 
 ```bash
 node -e "require('./js/levels/<級>/banks/reading-mc-wN.js').forEach(s=>console.log(s.id,s.text.split(/\s+/).length))"
+```
+
+## match 每一段都要 ≥50 字（A2 特別容易踩到）
+
+配對題的每一段人物敘述都必須 ≥50 字。KET 因為句子短，寫四段時很容易有一段只有
+四十幾字（wave 8 有一段 48 字被擋）。寫完先查：
+
+```bash
+node -e "require('./js/levels/<級>/banks/reading-match-wN.js').forEach(s=>console.log(s.id, Math.min(...s.sections.map(x=>x.text.split(/\s+/).length))))"
 ```
 
 ## 注意事項
