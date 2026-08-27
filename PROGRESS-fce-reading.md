@@ -4,14 +4,14 @@ NEXT_ACTION: mc 已達標 140 組（2026-08-27）。接著做克漏字：新增 
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 10:53 台北
+UPDATED: 2026-08-27 10:55 台北
 
 # FCE 閱讀擴題進度
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
 | reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
-| reading gap（克漏字） | 20 | 100 | **45** |
+| reading gap（克漏字） | 20 | 100 | **50** |
 | reading match（配對） | 14 | 70 | 14 |
 | reading tfng（是非） | 6 | 30 | 6 |
 | reading head（標題） | 6 | 30 | 6 |
@@ -49,6 +49,16 @@ node -e "const fs=require('fs');const path='js/levels/fce/banks/reading-mc-wN.js
 ```
 
 引文中間用 `…` 省略是可以的，但**前 25 個字元必須是原文連續片段**，否則那一題不算數。
+
+## gap 正文長度別壓到下限
+
+`test.js` 要求 gap 正文 ≥200 字。wave 12 有一組寫到 203 字，離線太近，
+段落一短、空格前後的線索就不夠，學生只能用刪去法猜。**目標寫 250-300 字**，
+七段各 35-45 字左右。寫完用這個查：
+
+```bash
+node -e "require('./js/levels/fce/banks/reading-gap-wN.js').forEach(s=>console.log(s.id, s.segments.join(' ').split(/\s+/).length))"
+```
 
 ## 注意事項
 
