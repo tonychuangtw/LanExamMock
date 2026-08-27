@@ -97,6 +97,16 @@ try {
   const prog = await js(`document.getElementById('d25-drill-progress').textContent`);
   check('開始 10 題任務 → 隊列剛好 10 題', /Mastered 0 \/ 10/.test(prog), prog);
 
+  /* 作答鎖：秒數要依題目長度算，不是寫死的 3 秒（Tony 2026-08-27） */
+  const lockTxt = await js(`(document.querySelector('#d25-drill-area .lock-chip') || {}).textContent || ''`);
+  // 畫面上的數字每秒遞減，要看 data-lock-secs 的原始值
+  const lockSecs = await js(`parseInt((document.querySelector('#d25-drill-area .lock-chip') || {dataset:{}}).dataset.lockSecs || '0', 10)`);
+  check('第一題有作答鎖', /unlock/.test(lockTxt), lockTxt.slice(0, 80));
+  check('鎖的秒數依題目長度算（> 舊版寫死的 3 秒）', lockSecs > 3, lockTxt.slice(0, 80) + ' secs=' + lockSecs);
+  check('鎖的秒數有上限，不會沒完沒了', lockSecs <= 120, String(lockSecs));
+  check('鎖住時選項不能按',
+    await js(`document.querySelector('#d25-drill-area').classList.contains('answers-locked')`));
+
   /* ---------- 信心標記「🤔 I'm guessing」：每個題型都要有 ---------- */
   console.log("\n信心標記「🤔 I'm guessing」");
   check('每日任務有信心標記', await js(`!!document.querySelector('#d25-drill-area .guess-btn')`));

@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v33", date: "2026-08-27", items: [
+      "Answers now stay locked long enough to actually read the question. The lock was a fixed 8 seconds for a whole reading passage and 3 seconds for everything else \u2014 nowhere near enough to read a text, so a mission could be blasted through in four minutes. The wait is now worked out from the length of what is on screen, at roughly 240 words per minute plus three seconds to think: a 250-word passage unlocks after about a minute, a single cloze sentence after five or six seconds. Anyone who is really reading will never see the countdown finish.",
+      "Listening now waits for the whole recording. Pressing play used to unlock the answers immediately; the options now stay locked for as long as the recording takes to read out.",
+      "Both waits are capped (two minutes for a passage, 25 seconds for a single question), so a long CPE text never turns into an endless wait."
+    ]
+  },
+  {
     v: "v32", date: "2026-08-27", items: [
       "The Parent / Teacher view now breaks the day down by activity. A new \u201cTime & accuracy by activity\u201d table lists Daily practice, the spelling round, Use of English, Reading, Listening, Vocabulary, Writing, Speaking and Review tests on separate lines \u2014 questions answered, first-try accuracy and time spent for each \u2014 with a total row underneath. You can switch it between today, the last 7 days and the last 30 days.",
       "Time is now measured honestly. Every activity is timed on its own, and the timer stops after two minutes with no input, so a tab left open is no longer counted as study time. This also fixes the history rows that showed absurd totals such as \u201c568 min\u201d for a single daily mission.",

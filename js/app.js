@@ -3437,8 +3437,34 @@ if (typeof document !== 'undefined') {
     return entries;
   }
 
-  /* ---- 防亂做：作答前先鎖住選項（閱讀要先讀文章、聽力要先播錄音） ---- */
-  function d25LockAnswers(secs, chipHtml, onUnlock) {
+  /* ---- 防亂做：作答前先鎖住選項（閱讀要先讀文章、聽力要先播錄音） ----
+     秒數依「內容長度」算，不再寫死 3／8 秒（Tony 2026-08-27：8 秒讀完一整篇＝形同虛設，
+     那就是「4 分鐘 11 題」的來源）。基準 4 字/秒 ≈ 240 wpm，比一般青少年的閱讀速度還快，
+     所以這是很保守的下限：真的在讀的人早就超過、根本不會看到鎖，秒殺的人一定撞上。
+     基準取自題目本身的字數，不是使用者的歷史紀錄 —— 現在的紀錄全是亂做的，拿來當基準會被汙染。 */
+  var READ_WPS = 4;          // 閱讀：字/秒（≈240 wpm，比一般青少年還快，所以是保守下限）
+  var LISTEN_WPS = 2.5;      // 聽力朗讀：字/秒（≈150 wpm）
+  var LOCK_THINK = 3;        // 讀完之後總要想一下
+  var LOCK_PASSAGE_MAX = 120, LOCK_Q_MAX = 25, LOCK_AUDIO_MAX = 120;
+  function wordsIn(t) { return String(t || "").trim().split(/\s+/).filter(Boolean).length; }
+  function lockSecs(words, wps, max, min) {
+    return Math.max(min || 0, Math.min(max, Math.round(words / wps) + LOCK_THINK));
+  }
+  /* 這一題要讀多少字：直接數「畫面上真的印出來的字」，不去猜各題型的資料結構
+     （uoe / rmc / rgap / rhead / 錯題本條目的 payload 形狀都不一樣，猜漏一種就退回最短鎖）。
+     excludeSel＝要扣掉的區塊（同一篇文章的第二題以後，文章不用再讀一次）。 */
+  function d25AreaWords(excludeSel) {
+    var area = $("d25-drill-area");
+    if (!area) return 0;
+    var t = area.textContent || "";
+    if (excludeSel) {
+      var ex = area.querySelector(excludeSel);
+      if (ex && ex.textContent) t = t.split(ex.textContent).join(" ");
+    }
+    return wordsIn(t);
+  }
+
+  function d25LockAnswers(secs, chipHtml, onUnlock, audioSecs) {
     var area = $("d25-drill-area");
     drill.answersReadyAt = 0;
     var chip = document.createElement("p");
@@ -3454,14 +3480,22 @@ if (typeof document !== 'undefined') {
       drill.answersReadyAt = Date.now();
       if (onUnlock) onUnlock();
     }
-    if (secs === "audio") {   // 聽力：播放過錄音才解鎖
+    if (secs === "audio") {   // 聽力：要播放，而且要等錄音長度跑完才解鎖
       chip.innerHTML = chipHtml;
       var ab = area.querySelector("[data-audio]");
       if (!ab) { unlock(); return; }
-      ab.addEventListener("click", function h() { ab.removeEventListener("click", h); unlock(); });
+      ab.addEventListener("click", function h() {
+        ab.removeEventListener("click", h);
+        if (onUnlock) onUnlock();
+        if (!audioSecs) { unlock(); return; }
+        chip.remove();
+        area.classList.remove("answers-locked");
+        d25LockAnswers(audioSecs, "🎧 Listen to the whole recording — answers unlock in {s}s");
+      });
       return;
     }
     var left = secs;
+    chip.dataset.lockSecs = String(secs);   // 畫面上的數字會遞減，測試要看原始值
     chip.innerHTML = chipHtml.replace("{s}", left);
     var iv = setInterval(function () {
       if (drill.lockToken !== token) { clearInterval(iv); return; }
@@ -3473,17 +3507,27 @@ if (typeof document !== 'undefined') {
 
   function d25ApplyLock(e) {
     if (!d25) return;
+    try { window.__lockDbg = { kind: e.kind, words: d25AreaWords(null), html: (document.getElementById('d25-drill-area')||{}).innerHTML.length }; } catch (x) {}
+    var p = e.payload || {};
     if (e.kind === "rmc" || e.kind === "rtfng") {
-      var first = !d25.passSeen[e.payload.title];
-      d25.passSeen[e.payload.title] = true;
-      d25LockAnswers(first ? 8 : 4, "👀 Read the passage first — answers unlock in {s}s");
+      var first = !d25.passSeen[p.title];
+      d25.passSeen[p.title] = true;
+      // 同一篇的第一題要把整篇讀完；之後的題只算題幹＋選項（文章已經讀過，回頭查證就好）
+      var secs = first
+        ? lockSecs(d25AreaWords(null), READ_WPS, LOCK_PASSAGE_MAX, 8)
+        : lockSecs(d25AreaWords(".rd-passage"), READ_WPS, LOCK_Q_MAX, 4);
+      d25LockAnswers(secs, first
+        ? "👀 Read the passage first — answers unlock in {s}s"
+        : "👀 Check it against the passage — answers unlock in {s}s");
     } else if (e.kind === "lis") {
-      if (d25.lisPlayed[e.payload.title]) { drill.answersReadyAt = Date.now(); return; }
+      if (d25.lisPlayed[p.title]) { drill.answersReadyAt = Date.now(); return; }
+      var aSecs = lockSecs(wordsIn(p.script), LISTEN_WPS, LOCK_AUDIO_MAX, 5);
       d25LockAnswers("audio", "🎧 Play the recording first to unlock the answers", function () {
-        d25.lisPlayed[e.payload.title] = true;
-      });
+        d25.lisPlayed[p.title] = true;
+      }, aSecs);
     } else {
-      d25LockAnswers(3, "🤔 Think it through — answers unlock in {s}s");
+      d25LockAnswers(lockSecs(d25AreaWords(null), READ_WPS, LOCK_Q_MAX, 3),
+        "🤔 Read it properly — answers unlock in {s}s");
     }
   }
 
