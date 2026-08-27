@@ -104,7 +104,7 @@
       "reading-gap-w13.js", "reading-gap-w14.js",
       "reading-gap-w15.js", "reading-gap-w16.js",
       "reading-gap-w17.js", "reading-gap-w18.js",
-      "reading-gap-w19.js"
+      "reading-gap-w19.js", "reading-gap-w20.js"
     ]
   };
 
