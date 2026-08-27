@@ -1,10 +1,10 @@
-STATUS: in-progress
-OBJECTIVE: 五個級數（KET/PET/FCE/CAE/CPE）的閱讀題庫各擴增 5 倍。FCE 已完工（2026-08-27），其餘四級進行中
-NEXT_ACTION: CPE 只剩最後一種題型：標題配對 head 6→30（每篇 5 段各 ≥50 字、8 個標題選項含 3 個誘答、5 題答案相異且為選項索引），檔案 `js/levels/cpe/banks/reading-head-wN.js`，並註冊到 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.cpe`。做完 5 級 5 倍工程全部完工，屆時把 STATUS 改成 done。⚠️ 只有 FCE 需要同步 CamReview
+STATUS: done
+OBJECTIVE: 五個級數（KET/PET/FCE/CAE/CPE）的閱讀題庫各擴增 5 倍 —— 2026-08-27 全部完工，每級 mc 140／gap 100／match 70／tfng 30／head 30
+NEXT_ACTION: 無（本案已完工）。日後若要再擴，照本檔「各級規格差異」與「常見地雷」動筆，新檔一律註冊到 js/loader.js 的 LEVEL_EXTRA_BANKS，並用腳本重建該清單而不要用 sed 就地插字串（見下方 2026-08-27 的 loader 事故）。⚠️ 只有 FCE 需要同步 CamReview
 VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
 PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
-UPDATED: 2026-08-27 20:53 台北
+UPDATED: 2026-08-27 20:57 台北
 
 # 五級閱讀擴題進度
 
@@ -19,7 +19,7 @@ tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 | **KET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **PET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **CAE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
-| **CPE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 24 |
+| **CPE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 
 ## 各級規格差異（動筆前必看）
 
@@ -150,3 +150,22 @@ evidence 自檢 `ev=0` 才發現。寫完一律加驗：
 node -e "const b=require('./檔案');console.log(b[0].text.includes(String.fromCharCode(92)+'n')?'BAD':'OK')"
 ```
 
+
+### loader.js 的 sed 事故（2026-08-27，務必記取）
+
+註冊新 bank 檔時用了 `sed -i 's/"reading-mc-w9.js"/"reading-mc-w9.js", "reading-mc-w10.js"/' js/loader.js`。
+`LEVEL_EXTRA_BANKS` 裡每一級的陣列是**多行、每行含多個檔名**，而 sed 不加 `/g` 只換「每行第一個」——
+結果是每次註冊都在**每一級的每一行**各插一筆，累積成 2700 多行的重複與跨級亂入
+（例如 ket 被插進 `reading-mc-w22.js`，該級根本沒有這個檔 → 線上每次載入多好幾個 404；
+pet/cae 則是同一檔名被列兩次 → 重複載入同一批題目）。
+
+`node test/test.js` 抓不到這個問題，因為它直接讀 banks 目錄下的檔案，不經過 loader。
+
+**正確做法**：改用腳本從檔案系統重建整個 `LEVEL_EXTRA_BANKS`（掃 `js/levels/<級>/banks/*.js`，
+扣掉 `BANK_FILES` 共用清單，依題型與 wave 排序後整段覆寫），改完跑：
+
+```bash
+node --check js/loader.js
+node -e "…eval LEVEL_EXTRA_BANKS，檢查每筆檔案存在、每級無重複…"
+node test/browser-smoke.mjs
+```
