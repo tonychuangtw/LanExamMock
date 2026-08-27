@@ -91,10 +91,10 @@
    * 這裡讓單一級數可以自己追加檔案，不影響其他級數。 */
   var LEVEL_EXTRA_BANKS = {
     pet: [
-      "reading-mc-w8.js", "reading-mc-w9.js"
+      "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js"
     ],
     ket: [
-      "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w9.js", "reading-mc-w10.js",
+      "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js", "reading-mc-w9.js", "reading-mc-w10.js",
       "reading-mc-w11.js", "reading-mc-w12.js",
       "reading-mc-w13.js", "reading-mc-w14.js",
       "reading-mc-w15.js", "reading-mc-w16.js",
@@ -119,7 +119,7 @@
       "reading-head-w6.js", "reading-head-w7.js", "reading-head-w8.js", "reading-head-w9.js"
     ],
     fce: [
-      "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w9.js", "reading-mc-w10.js",
+      "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js", "reading-mc-w9.js", "reading-mc-w10.js",
       "reading-mc-w11.js", "reading-mc-w12.js",
       "reading-mc-w13.js", "reading-mc-w14.js",
       "reading-mc-w15.js", "reading-mc-w16.js",
