@@ -458,10 +458,11 @@ if (typeof document !== 'undefined') {
   var ACT_LABELS = {
     daily: "Daily practice", spell: "Spelling round", uoe: "Use of English",
     reading: "Reading", listening: "Listening", vocab: "Vocabulary",
-    writing: "Writing", speaking: "Speaking", review: "Review tests"
+    writing: "Writing", speaking: "Speaking", review: "Review tests",
+    chk: "Explanation checks"
   };
   var ACT_ORDER = ["daily", "spell", "uoe", "reading", "listening", "vocab",
-    "writing", "speaking", "review"];
+    "writing", "speaking", "review", "chk"];
   var TAB_ACT = {
     "tab-daily": "daily", "tab-uoe": "uoe", "tab-reading": "reading",
     "tab-listening": "listening", "tab-vocab": "vocab", "tab-writing": "writing",
@@ -1050,6 +1051,115 @@ if (typeof document !== 'undefined') {
 
   /* 「← Previous」＋「Next question」控制列（drillAnswered 與回顧還原共用；
    *  防亂做的下一題延遲以 drill.nextUnlockAt 記憶，回顧再回來也躲不掉） */
+  /* ---- 解析確認題（Tony 2026-08-27：「答錯要看完解析＋答對一題確認題才能過」）----
+     答錯之後追問一題「答案只在剛剛那段解析裡」的題目，答對才放行下一題。
+     題目從該題自己的 explanation 現場生成（三萬多題不可能逐題手寫）：
+       正解＝這段解析裡的一句（優先取最後一句，那通常在講「其他選項為什麼不對」，
+             光看正確答案猜不到）；誘答＝同一份題庫裡其他題解析的句子，長度相近。
+     解析太短、湊不出四個不重複選項就不生成，直接放行（維持原本的節奏）。
+     生成用解析文字當種子 ⇒ 同一題每次都一樣。 */
+  var CHK_MIN_SENT = 25;
+  function chkRng(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return function () {
+      h += 0x6D2B79F5;
+      var t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function chkSentences(t) {
+    return String(t || "").split(/(?<=[.!?])\s+/)
+      .map(function (x) { return x.trim(); })
+      .filter(function (x) { return x.length >= CHK_MIN_SENT && x.length <= 200; });
+  }
+  var _chkPool = null;
+  function chkPool() {                    // 全部 UoE 解析的句子，當誘答用
+    if (_chkPool) return _chkPool;
+    _chkPool = [];
+    try {
+      PARTS.forEach(function (part) {
+        (QUESTIONS[part] || []).forEach(function (q) {
+          chkSentences(q.explanation).forEach(function (sen) { _chkPool.push(sen); });
+        });
+      });
+    } catch (e) {}
+    return _chkPool;
+  }
+  function chkBuildEn(expText) {
+    var mine = chkSentences(expText);
+    if (!mine.length) return null;
+    var rng = chkRng(String(expText));
+    var correct = mine[mine.length - 1];      // 最後一句通常在講其他選項為什麼不對
+    var pool = chkPool().filter(function (x) {
+      return mine.indexOf(x) < 0 && Math.abs(x.length - correct.length) <= 60;
+    });
+    if (pool.length < 3) return null;
+    var picked = [], seen = {};
+    picked.push(correct); seen[correct] = 1;
+    for (var i = 0; i < pool.length && picked.length < 4; i++) {
+      var idx = Math.floor(rng() * pool.length);
+      var cand = pool[idx];
+      if (cand && !seen[cand]) { seen[cand] = 1; picked.push(cand); }
+    }
+    if (picked.length < 4) return null;
+    for (var j = picked.length - 1; j > 0; j--) {   // 決定性洗牌
+      var k = Math.floor(rng() * (j + 1));
+      var tmp = picked[j]; picked[j] = picked[k]; picked[k] = tmp;
+    }
+    return { q: "Which of these did the explanation you just read actually say?",
+             o: picked, a: picked.indexOf(correct) };
+  }
+  // 把確認題畫進回饋區；答對才呼叫 onPass（＝放出「Next question」）
+  function renderDrillChk(fb, expText, onPass) {
+    var chk = chkBuildEn(expText);
+    if (!chk) { onPass(); return; }
+    var box = document.createElement("div");
+    box.className = "card chk-box";
+    var h = document.createElement("p");
+    h.className = "chk-head";
+    h.innerHTML = "<strong>📖 Check you read the explanation</strong> — answer this to move on.";
+    box.appendChild(h);
+    var qEl = document.createElement("p");
+    qEl.textContent = chk.q;
+    box.appendChild(qEl);
+    var done = false;
+    chk.o.forEach(function (text, i) {
+      var b = document.createElement("button");
+      b.className = "option-btn chk-opt";
+      b.textContent = text;
+      b.addEventListener("click", function () {
+        if (done) return;
+        if (i === chk.a) {
+          done = true;
+          b.classList.add("correct");
+          box.querySelectorAll(".chk-opt").forEach(function (x) { x.disabled = true; });
+          try { bumpChkStat(true); } catch (e) {}
+          onPass();
+        } else {
+          b.classList.add("wrong");
+          b.disabled = true;
+          h.innerHTML = "<strong>📖 Not that one</strong> — it is in the explanation above. Read it again.";
+          try { bumpChkStat(false); } catch (e) {}
+        }
+      });
+      box.appendChild(b);
+    });
+    fb.appendChild(box);
+  }
+  // 確認題答對率記進分項總帳，家長頁看得到「解析到底有沒有讀」
+  function bumpChkStat(ok) {
+    tlogAdd("chk", 1, ok ? 1 : 0);
+  }
+
+  // 測試用：確認題生成器（涵蓋率與格式由 browser-smoke 把關）
+  window.ChkDebug = {
+    build: function (t) { return chkBuildEn(t); },
+    questions: function () { return QUESTIONS; }
+  };
+
   function appendDrillNextControls(fb) {
     if (drill.snaps.length >= 2) {
       var pv = document.createElement("button");
@@ -1113,7 +1223,12 @@ if (typeof document !== 'undefined') {
     /* 防亂做：連續倉促答錯時，「下一題」按鈕鎖幾秒逼使用者放慢 */
     var delaySecs = drill.nextDelaySecs ? drill.nextDelaySecs() : 0;
     drill.nextUnlockAt = delaySecs ? Date.now() + delaySecs * 1000 : 0;
-    appendDrillNextControls(fb);
+    if (isCorrect) { appendDrillNextControls(fb); return; }
+    // 答錯：要先答對一題「答案只在解析裡」的確認題才放行（Tony 2026-08-27）
+    renderDrillChk(fb, drill.explText(item), function () {
+      appendDrillNextControls(fb);
+      drill.snaps[drill.snaps.length - 1].f = fb.innerHTML;   // 快照跟著更新
+    });
   }
 
   function startUoeDrill() {

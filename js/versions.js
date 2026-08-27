@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v34", date: "2026-08-27", items: [
+      "Getting a question wrong now means reading the explanation. After a wrong answer you must answer one question about the explanation correctly before \u201cNext question\u201d appears. The answer is only in the explanation you were just shown, so skimming past it no longer works.",
+      "How many of these checks you get right is recorded, and shows up in the Parent / Teacher view as its own line, so it is visible whether the explanations are actually being read."
+    ]
+  },
+  {
     v: "v33", date: "2026-08-27", items: [
       "Answers now stay locked long enough to actually read the question. The lock was a fixed 8 seconds for a whole reading passage and 3 seconds for everything else \u2014 nowhere near enough to read a text, so a mission could be blasted through in four minutes. The wait is now worked out from the length of what is on screen, at roughly 240 words per minute plus three seconds to think: a 250-word passage unlocks after about a minute, a single cloze sentence after five or six seconds. Anyone who is really reading will never see the countdown finish.",
       "Listening now waits for the whole recording. Pressing play used to unlock the answers immediately; the options now stay locked for as long as the recording takes to read out.",

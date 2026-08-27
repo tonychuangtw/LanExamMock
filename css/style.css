@@ -925,6 +925,11 @@ input[type="number"]:focus {
 .retro-guess { margin-top: 10px; }
 .retro-guess[disabled] { opacity: 1; border-color: var(--accent); color: var(--accent); }
 
+/* ---- 解析確認題（答錯後要答對一題才放行）2026-08-27 ---- */
+.chk-box { margin-top: 10px; border-left: 3px solid var(--accent); }
+.chk-head { margin: 0 0 6px; color: var(--muted); font-size: 0.9rem; }
+.chk-opt { display: block; width: 100%; margin-top: 6px; text-align: left; font-size: 0.9rem; }
+
 /* ---- Daily 20 防亂做：作答鎖與提示 ---- */
 .answers-locked .option-btn, .answers-locked .letter-btn {
   pointer-events: none; opacity: 0.45;
