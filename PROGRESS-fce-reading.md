@@ -4,13 +4,13 @@ NEXT_ACTION: 繼續寫 `js/levels/fce/banks/reading-mc-wN.js`（每支 8 組、�
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 14:45 台北
+UPDATED: 2026-08-27 15:25 台北
 
 # FCE 閱讀擴題進度
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
-| reading mc（選擇） | 28 | 140 | **112** |
+| reading mc（選擇） | 28 | 140 | **120** |
 | reading gap（克漏字） | 20 | 100 | 20 |
 | reading match（配對） | 14 | 70 | 14 |
 | reading tfng（是非） | 6 | 30 | 6 |
