@@ -90,6 +90,9 @@
    * 硬要為另外四級生出同等份量的文章並不合理。
    * 這裡讓單一級數可以自己追加檔案，不影響其他級數。 */
   var LEVEL_EXTRA_BANKS = {
+    cpe: [
+      "reading-mc-w8.js"
+    ],
     cae: [
       "reading-mc-w8.js", "reading-mc-w9.js", "reading-mc-w10.js", "reading-mc-w11.js", "reading-mc-w12.js", "reading-mc-w13.js", "reading-mc-w14.js", "reading-mc-w15.js", "reading-mc-w16.js", "reading-mc-w17.js", "reading-mc-w18.js", "reading-mc-w19.js", "reading-mc-w20.js", "reading-mc-w21.js", "reading-mc-w22.js", "reading-mc-w23.js", "reading-mc-w24.js", "reading-mc-w25.js", "reading-mc-w26.js",
       "reading-gap-w7.js", "reading-gap-w8.js", "reading-gap-w9.js", "reading-gap-w10.js", "reading-gap-w11.js", "reading-gap-w12.js", "reading-gap-w13.js", "reading-gap-w14.js", "reading-gap-w15.js", "reading-gap-w16.js", "reading-gap-w17.js", "reading-gap-w18.js", "reading-gap-w19.js", "reading-gap-w20.js",
