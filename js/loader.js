@@ -109,7 +109,7 @@
       "reading-match-w7.js", "reading-match-w8.js",
       "reading-match-w9.js", "reading-match-w10.js",
       "reading-match-w11.js", "reading-match-w12.js",
-      "reading-match-w13.js"
+      "reading-match-w13.js", "reading-match-w14.js"
     ]
   };
 
