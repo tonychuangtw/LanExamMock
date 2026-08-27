@@ -1,10 +1,10 @@
 STATUS: in-progress
 OBJECTIVE: 依 Tony 2026-08-26 指示，FCE 閱讀題庫擴增 5 倍
-NEXT_ACTION: mc 140 ✅、gap 100 ✅ 都已達標（2026-08-27）。接著做配對：新增 `js/levels/fce/banks/reading-match-wN.js`（每支 4-5 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rmatch（14 → 目標 70）。之後 tfng（6→30）、head（6→30）。每批做完到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
+NEXT_ACTION: mc 140 ✅、gap 100 ✅、match 70 ✅ 都已達標（2026-08-27）。剩兩類：是非題 tfng（6→30）與標題配對 head（6→30）。新增 `js/levels/fce/banks/reading-tfng-wN.js` / `reading-head-wN.js`（每支 4-5 組），在 `js/loader.js` 的 `LEVEL_EXTRA_BANKS.fce` 加檔名，跑 `node test/test.js` 看 [fce] rtfng / rhead。每批做完到 ~/TelegramClaude/CamReview 跑 `node tools/sync-banks.js`、`python3 tools/stamp-version.py` 並 push
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 11:43 台北
+UPDATED: 2026-08-27 11:46 台北
 
 # FCE 閱讀擴題進度
 
@@ -12,7 +12,7 @@ UPDATED: 2026-08-27 11:43 台北
 | --- | --- | --- | --- |
 | reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
 | reading gap（克漏字） | 20 | 100 | **100 ✅ 達標** |
-| reading match（配對） | 14 | 70 | **64** |
+| reading match（配對） | 14 | 70 | **70 ✅ 達標** |
 | reading tfng（是非） | 6 | 30 | 6 |
 | reading head（標題） | 6 | 30 | 6 |
 
@@ -59,6 +59,17 @@ node -e "const fs=require('fs');const path='js/levels/fce/banks/reading-mc-wN.js
 ```bash
 node -e "require('./js/levels/fce/banks/reading-gap-wN.js').forEach(s=>console.log(s.id, s.segments.join(' ').split(/\s+/).length))"
 ```
+
+## tfng / head 的格式（test.js 硬性要求）
+
+**tfng（是非未提及）**：`{id, title, text, questions:[…]}`，正文 **≥250 字**，6-8 題，
+每題 `options` 必須剛好是 `["True","False","Not Given"]`，`answer` 0-2，要有 explanation，
+而且**一組裡三種答案都要出現**（`uses all three verdicts`）。掛載 `window.READING.tfng`。
+Not Given 要真的是「文章沒說」，不是「文章說相反」——後者是 False。
+
+**head（標題配對）**：`{id, title, sections:[5 段], options:[8 個標題], questions:[5 題]}`，
+每段 ≥50 字、8 個標題不可重複（其中 3 個是誘答）、5 題答案不可重複且都是 0-7 的索引。
+掛載 `window.READING.head`。
 
 ## 注意事項
 
