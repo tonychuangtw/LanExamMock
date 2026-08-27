@@ -4,13 +4,13 @@ NEXT_ACTION: 繼續寫 `js/levels/fce/banks/reading-mc-wN.js`（每支 8 組、�
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-26 21:30 台北
+UPDATED: 2026-08-27 10:40 台北
 
 # FCE 閱讀擴題進度
 
 | 類型 | 原本 | 目標(5×) | 目前 |
 | --- | --- | --- | --- |
-| reading mc（選擇） | 28 | 140 | **56** |
+| reading mc（選擇） | 28 | 140 | **64** |
 | reading gap（克漏字） | 20 | 100 | 20 |
 | reading match（配對） | 14 | 70 | 14 |
 | reading tfng（是非） | 6 | 30 | 6 |
@@ -20,6 +20,19 @@ UPDATED: 2026-08-26 21:30 台北
 
 CamReview（課堂版）的 `js/pick.js` 只抽 `reading.mc`，其他四類只有 LanExamMock 自學站用得到。
 老師實際派得到的就是 mc，所以先補這一類。
+
+## ⚠️ 開新 wave 前先看既有標題
+
+wave 12 第一次寫的時候，第 2 篇不小心寫成 wave 9 已有的 trap street（假街道防盜版），
+題目角度幾乎一樣。`test/test.js` 的「titles unique」有擋下來，但它只比標題，
+**同主題換個標題它擋不住**。動筆前先跑一次：
+
+```bash
+node -e "const fs=require('fs'),p='js/levels/fce/banks/';fs.readdirSync(p).filter(f=>/^reading-mc/.test(f)).sort().forEach(f=>require('./'+p+f).forEach(s=>console.log(s.id,'|',s.title)))"
+```
+
+已用過的題材（到 wave 12）：麵包店×3、菜園×3、圖書館×2、修東西的人×2 —— 場景重複到這個
+程度已經偏多，新 wave 盡量換場域。
 
 ## 注意事項
 
