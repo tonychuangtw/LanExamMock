@@ -4,7 +4,7 @@ NEXT_ACTION: 依 KET → PET → CAE → CPE 順序做。每級新增 `js/levels
 VALIDATION: node test/test.js 全綠；該級 rmc/rgap/rmatch/rtfng/rhead 數字有增加
 BLOCKERS: 無
 PATHS: js/levels/<級>/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js（只有 FCE 需要）
-UPDATED: 2026-08-27 16:14 台北
+UPDATED: 2026-08-27 16:16 台北
 
 # 五級閱讀擴題進度
 
@@ -17,7 +17,7 @@ tfng 18 篇、head 24 篇。全部原創，題材彼此不重複。
 | --- | --- | --- | --- | --- | --- |
 | **FCE** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
 | **KET** | 140 ✅ | 100 ✅ | 70 ✅ | 30 ✅ | 30 ✅ |
-| **PET** | 140 ✅ | 80 | 14 | 6 | 6 |
+| **PET** | 140 ✅ | 86 | 14 | 6 | 6 |
 | **CAE** | 28 | 20 | 14 | 6 | 6 |
 | **CPE** | 28 | 20 | 14 | 6 | 6 |
 
