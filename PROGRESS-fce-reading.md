@@ -4,7 +4,7 @@ NEXT_ACTION: mc 140 ✅、gap 100 ✅、match 70 ✅ 都已達標（2026-08-27�
 VALIDATION: node test/test.js 全綠且 [fce] rmc/rgap/rmatch/rtfng/rhead 數字有增加；CamReview `node test/test.js` 全綠
 BLOCKERS: 無
 PATHS: js/levels/fce/banks/reading-*.js、js/loader.js（LEVEL_EXTRA_BANKS）、~/TelegramClaude/CamReview/tools/sync-banks.js
-UPDATED: 2026-08-27 11:48 台北
+UPDATED: 2026-08-27 11:52 台北
 
 # FCE 閱讀擴題進度
 
@@ -13,7 +13,7 @@ UPDATED: 2026-08-27 11:48 台北
 | reading mc（選擇） | 28 | 140 | **140 ✅ 達標** |
 | reading gap（克漏字） | 20 | 100 | **100 ✅ 達標** |
 | reading match（配對） | 14 | 70 | **70 ✅ 達標** |
-| reading tfng（是非） | 6 | 30 | **12** |
+| reading tfng（是非） | 6 | 30 | **18** |
 | reading head（標題） | 6 | 30 | 6 |
 
 ## 為什麼先做 mc
@@ -70,6 +70,16 @@ Not Given 要真的是「文章沒說」，不是「文章說相反」——後�
 **head（標題配對）**：`{id, title, sections:[5 段], options:[8 個標題], questions:[5 題]}`，
 每段 ≥50 字、8 個標題不可重複（其中 3 個是誘答）、5 題答案不可重複且都是 0-7 的索引。
 掛載 `window.READING.head`。
+
+## 證據題只認「完整句子」的引文（2026-08-27 補）
+
+前面說過解析引文要跟原文一字不差，還有第二個條件：`rdSentences()` 會過濾掉過長的句子，
+所以引文必須落在**它切得出來的那些句子**裡。tfng wave 7/8 有三組是引了一個超長句子的片段，
+結果整組生不出證據題。修法是改引一個中等長度的完整句子。要看某一組有哪些句子可用：
+
+```bash
+node -e "const l=require('./js/app.js');const s=require('./js/levels/fce/banks/reading-tfng-wN.js')[0];l.rdSentences(s.text).forEach((x,i)=>console.log(i,'['+x.length+']',x))"
+```
 
 ## 注意事項
 
