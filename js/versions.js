@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v38", date: "2026-08-29", items: [
+      "\u270d\ufe0f The 10 spelling words are back in the day’s record. Rounds finished before question-by-question logging existed are filled in from the daily record, so “Spelling round — 10 items” and every word now show up under Review → What you did, and they count towards the day’s total again.",
+      "\ud83d\udcd5 The mistake book can be browsed. “See every mistake” lists all of them, newest first, with the question, the correct answer and the explanation — no need to start a review round to look at one. Each item can be removed on its own."
+    ]
+  },
+  {
     v: "v37", date: "2026-08-29", items: [
       "📋 A day\u2019s record now opens fully. Tapping a day in Review \u2192 What you did shows a one-line summary of everything done that day (Daily mission 20 \u00b7 Spelling round 10 \u00b7 Vocabulary cards 10 \u2014 40 items in total) and every section is already expanded, so the spelling words are no longer hidden behind a collapsed heading.",
       "\u270d\ufe0f The spelling round now picks words you are actually learning. It used to be a random pick of the day; it now takes the words you got wrong or guessed on today\u2019s vocabulary cards first, then words due for review, and only fills the rest at random. The set is still fixed for the day.",

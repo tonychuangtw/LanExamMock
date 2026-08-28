@@ -2246,6 +2246,11 @@ if (typeof document !== 'undefined') {
   var MB_CAP = 200, MB_SESSION_CAP = 20;
   var mbReviewedThisSession = {};
 
+  var MB_KIND_LABELS = {
+    uoe: "📝 Use of English", rmc: "📖 Reading", rtfng: "📖 Reading", rgap: "📖 Reading",
+    rmatch: "📖 Reading", rhead: "📖 Reading", lis: "🎧 Listening"
+  };
+
   function mbLoad() { return loadJSON(K_MB(), []); }
   function mbSave(book) { saveJSON(K_MB(), book); }
 
@@ -2436,8 +2441,9 @@ if (typeof document !== 'undefined') {
   function alogRowHtml(rec, n, date) {
     if (rec.w) {
       var isVocab = rec.s === "vocab";
-      return '<div class="review-item ' + (rec.ok ? "ok" : "bad") + '">' +
-        '<div class="review-verdict">' + (rec.ok ? "✓" : "✗") + " " + esc(rec.w) +
+      var mark = rec.u ? "•" : (rec.ok ? "✓" : "✗");
+      return '<div class="review-item ' + (rec.u ? "" : (rec.ok ? "ok" : "bad")) + '">' +
+        '<div class="review-verdict">' + mark + " " + esc(rec.w) +
         (rec.g ? ' <span class="guess-tag">🤔 guessed</span>' : "") + "</div>" +
         (rec.d ? '<div class="review-ans">' + esc(rec.d) + "</div>" : "") +
         (rec.ok && !rec.g && isVocab
@@ -2472,6 +2478,17 @@ if (typeof document !== 'undefined') {
         if (it.r && it.r.mb) r.mb = it.r.mb; else if (it.r) r.r = it.r;
         list.push(r);
       });
+    }
+    /* 拼寫關：舊資料（或紀錄功能上線前做的）只存在每日紀錄裡，補進來才看得到那 10 個字 */
+    if (!list.some(function (r) { return r.s === "spell"; })) {
+      var sp = (loadJSON(K_D25(), {})[date] || {}).spell;
+      if (sp && sp.words && sp.words.length) {
+        sp.words.forEach(function (w) {
+          var known = sp.res && sp.res[w] != null;
+          list.push({ s: "spell", ok: known ? sp.res[w] : 1, u: known ? 0 : 1,
+                      w: w, d: (sp.defs && sp.defs[w]) || vocabDefOf(w) });
+        });
+      }
     }
     var hasVocab = list.some(function (r) { return r.s === "vocab"; });
     if (!hasVocab) {
@@ -3711,11 +3728,62 @@ if (typeof document !== 'undefined') {
       html += '<button id="mb-review-any" class="ghost-btn small">Practise them anyway (' +
         Math.min(book.length, MB_SESSION_CAP) + ")</button>";
     }
+    /* Tony 2026-08-28：不能只有「全部 review」，要能一題一題翻看以前錯過的 */
+    html += '<button id="mb-browse-btn" class="ghost-btn small">📖 See every mistake (' + book.length + ")</button>";
+    html += '<div id="mb-browse" class="hidden"></div>';
     el.innerHTML = html;
     var rb = $("mb-review-btn");
     if (rb) rb.addEventListener("click", startMbDrill);
     var ab = $("mb-review-any");
     if (ab) ab.addEventListener("click", function () { startMbDrill(true); });
+    var bb = $("mb-browse-btn");
+    if (bb) bb.addEventListener("click", function () {
+      var box = $("mb-browse");
+      if (!box) return;
+      if (!box.classList.contains("hidden")) {
+        box.classList.add("hidden");
+        bb.textContent = "📖 See every mistake (" + book.length + ")";
+        return;
+      }
+      box.innerHTML = mbBrowseHtml();
+      box.classList.remove("hidden");
+      bb.textContent = "▲ Hide the list";
+      box.querySelectorAll(".mb-drop").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var key = btn.getAttribute("data-key");
+          UIDialog.confirm("Remove this item from the mistake book?", function () {
+            mbSave(mbLoad().filter(function (it) { return it.key !== key; }));
+            renderMistakeCard();
+            var b2 = $("mb-browse-btn");
+            if (b2) b2.click();
+          });
+        });
+      });
+    });
+  }
+
+  /* 錯題本全部條目，最近錯的排前面；每題直接看得到題目、正解與解析 */
+  function mbBrowseHtml() {
+    var book = mbLoad().slice().sort(function (a, b) { return (b.last || b.added || 0) - (a.last || a.added || 0); });
+    var now = Date.now();
+    var rows = book.map(function (e, i) {
+      var q = "", a = "", x = "";
+      try { q = wlogQText(e); a = mbCorrectText(e); x = mbExplText(e); } catch (err) {}
+      if (!q) return "";
+      var due = leitnerIsDue(e, now);
+      var when = e.last ? new Date(e.last).toISOString().slice(0, 10) : "";
+      return '<div class="review-item ' + (due ? "bad" : "ok") + '">' +
+        '<div class="review-verdict">' + (i + 1) + ". " + esc(MB_KIND_LABELS[e.kind] || e.kind) +
+        (due ? ' <span class="guess-tag">due now</span>' : ' <span class="guess-tag">box ' + (e.box || 1) + "</span>") +
+        (when ? ' <span class="hint">last missed ' + esc(when) + "</span>" : "") + "</div>" +
+        "<p>" + esc(q) + "</p>" +
+        '<div class="review-ans"><strong>Correct answer: </strong>' + esc(a) + "</div>" +
+        '<div class="expl">' + esc(x) + "</div>" +
+        '<button type="button" class="ghost-btn small mb-drop" data-key="' + esc(e.key) + '">🗑 Remove from the book</button>' +
+        "</div>";
+    }).join("");
+    if (!rows) return "<p class='hint'>Nothing to show — these items came from a question set that is no longer available.</p>";
+    return "<p class='hint'>Newest first. Items marked <em>due now</em> come back in the next review round.</p>" + rows;
   }
 
   /* ---------- §8.2 每日任務 + streak + 週報 + 精熟度 ---------- */
@@ -4114,6 +4182,12 @@ if (typeof document !== 'undefined') {
        2. Leitner 到期該複習的字
        3. 不足再用當日種子隨機補滿
      同一天結果仍固定（種子＋固定排序），換裝置或重進不會變成另一組。 */
+  function vocabDefOf(front) {
+    var pool = (typeof VOCAB !== "undefined" && VOCAB) ? VOCAB : [];
+    for (var i = 0; i < pool.length; i++) { if (pool[i].front === front) return pool[i].def || ""; }
+    return "";
+  }
+
   function dspWords() {
     var pool = (typeof VOCAB !== "undefined" && VOCAB && VOCAB.length) ? VOCAB : [];
     if (!pool.length) return [];
@@ -4147,7 +4221,7 @@ if (typeof document !== 'undefined') {
   function dspBegin(listArg) {
     var words = Array.isArray(listArg) && listArg.length ? listArg.slice() : dspWords();
     if (!words.length) { dspFinish(null); return; }
-    dsp = { words: words, idx: 0, queue: [], first: {}, firstOk: 0, total: words.length };
+    dsp = { words: words, idx: 0, queue: [], first: {}, res: {}, firstOk: 0, total: words.length };
     dspHideAll();
     $("dsp-review").classList.remove("hidden");
     dspRenderReview();
@@ -4205,6 +4279,7 @@ if (typeof document !== 'undefined') {
     if (!dsp.first[c.front]) {           // 只有第一次作答計分、餵 Leitner／錯字統計
       dsp.first[c.front] = true;
       if (ok) dsp.firstOk++;
+      dsp.res[c.front] = ok ? 1 : 0;
       try {
         var st = getVocabState();
         st[c.front] = leitnerReview(st[c.front], ok, Date.now());
@@ -4240,7 +4315,10 @@ if (typeof document !== 'undefined') {
   function dspComplete() {
     var rec = d25TodayRec() || {};
     rec.spell = { done: true, total: dsp.total, firstOk: dsp.firstOk,
-                  words: dsp.words.map(function (c) { return c.front; }) };
+                  words: dsp.words.map(function (c) { return c.front; }),
+                  res: dsp.res, defs: dsp.words.reduce(function (m, c) {
+                    m[c.front] = String(c.def || "").slice(0, 200); return m;
+                  }, {}) };
     d25SaveRec(rec);
     dspFinish(dsp);
   }
@@ -4584,7 +4662,7 @@ if (typeof document !== 'undefined') {
       var pool = (typeof VOCAB !== "undefined" && VOCAB) ? VOCAB : [];
       var byFront = {};
       pool.forEach(function (c) { byFront[c.front] = c; });
-      var words = ((alogAll() || {})[day] || [])
+      var words = alogDayEntries(day)
         .filter(function (r) { return r.s === src && r.w && byFront[r.w]; })
         .map(function (r) { return byFront[r.w]; });
       if (!words.length) { UIDialog.alert("These words are no longer in the word list."); return; }

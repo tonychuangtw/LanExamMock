@@ -203,7 +203,7 @@ try {
   await js(`(function () {
     var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
     var t = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-    var rec = {}; rec[t] = { done: true, total: 2, firstOk: 2, ms: 120000, spell: { done: true, firstOk: 5, total: 5 },
+    var rec = {}; rec[t] = { done: true, total: 2, firstOk: 2, ms: 120000, spell: { done: true, firstOk: 5, total: 5, words: ['aware', 'brief', 'candid', 'dense', 'eager'] },
       log: [{ r: { k: 'part1', i: 0 }, ok: 1, g: 0 }, { r: { k: 'part1', i: 1 }, ok: 1, g: 1 }] };
     localStorage.setItem('cae.daily25', JSON.stringify(rec));
     localStorage.setItem('cae.daily_run', 'null');
@@ -235,6 +235,26 @@ try {
     await js(`document.querySelectorAll('.alog-detail:not(.hidden) .review-item.ok').length > 0`));
   check('自己做的練習也進得去（不只每日任務）',
     await js(`/Reading|Use of English|Listening/.test(document.querySelector('.alog-detail:not(.hidden)').textContent)`));
+
+  /* 每日任務後那 10 個拼寫字（Tony 2026-08-28 連兩次回報找不到）*/
+  check('當天的拼寫回合也列在裡面',
+    await js(`/Spelling round/.test(document.querySelector('.alog-detail:not(.hidden)').textContent)`));
+  check('拼寫的每個字都看得到',
+    await js(`/aware/.test(document.querySelector('.alog-detail:not(.hidden)').textContent) && /eager/.test(document.querySelector('.alog-detail:not(.hidden)').textContent)`));
+  check('當天總覽一行寫出各項幾題',
+    await js(`/items in total/.test(document.querySelector('.alog-detail:not(.hidden) .alog-daysum').textContent)`));
+  check('拼寫那組可以整組再練一次',
+    await js(`!!document.querySelector('.alog-detail:not(.hidden) .alog-respell')`));
+
+  /* 錯題本要能一題一題翻看（Tony 2026-08-28）*/
+  check('錯題本有「看全部」按鈕', await js(`!!document.getElementById('mb-browse-btn')`));
+  await js(`document.getElementById('mb-browse-btn').click()`);
+  await sleep(300);
+  check('點開後列出每一題錯過的',
+    await js(`document.querySelectorAll('#mb-browse .review-item').length > 0`));
+  check('每一題看得到正解與解析',
+    await js(`/Correct answer/.test(document.getElementById('mb-browse').textContent)`));
+  check('每一題可以單獨移除', await js(`!!document.querySelector('#mb-browse .mb-drop')`));
 
   await js(`document.querySelector('.tab-btn[data-tab="tab-reading"]').click()`);
   await sleep(300);
