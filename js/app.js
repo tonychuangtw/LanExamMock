@@ -3049,8 +3049,57 @@ if (typeof document !== 'undefined') {
     vbSess = { total: n, results: [], seen: {} };
   }
 
+  /* 單字每日紀錄（2026-08-28 Tony：做完出來就再也看不到做過什麼）——
+   * 每張卡第一次作答時寫一筆 {f 單字, d 解釋, ok 對錯, g 是否自承用猜的}，
+   * 依日期存 <level>.vocab_log（隨雲端同步，只留最近 30 天），
+   * Vocabulary 頁與 Review 頁都據此把「那天做了哪些卡」原樣列出來。 */
+  var K_VBLOG = function () { return LEVEL + ".vocab_log"; };
+  function vbLogAll() { return loadJSON(K_VBLOG(), {}); }
+  function vbLogAdd(card, ok, guessed) {
+    try {
+      var all = vbLogAll(), d = todayStr();
+      var day = all[d] || (all[d] = []);
+      for (var i = 0; i < day.length; i++) if (day[i].f === card.front) return;
+      day.push({ f: card.front, d: card.def || "", ok: ok ? 1 : 0, g: guessed ? 1 : 0 });
+      var keys = Object.keys(all).sort();
+      while (keys.length > 30) { delete all[keys.shift()]; }
+      saveJSON(K_VBLOG(), all);
+    } catch (e) {}
+  }
+  function vbLogMarkGuessed(front, date) {
+    try {
+      var all = vbLogAll(), day = all[date || todayStr()] || [];
+      for (var i = 0; i < day.length; i++) if (day[i].f === front) { day[i].g = 1; day[i].ok = 0; }
+      saveJSON(K_VBLOG(), all);
+    } catch (e) {}
+  }
+  /* 一天份的卡片清單（對的錯的都列，對的附「我剛才是用猜的」補標鈕） */
+  function vbLogHtml(date, entries) {
+    if (!entries || !entries.length) return "";
+    var rows = entries.map(function (r) {
+      return '<div class="review-item ' + (r.ok ? "ok" : "bad") + '">' +
+        '<div class="review-verdict">' + (r.ok ? "✓" : "✗") + " " + esc(r.f) +
+        (r.g ? ' <span class="guess-tag">🤔 guessed — back to Box 1</span>' : "") + "</div>" +
+        '<div class="review-ans">' + esc(r.d || "") + "</div>" +
+        (r.ok && !r.g ? '<button type="button" class="ghost-btn small vb-guess" data-front="' + esc(r.f) +
+          '" data-day="' + esc(date) + '">🤔 I was guessing</button>' : "") +
+        "</div>";
+    }).join("");
+    return '<details class="d25-recap" open><summary>📋 Vocabulary on ' + esc(date) +
+      " — " + entries.length + " card" + (entries.length === 1 ? "" : "s") + "</summary>" + rows + "</details>";
+  }
+  function renderVbLog() {
+    var el = $("vb-log");
+    if (!el) return;
+    var all = vbLogAll(), today = all[todayStr()];
+    if (!today || !today.length) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+    el.classList.remove("hidden");
+    el.innerHTML = vbLogHtml(todayStr(), today) +
+      "<p class='hint'>Earlier days are under Review → Daily records.</p>";
+  }
+
   /* 一張卡作答：第一次的結果才進 Leitner／統計；答錯的排回佇列，隔兩張再出現直到答對 */
-  function vbAnswer(card, ok) {
+  function vbAnswer(card, ok, guessed) {
     if (!vbSess) buildVocabQueue();
     var st = getVocabState();
     var rec = null;
@@ -3061,8 +3110,9 @@ if (typeof document !== 'undefined') {
       vbSess.seen[card.front] = true;
       st[card.front] = leitnerReview(st[card.front], ok, Date.now());
       saveJSON(K_VOCAB, st);
-      rec = { front: card.front, def: card.def, ok: ok, again: 0, guessed: false };
+      rec = { front: card.front, def: card.def, ok: ok, again: 0, guessed: !!guessed };
       vbSess.results.push(rec);
+      vbLogAdd(card, ok, guessed);
       try { actBump("v"); tlogAdd("vocab", 1, ok ? 1 : 0); } catch (e) {}
     }
     if (!ok) {
@@ -3104,6 +3154,7 @@ if (typeof document !== 'undefined') {
       "<div class='timer-row center'>" +
       (more ? '<button id="vb-again" class="primary-btn">Next ' + Math.min(vbSize(), more) + " cards (" + more + " still due)</button>" : "<p>🎉 No cards due today.</p>") +
       "</div>";
+    renderVbLog();
     var again = $("vb-again");
     if (again) again.addEventListener("click", function () { vbSess = null; vocabQueue = []; renderVocabStatus(); });
   }
@@ -3125,6 +3176,8 @@ if (typeof document !== 'undefined') {
       var tw = $("vb-type-wrap");
       if (tw) tw.classList.add("hidden");
       if (sizeRow) sizeRow.innerHTML = "";
+      var lg0 = $("vb-log");
+      if (lg0) { lg0.classList.add("hidden"); lg0.innerHTML = ""; }
       return;
     }
     if (sizeRow) sizeRow.innerHTML = vbSizeChipsHtml();
@@ -3136,6 +3189,7 @@ if (typeof document !== 'undefined') {
       $("vb-card-wrap").classList.add("hidden");
       var tw2 = $("vb-type-wrap");
       if (tw2) tw2.classList.add("hidden");
+      renderVbLog();
       return;
     }
     if (vocabQueue.length === 0) buildVocabQueue();
@@ -3152,6 +3206,7 @@ if (typeof document !== 'undefined') {
         showVocabCard();
       }
     }
+    renderVbLog();
   }
 
   /* 拼寫模式：定義+例句挖空 → 使用者拼出單字，結果直接餵 Leitner */
@@ -3203,12 +3258,23 @@ if (typeof document !== 'undefined') {
       : '<p class="verdict-text bad">✗ It was <strong>' + esc(c.front) + "</strong></p><p class='ex'>" + esc(c.example) + "</p>";
     $("vb-type-next").classList.remove("hidden");
     $("vb-type-next").dataset.ok = ok ? "1" : "0";
+    $("vb-type-next").dataset.guessed = "";
+    var tg = $("vb-type-guess");
+    if (tg) {
+      tg.disabled = false;
+      tg.classList.remove("selected", "hidden");
+      tg.textContent = "🤔 I was guessing";
+      if (!ok) tg.classList.add("hidden");   // 答錯本來就會重來，不必補標
+    }
   }
 
   function nextVocabType() {
     var ok = $("vb-type-next").dataset.ok === "1";
+    var guessed = $("vb-type-next").dataset.guessed === "1";
     var c = vocabQueue[0];
-    if (c) vbAnswer(c, ok);
+    if (c) vbAnswer(c, guessed ? false : ok, guessed);
+    var tg = $("vb-type-guess");
+    if (tg) tg.classList.add("hidden");
     if (vocabQueue.length > 0) {
       $("vb-status").innerHTML = vbProgressHtml();
       showVocabTypeCard();
@@ -3230,10 +3296,10 @@ if (typeof document !== 'undefined') {
       '<div class="ex">' + esc(c.example) + "</div>";
   }
 
-  function reviewVocab(known) {
+  function reviewVocab(known, guessed) {
     var c = vocabQueue[0];
     if (!c) return;
-    vbAnswer(c, known);
+    vbAnswer(c, known, guessed);
     if (vocabQueue.length > 0) {
       $("vb-status").innerHTML = vbProgressHtml();
       showVocabCard();
@@ -3260,6 +3326,7 @@ if (typeof document !== 'undefined') {
       saveJSON(K_VOCAB, st);
       wwBump(front);
       if (vbSess) vbSess.results.forEach(function (r) { if (r.front === front) r.guessed = true; });
+      vbLogMarkGuessed(front, b.getAttribute("data-day") || todayStr());
       b.disabled = true;
       b.classList.add("selected");
       b.textContent = "🤔 back to Box 1 — you'll see it again";
@@ -3269,6 +3336,16 @@ if (typeof document !== 'undefined') {
     });
     $("vb-yes").addEventListener("click", function () { reviewVocab(true); });
     $("vb-no").addEventListener("click", function () { reviewVocab(false); });
+    // 作答當下就承認用猜的（2026-08-28 Tony）：當作沒答對，卡片退回 Box 1 明天再來
+    var gnow = $("vb-guess-now");
+    if (gnow) gnow.addEventListener("click", function () { reviewVocab(false, true); });
+    var tguess = $("vb-type-guess");
+    if (tguess) tguess.addEventListener("click", function () {
+      tguess.disabled = true;
+      tguess.classList.add("selected");
+      tguess.textContent = "🤔 back to Box 1";
+      $("vb-type-next").dataset.guessed = "1";
+    });
     document.querySelectorAll("[data-vbmode]").forEach(function (b) {
       b.addEventListener("click", function () {
         vbMode = b.dataset.vbmode;
@@ -3286,6 +3363,7 @@ if (typeof document !== 'undefined') {
     });
     $("vb-type-next").addEventListener("click", nextVocabType);
     renderVocabStatus();
+    renderVbLog();
   }
 
   /* ================= §8 進度 ================= */
@@ -4120,7 +4198,7 @@ if (typeof document !== 'undefined') {
   /* 今天做了哪些題（2026-08-24 Tony 要求）：完成後在 Daily 頁列出逐題對錯與解析，
    * 每題附「🤔 I was guessing」，作答當下忘了按的可以事後補標，補了就進錯題本。
    * 資料來自當日紀錄的 log（參照式，隨 <level>.daily25 雲端同步）。 */
-  function d25RecapHtml(rec) {
+  function d25RecapHtml(rec, open) {
     var log = (rec && rec.log) || [];
     if (!log.length) return "";
     var book = mbLoad();
@@ -4147,7 +4225,7 @@ if (typeof document !== 'undefined') {
         "</div>";
     });
     if (!shown) return "";
-    return '<details class="d25-recap"><summary>📋 Today\'s questions — check the ones you guessed (' +
+    return '<details class="d25-recap"' + (open ? " open" : "") + '><summary>📋 Today\'s questions — check the ones you guessed (' +
       shown + ")</summary>" +
       "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” on it and " +
       "it goes into the mistake book, so it comes back another day.</p>" + rows + "</details>";
@@ -4242,12 +4320,33 @@ if (typeof document !== 'undefined') {
     if (!days.length) {
       el.innerHTML = "<p class='hint'>No daily records yet — finish a daily mission first, then come back to test it.</p>";
     } else {
+      var vlog = vbLogAll();
       el.innerHTML = days.map(function (d) {
         var r = all[d];
         var sub = r && r.done ? "✅ " + r.firstOk + "/" + r.total : "started, not finished";
-        return '<label class="rv-day"><input type="checkbox" value="' + d + '"> <span>' + d +
-          '</span><span class="rv-day-sub">' + sub + "</span></label>";
+        var v = vlog[d] || [];
+        if (v.length) sub += " · 🗂 " + v.length + " cards";
+        return '<div class="rv-day-row">' +
+          '<label class="rv-day"><input type="checkbox" value="' + d + '"> <span>' + d +
+          '</span><span class="rv-day-sub">' + sub + "</span></label>" +
+          '<button type="button" class="ghost-btn small rv-day-view" data-day="' + d + '">📋 View questions</button>' +
+          '<div class="rv-day-detail hidden" data-detail="' + d + '"></div>' +
+          "</div>";
       }).join("");
+      // 點某一天 → 展開那天實際做過的題目（對的錯的都列，附解析與事後補標）
+      el.querySelectorAll(".rv-day-view").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var day = b.getAttribute("data-day");
+          var box = el.querySelector('[data-detail="' + day + '"]');
+          if (!box) return;
+          if (!box.classList.contains("hidden")) { box.classList.add("hidden"); b.textContent = "📋 View questions"; return; }
+          var html = d25RecapHtml(all[day], true) + vbLogHtml(day, (vbLogAll() || {})[day]);
+          box.innerHTML = html ||
+            "<p class='hint'>This day was recorded before question-by-question logging was added, so only the score is kept.</p>";
+          box.classList.remove("hidden");
+          b.textContent = "📋 Hide questions";
+        });
+      });
     }
     rvRenderSize();
     rvRenderHistory();

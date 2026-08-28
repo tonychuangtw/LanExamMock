@@ -2,6 +2,13 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v35", date: "2026-08-28", items: [
+      "Vocabulary cards now have an \u201cI was guessing\u201d button while you answer, not just on the summary at the end. Tapping it counts the card as not known, so it drops back to Box 1 and comes round again \u2014 in both the flashcard and the typing mode.",
+      "What you did in Vocabulary no longer disappears when you leave the page. Every card you answer is logged for the day, and the Vocabulary page shows \u201cVocabulary on <date>\u201d underneath, with the word, the definition and whether you got it right \u2014 correct ones still carry the \u201cI was guessing\u201d button.",
+      "Review now opens up day by day. Each day in the daily-records list has a \u201cView questions\u201d button that lists exactly what was answered that day \u2014 daily-mission questions with the correct answer and explanation, plus that day's vocabulary cards \u2014 right and wrong alike, instead of only the score."
+    ]
+  },
+  {
     v: "v34", date: "2026-08-27", items: [
       "Getting a question wrong now means reading the explanation. After a wrong answer you must answer one question about the explanation correctly before \u201cNext question\u201d appears. The answer is only in the explanation you were just shown, so skimming past it no longer works.",
       "How many of these checks you get right is recorded, and shows up in the Parent / Teacher view as its own line, so it is visible whether the explanations are actually being read."

@@ -950,6 +950,12 @@ input[type="number"]:focus {
 }
 .rv-day input { accent-color: var(--accent); }
 .rv-day .rv-day-sub { color: var(--muted); font-size: 0.8rem; margin-left: auto; }
+/* 每一天一列：勾選框＋「看那天做的題目」（2026-08-28 Tony 要求可以點進去看內容） */
+.rv-day-row { display: flex; flex-direction: column; gap: 6px; }
+.rv-day-row .rv-day { flex: 1; }
+.rv-day-view { align-self: flex-start; }
+.rv-day-detail { margin: 0 0 4px; }
+.rv-day-detail .review-item { text-align: left; }
 .rv-quick { display: flex; gap: 8px; margin: 8px 0; }
 .rv-mb-row { display: flex; align-items: center; gap: 8px; margin: 10px 0 14px; font-size: 0.92rem; cursor: pointer; }
 .rv-mb-row input { accent-color: var(--accent); }

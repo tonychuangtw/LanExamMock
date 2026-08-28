@@ -22,7 +22,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=20260827c">
+<link rel="stylesheet" href="css/style.css?v=20260828a">
 </head>
 <body>
 
@@ -399,8 +399,12 @@
         <button id="vb-type-submit" class="primary-btn">Check</button>
       </div>
       <div id="vb-type-feedback"></div>
-      <button id="vb-type-next" class="primary-btn hidden">Next card</button>
+      <div class="timer-row center">
+        <button id="vb-type-guess" class="ghost-btn hidden">🤔 I was guessing</button>
+        <button id="vb-type-next" class="primary-btn hidden">Next card</button>
+      </div>
     </div>
+    <div id="vb-log" class="card hidden"></div>
     <div id="vb-card-wrap" class="hidden">
       <div id="vb-card" class="flashcard">
         <div class="flashcard-inner">
@@ -411,6 +415,7 @@
       <p class="hint center">Tap the card to flip</p>
       <div class="timer-row center">
         <button id="vb-no" class="danger-btn">Don't know</button>
+        <button id="vb-guess-now" class="ghost-btn">🤔 I was guessing</button>
         <button id="vb-yes" class="success-btn">Know it</button>
       </div>
     </div>
@@ -664,9 +669,9 @@
 </div>
 
 <script src="js/dialog.js"></script>
-<script src="js/versions.js?v=20260827c"></script>
+<script src="js/versions.js?v=20260828a"></script>
 <script src="js/chart.js"></script>
-<script src="js/app.js?v=20260827c"></script>
+<script src="js/app.js?v=20260828a"></script>
 <script src="js/loader.js?v=20260827a"></script>
 <script src="js/sync.js?v=20260828a"></script>
 </body>
