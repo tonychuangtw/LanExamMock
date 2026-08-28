@@ -139,11 +139,52 @@
     try { localStorage.setItem(level + ".sync_ts", String(ts)); } catch (e) {}
   }
 
+  // 只有雲端資料跟本機真的不同才需要重載（2026-08-28 Tony 回報「做練習到一半跳回主頁」）：
+  // 手機把分頁凍結／切走時，PUT 已寫進雲端、回應卻沒收到，本機 sync_ts 於是落後雲端。
+  // 回到分頁時 pull 看到「雲端比較新」就 location.reload()，但內容其實一模一樣，
+  // 等於白白把做到一半的測驗中斷（作答狀態只在記憶體，重載就回到首頁）。
+  function sameAsLocal(level, blob) {
+    if (!blob) return false;
+    var local = gatherKeys(level), k;
+    for (k in blob) {
+      if (!Object.prototype.hasOwnProperty.call(blob, k)) continue;
+      if (k.indexOf(level + ".") !== 0) continue;
+      if (local[k] !== blob[k]) return false;
+    }
+    for (k in local) {
+      if (!Object.prototype.hasOwnProperty.call(local, k)) continue;
+      if (local[k] !== blob[k]) return false;
+    }
+    return true;
+  }
+  // 真的有新資料要套用時，也不在測驗／練習進行中重載，等使用者離開那一頁再更新
+  var reloadTimer = null;
+  function busyNow() {
+    try {
+      var els = document.querySelectorAll('[id$="-quiz"], [id$="-drill"], [id$="-card"]');
+      for (var i = 0; i < els.length; i++) {
+        if (!els[i].classList.contains("hidden") && els[i].offsetParent !== null) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  function safeReload() {
+    if (!busyNow()) { location.reload(); return; }
+    if (reloadTimer) return;
+    setStatus("cloud progress pending — will refresh after this exercise");
+    reloadTimer = setInterval(function () {
+      if (busyNow()) return;
+      clearInterval(reloadTimer); reloadTimer = null;
+      location.reload();
+    }, 3000);
+  }
+
   function pull(level, done) {
     api("GET", level, null, function (err, res) {
       if (err || !res || !res.blob) { if (done) done(err); return; }
       var serverTs = res.updatedAt || 0;
       if (serverTs > syncTs(level)) {
+        if (sameAsLocal(level, res.blob)) { setSyncTs(level, serverTs); if (done) done(null, false); return; }
         try {
           Object.keys(res.blob).forEach(function (k) {
             if (k.indexOf(level + ".") === 0) localStorage.setItem(k, res.blob[k]);
@@ -164,7 +205,9 @@
     // 防蓋舊（2026-08-08）：背景舊分頁的定時 push 會把另一台裝置的新進度整包蓋掉。
     // 推送前先看雲端時間戳：比本機 sync_ts 新代表別台寫過 → 改成套用雲端資料並重載，不推。
     api("GET", level, null, function (gerr, gres) {
-      if (!gerr && gres && (gres.updatedAt || 0) > syncTs(level)) {
+      if (!gerr && gres && (gres.updatedAt || 0) > syncTs(level) && sameAsLocal(level, gres.blob)) {
+        setSyncTs(level, gres.updatedAt);    // 內容相同（多半是上一次 PUT 的回應沒收到），不必重載
+      } else if (!gerr && gres && (gres.updatedAt || 0) > syncTs(level)) {
         if (gres.blob) {
           try {
             Object.keys(gres.blob).forEach(function (k) {
@@ -172,7 +215,7 @@
             });
           } catch (e) {}
           setSyncTs(level, gres.updatedAt);
-          location.reload();
+          safeReload();
           return;
         }
       }
@@ -259,7 +302,7 @@
     // 先換長效 token 再同步：換到手才算真的「登入一次就好」
     refreshSession(function () {
       pull(level, function (err, applied) {
-        if (applied) { location.reload(); return; }
+        if (applied) { safeReload(); return; }
         push(level);
       });
     });
@@ -310,13 +353,13 @@
       // 切回分頁時拉一次雲端（2026-08-08）：修「另一台做完、這台舊分頁看不到」——
       // 原本只有登入那一刻會 pull，掛在背景的分頁永遠不更新。
       if (document.visibilityState === "visible" && signedIn()) {
-        pull(currentLevel(), function (err, applied) { if (applied) location.reload(); });
+        pull(currentLevel(), function (err, applied) { if (applied) safeReload(); });
       }
     });
     // 開頁時若已是登入狀態（30 天 sess token）：續期一次再拉雲端進度
     if (signedIn()) {
       refreshSession();
-      pull(currentLevel(), function (err, applied) { if (applied) location.reload(); });
+      pull(currentLevel(), function (err, applied) { if (applied) safeReload(); });
     }
   }
 
