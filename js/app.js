@@ -1005,7 +1005,18 @@ if (typeof document !== 'undefined') {
     var fb = $(p + "-drill-feedback");
     fb.innerHTML = "";
     drill.answeredState = false;
-    drill.render(drill.queue[0], drillAnswered);
+    var cur = drill.queue[0];
+    drill.render(cur, drillAnswered);
+    try {   // 這題稍早答錯過 → 明說「再做一次」，並講清楚成績只算第一次（Tony 2026-08-28）
+      var ck = cur.key || mbKey(cur.kind, cur.payload);
+      var area = $(drill.prefix + "-drill-area");
+      if (drill.again && drill.again[ck] && area && !area.querySelector(".again-tag")) {
+        var tag = document.createElement("p");
+        tag.className = "hint again-tag";
+        tag.textContent = "🔁 You missed this one earlier — do it again to finish. Your score already has your first answer, so this round is purely for learning.";
+        area.insertBefore(tag, area.firstChild);
+      }
+    } catch (e) {}
     addGuessOne($(p + "-drill-area"));   // 每日任務／錯題練習也能標「這題是猜的」
     if (drill.snaps.length) {
       var pb = document.createElement("button");
@@ -1108,7 +1119,11 @@ if (typeof document !== 'undefined') {
       } catch (e) {}
     }
     if (isCorrect) drill.mastered++;
-    else drill.queue.push(item);
+    else {
+      drill.queue.push(item);
+      drill.again = drill.again || {};                     // 這一輪要再做一次的題（Tony 2026-08-28）
+      drill.again[item.key || mbKey(item.kind, item.payload)] = 1;
+    }
     $(p + "-drill-area").querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
     $(p + "-drill-progress").textContent = "Mastered " + drill.mastered + " / " + drill.total +
       " · " + drill.queue.length + " in queue";
@@ -4086,12 +4101,20 @@ if (typeof document !== 'undefined') {
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
     var perfect = d25.firstOk === d25.firstTotal;
+    var missed = d25.firstTotal - d25.firstOk;
     dspSummaryHtml =
       "🎯 Questions: <strong>" + d25.firstOk + " / " + d25.firstTotal + "</strong> right on the first try" +
       (perfect ? " — a perfect run! 🏅" : "") +
       "<br>About " + mins + " min · 🔥 " + s.current + "-day streak" +
       (s.best > s.current ? " (best " + s.best + ")" : "") +
-      (d25.rush > 0 ? "<br>⚡ " + d25.rush + " rushed answer" + (d25.rush > 1 ? "s" : "") + " — take your time tomorrow!" : "");
+      /* 讓他自己看見數字（Tony 2026-08-28）：訂正了幾題、幾題是秒答 */
+      (missed > 0 ? "<br>🔁 " + missed + " you had to do again before finishing — those are the ones worth a second look."
+                  : "<br>🔁 Nothing came back for a second try today.") +
+      (d25.rush > 0
+        ? "<br>⚡ <strong>" + d25.rush + "</strong> answer" + (d25.rush > 1 ? "s were" : " was") +
+          " given in under 2.5 seconds and " + (d25.rush > 1 ? "were" : "was") + " wrong — that is faster than anyone can read the question." +
+          (d25.rush >= 3 ? " Slow down tomorrow and this number should be 0." : "")
+        : "<br>👍 No rushed answers today — you read every question.");
     d25 = null;
     renderDailyBanner();
     dspBegin();   // 收尾接拼寫練習；沒有單字資料時會直接顯示總結

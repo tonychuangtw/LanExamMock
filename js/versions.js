@@ -2,6 +2,12 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v42", date: "2026-08-29", items: [
+      "\ud83d\udd01 A question you get wrong now says so when it comes back. It already returned at the end of the round — you have to answer it correctly to finish — but nothing told you why it reappeared. It now carries a line: you missed this earlier, the score already has your first answer, this round is for learning.",
+      "\ud83d\udcca The end-of-mission summary now shows what the grown-ups were seeing. Alongside the score it says how many questions had to be done again, and how many were answered in under 2.5 seconds and wrong — faster than anyone can read the question."
+    ]
+  },
+  {
     v: "v41", date: "2026-08-29", items: [
       "\ud83d\udcd6 The “check you read the explanation” question is gone. Getting one wrong now shows the explanation and lets you move on — the pause before “Next question”, which is already scaled to how much there is to read, is what keeps the pace honest."
     ]

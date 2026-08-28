@@ -114,7 +114,7 @@ try {
     var g = document.querySelector('#d25-drill-area .guess-btn');
     g.click(); return g.classList.contains('selected') && g.getAttribute('aria-pressed') === 'true'; })()`));
 
-  /* 端對端：答錯後直接給解析與「Next question」（Tony 2026-08-28：英文站不再用確認題擋人）*/
+  /* 答錯的題會排回隊尾、標明「再做一次」（Tony 2026-08-28 A 案）*/
   await js(`(function(){ var c = document.querySelector('#d25-drill-area .lock-chip');
     window.__wait = c ? parseInt(c.dataset.lockSecs || '0', 10) : 0; })()`);
   await sleep(((await js(`window.__wait`)) + 1) * 1000);
@@ -131,6 +131,8 @@ try {
       await js(`!document.querySelector('#d25-drill-feedback .chk-box')`));
     check('答錯後仍看得到解析',
       await js(`!!document.querySelector('#d25-drill-feedback .expl')`));
+    check('答錯的題排回隊尾（要再做一次才結束）',
+      await js(`/in queue/.test(document.getElementById('d25-drill-progress').textContent)`));
   } else {
     console.log('  （這一題一次答對，跳過答錯流程的端對端檢查）');
   }
