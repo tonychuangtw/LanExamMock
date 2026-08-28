@@ -1100,6 +1100,32 @@ if (typeof document !== 'undefined') {
     } catch (e) {}
     return _chkPool;
   }
+  /* 同一句解析只考一次：問過的正解句子記 14 天，重複就不再攔人
+     （Tony 2026-08-28：「很多問題都是跟上面重複的，再按一次沒什麼意義」）*/
+  var K_CHKSEEN = function () { return LEVEL + ".chkseen"; };
+  var CHK_SEEN_DAYS = 14;
+  function chkSeenKey(sen) {
+    var h = 0, t = String(sen || "");
+    for (var i = 0; i < t.length; i++) { h = (h * 31 + t.charCodeAt(i)) | 0; }
+    return "s" + h + ":" + t.length;
+  }
+  function chkWasAsked(sen) {
+    try {
+      var all = loadJSON(K_CHKSEEN(), {}), k = chkSeenKey(sen), t = all[k];
+      return !!t && (Date.now() - t) < CHK_SEEN_DAYS * DAY_MS;
+    } catch (e) { return false; }
+  }
+  function chkMarkAsked(sen) {
+    try {
+      var all = loadJSON(K_CHKSEEN(), {}), now = Date.now();
+      Object.keys(all).forEach(function (k) {
+        if (now - all[k] > CHK_SEEN_DAYS * DAY_MS) delete all[k];
+      });
+      all[chkSeenKey(sen)] = now;
+      saveJSON(K_CHKSEEN(), all);
+    } catch (e) {}
+  }
+
   function chkBuildEn(expText) {
     var mine = chkSentences(expText);
     if (!mine.length) return null;
@@ -1128,6 +1154,8 @@ if (typeof document !== 'undefined') {
   function renderDrillChk(fb, expText, onPass) {
     var chk = chkBuildEn(expText);
     if (!chk) { onPass(); return; }
+    if (chkWasAsked(chk.o[chk.a])) { onPass(); return; }   // 這句最近問過了，不重複攔人
+    chkMarkAsked(chk.o[chk.a]);
     var box = document.createElement("div");
     box.className = "card chk-box";
     var h = document.createElement("p");
@@ -2246,6 +2274,15 @@ if (typeof document !== 'undefined') {
   var MB_CAP = 200, MB_SESSION_CAP = 20;
   var mbReviewedThisSession = {};
 
+  var MB_KIND_SRC = {
+    uoe: "uoe", rmc: "reading", rtfng: "reading", rgap: "reading",
+    rmatch: "reading", rhead: "reading", lis: "listening"
+  };
+  function dayStr(ms) {
+    var d = new Date(ms), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+
   var MB_KIND_LABELS = {
     uoe: "📝 Use of English", rmc: "📖 Reading", rtfng: "📖 Reading", rgap: "📖 Reading",
     rmatch: "📖 Reading", rhead: "📖 Reading", lis: "🎧 Listening"
@@ -2479,6 +2516,16 @@ if (typeof document !== 'undefined') {
         list.push(r);
       });
     }
+    /* 自己練的（紀錄功能上線前）：從錯題本按加入日期補回來，至少看得到那天錯過哪些
+       （Tony 2026-08-28：女兒 iPad 上做的自己練習在 What you did 裡看不到）*/
+    if (!list.some(function (r) { return r.s !== "daily" && r.s !== "vocab" && r.s !== "spell"; })) {
+      mbLoad().forEach(function (m) {
+        var t = m.added || m.last;
+        if (!t || dayStr(t) !== date) return;
+        var src = MB_KIND_SRC[m.kind] || "mistake";
+        list.push({ s: src, ok: 0, mb: m.key, bf: 1 });
+      });
+    }
     /* 拼寫關：舊資料（或紀錄功能上線前做的）只存在每日紀錄裡，補進來才看得到那 10 個字 */
     if (!list.some(function (r) { return r.s === "spell"; })) {
       var sp = (loadJSON(K_D25(), {})[date] || {}).spell;
@@ -2530,6 +2577,16 @@ if (typeof document !== 'undefined') {
       if (k === "spell" || k === "vocab") {   // 這些字可以直接再練一次拼寫（Tony 2026-08-28）
         html = '<button type="button" class="ghost-btn small alog-respell" data-day="' + esc(date) +
           '" data-src="' + k + '">✍️ Practise these ' + rows.length + ' words again</button>' + html;
+      } else {                                // 其他每一種也都能整組再做一次（Tony 2026-08-28）
+        var wrongN = rows.filter(function (r) { return !r.ok; }).length;
+        var btns = '<button type="button" class="ghost-btn small alog-redo" data-day="' + esc(date) +
+          '" data-src="' + k + '" data-only="all">🔁 Do these ' + rows.length + ' again</button>';
+        if (wrongN) {
+          btns += ' <button type="button" class="ghost-btn small alog-redo" data-day="' + esc(date) +
+            '" data-src="' + k + '" data-only="wrong">❌ Just the ' + wrongN +
+            " I got wrong</button>";
+        }
+        html = btns + html;
       }
       return '<details class="d25-recap alog-group" open><summary>' + esc(ALOG_LABELS[k] || k) +
         " — " + rows.length + " item" + (rows.length === 1 ? "" : "s") +
@@ -4588,11 +4645,27 @@ if (typeof document !== 'undefined') {
     return { kind: "uoe", stat: r.k, payload: { part: r.k, q: q } };
   }
 
+  /* 那一天做過的所有題目（每日任務＋自己練的 Use of English／閱讀／聽力／錯題複習），
+     Review Test 就從這裡抽（Tony 2026-08-28：勾得到的只有 Daily mission，自己練的抽不到）*/
   function rvEntriesForDate(date) {
-    var rec = loadJSON(K_D25(), {})[date];
-    if (rec && rec.refs && rec.refs.length) {
-      return rec.refs.map(rvDecodeRef).filter(Boolean);
+    var out = [], seen = {};
+    function push(e) {
+      if (!e) return;
+      var k = e.key || mbKey(e.kind, e.payload);
+      if (seen[k]) return;
+      seen[k] = 1;
+      out.push(e);
     }
+    var rec = loadJSON(K_D25(), {})[date];
+    if (rec && rec.refs && rec.refs.length) rec.refs.map(rvDecodeRef).forEach(push);
+    else if (rec) d25ComposeBase(d25Rng(date + "|" + LEVEL), d25Counts([])).forEach(push);
+    try {
+      alogDayEntries(date).forEach(function (r) {
+        if (r.w) return;                       // 單字／拼寫另有自己的練習方式
+        push(alogEntryOf(r));
+      });
+    } catch (e) {}
+    if (out.length) return out;
     return d25ComposeBase(d25Rng(date + "|" + LEVEL), d25Counts([]));
   }
 
@@ -4624,6 +4697,36 @@ if (typeof document !== 'undefined') {
     return d25Blocks(items, Math.random);
   }
 
+  /* 那一天某一種練習，整組（或只挑錯的）再做一次（Tony 2026-08-28）*/
+  function alogRedo(date, src, wrongOnly) {
+    var rows = alogDayEntries(date).filter(function (r) {
+      return r.s === src && !r.w && (!wrongOnly || !r.ok);
+    });
+    var items = rows.map(alogEntryOf).filter(Boolean);
+    var seen = {}, uniq = [];
+    items.forEach(function (e) {
+      var k = e.key || mbKey(e.kind, e.payload);
+      if (seen[k]) return;
+      seen[k] = 1;
+      uniq.push({ kind: e.kind, key: e.key, payload: e.payload });
+    });
+    if (!uniq.length) {
+      UIDialog.alert("These questions are no longer available — the question set has changed since that day.");
+      return;
+    }
+    mbReviewedThisSession = {};
+    switchTab("tab-review");
+    startDrillGeneric({
+      prefix: "mb",
+      summaryId: "rv-home",
+      items: shuffle(uniq).slice(0, MB_SESSION_CAP),
+      render: renderMbDrillItem,
+      correctText: mbCorrectText,
+      explText: mbExplText
+    });
+    window.scrollTo(0, 0);
+  }
+
   /* 「What you did」——做過的每一天，點進去看那天所有做過的題目（依來源分區塊）。
    * 2026-08-28 Tony：不只每日練習，自己另外做的、每日之後的單字都要能點回去重看。 */
   function rvRenderLog() {
@@ -4646,7 +4749,12 @@ if (typeof document !== 'undefined') {
           n += by[k].n; ok += by[k].ok;
           tags += '<span class="alog-tag">' + esc((ALOG_LABELS[k] || k).split(" ")[0]) + " " + by[k].n + "</span>";
         });
-      if (!n) return "";
+      if (!n) {   // 那天只留下分數、沒有逐題紀錄 —— 仍然列出來，點開會說明原因
+        var rec0 = loadJSON(K_D25(), {})[d];
+        if (!rec0) return "";
+        n = rec0.total || 0; ok = rec0.firstOk || 0;
+        tags = '<span class="alog-tag">🎯 ' + n + "</span>";
+      }
       return '<div class="alog-day">' +
         '<button type="button" class="alog-day-btn" data-alog="' + d + '">' +
         '<span class="alog-date">' + esc(d) + "</span>" +
@@ -4656,6 +4764,9 @@ if (typeof document !== 'undefined') {
     }).join("");
     el.innerHTML = html;
     el.addEventListener("click", function (ev) {
+      var rb = ev.target && ev.target.closest ? ev.target.closest(".alog-redo") : null;
+      if (rb) { alogRedo(rb.getAttribute("data-day"), rb.getAttribute("data-src"),
+                         rb.getAttribute("data-only") === "wrong"); return; }
       var b = ev.target && ev.target.closest ? ev.target.closest(".alog-respell") : null;
       if (!b) return;
       var day = b.getAttribute("data-day"), src = b.getAttribute("data-src");
@@ -4690,16 +4801,20 @@ if (typeof document !== 'undefined') {
     var el = $("rv-days");
     if (!el) return;
     var all = loadJSON(K_D25(), {});
-    var days = Object.keys(all).sort().reverse().slice(0, 21);
+    var days = alogDays(21);   // 只做了自己的練習、沒做每日任務的那幾天也要勾得到
     if (!days.length) {
       el.innerHTML = "<p class='hint'>No daily records yet — finish a daily mission first, then come back to test it.</p>";
     } else {
       var vlog = vbLogAll();
       el.innerHTML = days.map(function (d) {
         var r = all[d];
-        var sub = r && r.done ? "✅ " + r.firstOk + "/" + r.total : "started, not finished";
+        var sub = r ? (r.done ? "✅ " + r.firstOk + "/" + r.total : "started, not finished") : "";
+        var by = alogDayCounts(d), extra = 0;
+        Object.keys(by).forEach(function (kk) { if (kk !== "daily" && kk !== "vocab" && kk !== "spell") extra += by[kk].n; });
+        if (extra) sub += (sub ? " · " : "") + "📝 " + extra + " on your own";
         var v = vlog[d] || [];
         if (v.length) sub += " · 🗂 " + v.length + " cards";
+        if (!sub) sub = "practice only";
         return '<div class="rv-day-row">' +
           '<label class="rv-day"><input type="checkbox" value="' + d + '"> <span>' + d +
           '</span><span class="rv-day-sub">' + sub + "</span></label>" +
@@ -4714,7 +4829,7 @@ if (typeof document !== 'undefined') {
           var box = el.querySelector('[data-detail="' + day + '"]');
           if (!box) return;
           if (!box.classList.contains("hidden")) { box.classList.add("hidden"); b.textContent = "📋 View questions"; return; }
-          var html = d25RecapHtml(all[day], true) + vbLogHtml(day, (vbLogAll() || {})[day]);
+          var html = alogDayHtml(day) || (d25RecapHtml(all[day], true) + vbLogHtml(day, (vbLogAll() || {})[day]));
           box.innerHTML = html ||
             "<p class='hint'>This day was recorded before question-by-question logging was added, so only the score is kept.</p>";
           box.classList.remove("hidden");

@@ -2,6 +2,14 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v39", date: "2026-08-29", items: [
+      "\ud83d\udd01 Everything in a day’s record can be done again. Each section under Review → What you did now has “Do these N again”, and where something was missed, “Just the N I got wrong” — not just the word lists.",
+      "\ud83d\udcda The Review Test now draws on everything you did that day. Use of English, Reading, Listening and mistake-book practice you did on your own count towards the day you tick, not only the daily mission; a day with practice but no daily mission can now be picked too.",
+      "\ud83d\udcc5 Days that only kept a score still appear in What you did, and practice done before question-by-question logging existed is filled in from the mistake book, so a day is never silently missing.",
+      "\ud83d\udcd6 The read-the-explanation check no longer repeats itself: once a sentence has been asked about, it is not asked again for two weeks, so a familiar explanation lets you move straight on."
+    ]
+  },
+  {
     v: "v38", date: "2026-08-29", items: [
       "\u270d\ufe0f The 10 spelling words are back in the day’s record. Rounds finished before question-by-question logging existed are filled in from the daily record, so “Spelling round — 10 items” and every word now show up under Review → What you did, and they count towards the day’s total again.",
       "\ud83d\udcd5 The mistake book can be browsed. “See every mistake” lists all of them, newest first, with the question, the correct answer and the explanation — no need to start a review round to look at one. Each item can be removed on its own."

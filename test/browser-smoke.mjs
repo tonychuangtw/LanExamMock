@@ -246,6 +246,13 @@ try {
   check('拼寫那組可以整組再練一次',
     await js(`!!document.querySelector('.alog-detail:not(.hidden) .alog-respell')`));
 
+  /* 每一種練習都能整組再做一次（Tony 2026-08-28）*/
+  check('每日任務那組也有「再做一次」',
+    await js(`!!document.querySelector('.alog-detail:not(.hidden) .alog-redo')`));
+  check('答錯的可以單獨再做一次',
+    await js(`!!document.querySelector('.alog-detail:not(.hidden) .alog-redo[data-only="wrong"]')`));
+
+
   /* 錯題本要能一題一題翻看（Tony 2026-08-28）*/
   check('錯題本有「看全部」按鈕', await js(`!!document.getElementById('mb-browse-btn')`));
   await js(`document.getElementById('mb-browse-btn').click()`);
