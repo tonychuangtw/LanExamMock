@@ -2408,9 +2408,10 @@ if (typeof document !== 'undefined') {
   var ALOG_LABELS = {
     daily: "🎯 Daily mission", spell: "✍️ Spelling round", vocab: "🃏 Vocabulary cards",
     uoe: "📝 Use of English", reading: "📖 Reading", listening: "🎧 Listening",
-    mistake: "📕 Mistake-book review", review: "🏁 Review test"
+    mistake: "📕 Mistake-book review", review: "🏁 Review test",
+    recovered: "📕 Recovered — the ones you missed that day"
   };
-  var ALOG_ORDER = ["daily", "spell", "vocab", "uoe", "reading", "listening", "mistake", "review"];
+  var ALOG_ORDER = ["daily", "spell", "vocab", "uoe", "reading", "listening", "mistake", "review", "recovered"];
 
   function alogAll() { return loadJSON(K_ALOG(), {}); }
 
@@ -2522,8 +2523,7 @@ if (typeof document !== 'undefined') {
       mbLoad().forEach(function (m) {
         var t = m.added || m.last;
         if (!t || dayStr(t) !== date) return;
-        var src = MB_KIND_SRC[m.kind] || "mistake";
-        list.push({ s: src, ok: 0, mb: m.key, bf: 1 });
+        list.push({ s: "recovered", ok: 0, mb: m.key, bf: 1, k: m.kind });
       });
     }
     /* 拼寫關：舊資料（或紀錄功能上線前做的）只存在每日紀錄裡，補進來才看得到那 10 個字 */
@@ -2567,6 +2567,10 @@ if (typeof document !== 'undefined') {
     var head = '<p class="alog-daysum">' + keys.map(function (k) {
       return esc(ALOG_LABELS[k] || k) + " " + groups[k].length;
     }).join(" · ") + " — " + list.length + " items in total</p>";
+    if (groups.recovered) {
+      head += "<p class='hint'>Only the questions that went into the mistake book could be recovered for " +
+        "this day, so the count here is smaller than what was actually answered.</p>";
+    }
     return head + keys.map(function (k) {
       var rows = groups[k], ok = 0, html = "";
       rows.forEach(function (r, i) {
@@ -2578,7 +2582,7 @@ if (typeof document !== 'undefined') {
         html = '<button type="button" class="ghost-btn small alog-respell" data-day="' + esc(date) +
           '" data-src="' + k + '">✍️ Practise these ' + rows.length + ' words again</button>' + html;
       } else {                                // 其他每一種也都能整組再做一次（Tony 2026-08-28）
-        var wrongN = rows.filter(function (r) { return !r.ok; }).length;
+        var wrongN = (k === "recovered") ? 0 : rows.filter(function (r) { return !r.ok; }).length;
         var btns = '<button type="button" class="ghost-btn small alog-redo" data-day="' + esc(date) +
           '" data-src="' + k + '" data-only="all">🔁 Do these ' + rows.length + ' again</button>';
         if (wrongN) {
@@ -2591,8 +2595,12 @@ if (typeof document !== 'undefined') {
       return '<details class="d25-recap alog-group" open><summary>' + esc(ALOG_LABELS[k] || k) +
         " — " + rows.length + " item" + (rows.length === 1 ? "" : "s") +
         " · ✓ " + ok + " / " + rows.length + "</summary>" +
-        "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” — it goes " +
-        "into the mistake book so it comes back another day.</p>" + html + "</details>";
+        (k === "recovered"
+          ? "<p class='hint'>This day happened before question-by-question logging existed, so only the " +
+            "questions that went into the mistake book could be recovered — that is why every one here is " +
+            "marked wrong. The ones answered correctly that day were not kept anywhere.</p>"
+          : "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” — it goes " +
+            "into the mistake book so it comes back another day.</p>") + html + "</details>";
     }).join("");
   }
 
@@ -4742,11 +4750,12 @@ if (typeof document !== 'undefined') {
     html += "<p class='hint'>Tap a day to see everything you answered that day — right ones too, " +
       "in case you were not sure.</p>";
     html += days.map(function (d) {
-      var by = alogDayCounts(d), n = 0, ok = 0, tags = "";
+      var by = alogDayCounts(d), n = 0, ok = 0, rec = 0, tags = "";
       ALOG_ORDER.concat(Object.keys(by).filter(function (k) { return ALOG_ORDER.indexOf(k) < 0; }))
         .forEach(function (k) {
           if (!by[k]) return;
-          n += by[k].n; ok += by[k].ok;
+          if (k === "recovered") rec += by[k].n;      // 只救得回錯的那些，不能算進當天正確率
+          else { n += by[k].n; ok += by[k].ok; }
           tags += '<span class="alog-tag">' + esc((ALOG_LABELS[k] || k).split(" ")[0]) + " " + by[k].n + "</span>";
         });
       if (!n) {   // 那天只留下分數、沒有逐題紀錄 —— 仍然列出來，點開會說明原因
@@ -4758,7 +4767,8 @@ if (typeof document !== 'undefined') {
       return '<div class="alog-day">' +
         '<button type="button" class="alog-day-btn" data-alog="' + d + '">' +
         '<span class="alog-date">' + esc(d) + "</span>" +
-        '<span class="alog-sub">' + n + " question" + (n === 1 ? "" : "s") + " · ✓ " + ok + "/" + n + "</span>" +
+        '<span class="alog-sub">' + (n ? n + " question" + (n === 1 ? "" : "s") + " · ✓ " + ok + "/" + n : "") +
+        (rec ? (n ? " · " : "") + rec + " missed (recovered)" : "") + "</span>" +
         '<span class="alog-tags">' + tags + "</span></button>" +
         '<div class="alog-detail hidden" data-alogdetail="' + d + '"></div></div>';
     }).join("");
