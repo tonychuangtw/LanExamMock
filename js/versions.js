@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v41", date: "2026-08-29", items: [
+      "\ud83d\udcd6 The “check you read the explanation” question is gone. Getting one wrong now shows the explanation and lets you move on — the pause before “Next question”, which is already scaled to how much there is to read, is what keeps the pace honest."
+    ]
+  },
+  {
     v: "v40", date: "2026-08-29", items: [
       "\ud83d\udcd5 Recovered questions are now labelled honestly. For a day recorded before question-by-question logging existed, only what went into the mistake book can be brought back — so those appear in their own “Recovered — the ones you missed that day” section, with a note explaining why every one of them is marked wrong, and they no longer drag down that day’s score."
     ]

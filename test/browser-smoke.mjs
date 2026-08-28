@@ -114,41 +114,25 @@ try {
     var g = document.querySelector('#d25-drill-area .guess-btn');
     g.click(); return g.classList.contains('selected') && g.getAttribute('aria-pressed') === 'true'; })()`));
 
-  /* 端對端：答錯 → 出現確認題，答對確認題才會出現「Next question」 */
+  /* 端對端：答錯後直接給解析與「Next question」（Tony 2026-08-28：英文站不再用確認題擋人）*/
   await js(`(function(){ var c = document.querySelector('#d25-drill-area .lock-chip');
     window.__wait = c ? parseInt(c.dataset.lockSecs || '0', 10) : 0; })()`);
   await sleep(((await js(`window.__wait`)) + 1) * 1000);
   const answered = await js(`(function(){
     var btns = document.querySelectorAll('#d25-drill-area .option-btn');
     if (!btns.length) return 'no-options';
-    btns[btns.length - 1].click();   // 隨便挑一個，答對答錯都可以
+    btns[btns.length - 1].click();
     return 'clicked';
   })()`);
   await sleep(600);
   const wasWrong = await js(`/Not quite/.test(document.getElementById('d25-drill-feedback').textContent)`);
   if (answered === 'clicked' && wasWrong) {
-    check('答錯後出現解析確認題',
-      await js(`!!document.querySelector('#d25-drill-feedback .chk-box')
-        && document.querySelectorAll('#d25-drill-feedback .chk-opt').length === 4`));
-    check('確認題答對前不給「Next question」',
-      await js(`!document.querySelector('#d25-drill-feedback .primary-btn')`));
-    await js(`(function(){
-      var box = document.querySelector('#d25-drill-feedback .chk-box');
-      var opts = box.querySelectorAll('.chk-opt');
-      // 逐一點，錯的會被 disable，點到對的就放行
-      for (var i = 0; i < opts.length; i++) { if (!opts[i].disabled) opts[i].click(); }
-    })()`);
-    await sleep(400);
-    check('確認題答對後才出現「Next question」',
-      await js(`!!document.querySelector('#d25-drill-feedback .primary-btn')`));
-    check('確認題答對率有記進分項總帳',
-      await js(`(function(){
-        var t = JSON.parse(localStorage.getItem('cae.tlog') || '{}');
-        var d = t[Object.keys(t)[0]] || {};
-        return !!(d.chk && d.chk.n); })()`),
-      await js(`localStorage.getItem('cae.tlog')`));
+    check('答錯後不再出現解析確認題',
+      await js(`!document.querySelector('#d25-drill-feedback .chk-box')`));
+    check('答錯後仍看得到解析',
+      await js(`!!document.querySelector('#d25-drill-feedback .expl')`));
   } else {
-    console.log('  （這一題一次答對，跳過確認題的端對端檢查）');
+    console.log('  （這一題一次答對，跳過答錯流程的端對端檢查）');
   }
 
   // 閱讀（多選題卷）：每題都有，全部標「用猜的」交卷 → 全部進錯題本
@@ -370,42 +354,6 @@ try {
   })()`);
   check('補標 guessing → 降回 Box 1 並鎖住按鈕',
     vbGuess === 'none' || (vbGuess.box === 1 && vbGuess.disabled === true), JSON.stringify(vbGuess));
-
-  /* 解析確認題：答錯要答對一題「答案只在解析裡」的題目才放行（Tony 2026-08-27） */
-  console.log('解析確認題（答錯才問）');
-  await js(`document.querySelector('.tab-btn[data-tab="tab-daily"]').click()`);
-  await sleep(400);
-  const chkGen = await js(`(function(){
-    var out = { n: 0, made: 0, bad: 0 };
-    ['part1','part2','part3','part4'].forEach(function (part) {
-      var bank = (window.ChkDebug.questions() || {})[part] || [];
-      var step = Math.max(1, Math.floor(bank.length / 120));
-      for (var i = 0; i < bank.length; i += step) {
-        var q = bank[i];
-        if (!q || !q.explanation) continue;
-        out.n++;
-        var c = window.ChkDebug.build(q.explanation);
-        if (!c) continue;
-        out.made++;
-        var uniq = {}; c.o.forEach(function (x) { uniq[x] = 1; });
-        if (!(c.o.length === 4 && Object.keys(uniq).length === 4 && c.a >= 0 && c.a < 4)) out.bad++;
-      }
-    });
-    return out;
-  })()`);
-  check('確認題格式全部合法（4 個不重複選項、答案索引有效）', chkGen.bad === 0, JSON.stringify(chkGen));
-  console.log('    涵蓋率：' + chkGen.made + ' / ' + chkGen.n + ' = ' +
-    Math.round(100 * chkGen.made / chkGen.n) + '%（抽樣）');
-  check('確認題涵蓋率 ≥ 90%', chkGen.made / chkGen.n >= 0.9,
-    chkGen.made + ' / ' + chkGen.n);
-  check('解析太短不硬生（直接放行）',
-    await js(`window.ChkDebug.build('Short.') === null`));
-  check('同一段解析每次生成的確認題都一樣（決定性）',
-    await js(`(function(){
-      var q = ((window.ChkDebug.questions() || {}).part1 || [])[7];
-      if (!q) return true;
-      var a = window.ChkDebug.build(q.explanation), b = window.ChkDebug.build(q.explanation);
-      return !a || JSON.stringify(a) === JSON.stringify(b); })()`));
 
   /* 家長頁：分項時間與正確率總覽（2026-08-27 Tony：「只看得到 daily practice 那部份」） */
   console.log('家長頁分項統計');
