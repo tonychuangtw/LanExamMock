@@ -845,7 +845,18 @@ if (typeof document !== 'undefined') {
     $("uoe-summary-title").textContent = quiz.mode === "full"
       ? "Full mock results (Use of English)"
       : PART_LABELS[quiz.part] + " — Mock results";
-    $("uoe-score").textContent = score + " / " + max + " (" + pct + "%)";
+    /* Part 4 每題 2 分（與真實劍橋考試一致），只寫分數會讓人以為題數變了，
+       所以題數與分數一起顯示（Tony 2026-08-28 回報）。 */
+    var rightCount = 0;
+    quiz.items.forEach(function (item, i) { if (gradeItem(item, quiz.answers[i])) rightCount++; });
+    $("uoe-score").textContent = rightCount + " / " + quiz.items.length + " right (" + pct + "%)";
+    var marksLine = $("uoe-marks");
+    if (marksLine) {
+      marksLine.textContent = max === quiz.items.length
+        ? ""
+        : "Marks: " + score + " / " + max + " — Part 4 answers are worth 2 marks each, as in the real exam.";
+      marksLine.classList.toggle("hidden", max === quiz.items.length);
+    }
     $("uoe-verdict").className = "verdict-text " + v.cls;
     $("uoe-verdict").innerHTML = esc(v.text) + subHtml;
     $("uoe-review").innerHTML = reviewHtml;
@@ -2488,14 +2499,22 @@ if (typeof document !== 'undefined') {
     list.forEach(function (r) { (groups[r.s] || (groups[r.s] = [])).push(r); });
     var keys = ALOG_ORDER.filter(function (k) { return groups[k]; })
       .concat(Object.keys(groups).filter(function (k) { return ALOG_ORDER.indexOf(k) < 0; }));
-    return keys.map(function (k) {
+    /* 當天總覽：一行講完那天做了哪些、各幾題（Tony 2026-08-28：「就一起放當天的全部列出來」）*/
+    var head = '<p class="alog-daysum">' + keys.map(function (k) {
+      return esc(ALOG_LABELS[k] || k) + " " + groups[k].length;
+    }).join(" · ") + " — " + list.length + " items in total</p>";
+    return head + keys.map(function (k) {
       var rows = groups[k], ok = 0, html = "";
       rows.forEach(function (r, i) {
         if (r.ok) ok++;
         html += alogRowHtml(r, i + 1, date);
       });
       if (!html) return "";
-      return '<details class="d25-recap alog-group"><summary>' + esc(ALOG_LABELS[k] || k) +
+      if (k === "spell" || k === "vocab") {   // 這些字可以直接再練一次拼寫（Tony 2026-08-28）
+        html = '<button type="button" class="ghost-btn small alog-respell" data-day="' + esc(date) +
+          '" data-src="' + k + '">✍️ Practise these ' + rows.length + ' words again</button>' + html;
+      }
+      return '<details class="d25-recap alog-group" open><summary>' + esc(ALOG_LABELS[k] || k) +
         " — " + rows.length + " item" + (rows.length === 1 ? "" : "s") +
         " · ✓ " + ok + " / " + rows.length + "</summary>" +
         "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” — it goes " +
@@ -4089,11 +4108,35 @@ if (typeof document !== 'undefined') {
   var dsp = null;           // { words, idx, queue, first, firstOk, total }
   var dspSummaryHtml = "";  // 每日任務成績摘要，最後與拼寫成績一起顯示
 
+  /* 收尾拼寫的選字（2026-08-28 Tony：「根據今天做過的挑 10 個字來練，這個很好，想辦法更好」）——
+     以前是純隨機（同一天固定），現在改成優先練「他正在學的字」：
+       1. 今天字卡做過的字（含答錯與自承用猜的，最需要再寫一次）
+       2. Leitner 到期該複習的字
+       3. 不足再用當日種子隨機補滿
+     同一天結果仍固定（種子＋固定排序），換裝置或重進不會變成另一組。 */
   function dspWords() {
     var pool = (typeof VOCAB !== "undefined" && VOCAB && VOCAB.length) ? VOCAB : [];
+    if (!pool.length) return [];
     var n = d25Quota(d25SizeGet()).spell;   // 任務縮短時拼寫也跟著縮（10 題版 5 字）
-    var rng = d25Rng(todayStr() + "|" + LEVEL + "|spell");
-    return d25Pick(pool, Math.min(n, pool.length), rng);
+    var byFront = {};
+    pool.forEach(function (c) { byFront[c.front] = c; });
+    var picked = [], seen = {};
+    function push(c) {
+      if (!c || seen[c.front] || picked.length >= n) return;
+      seen[c.front] = 1; picked.push(c);
+    }
+    try {                                   // 1. 今天做過的字卡：答錯／用猜的排前面
+      var day = (alogAll() || {})[todayStr()] || [];
+      var todayWords = day.filter(function (r) { return r.s === "vocab" && r.w; });
+      todayWords.filter(function (r) { return !r.ok || r.g; }).forEach(function (r) { push(byFront[r.w]); });
+      todayWords.forEach(function (r) { push(byFront[r.w]); });
+    } catch (e) {}
+    try { shuffle(vocabDue()).forEach(push); } catch (e) {}   // 2. 到期該複習的
+    if (picked.length < n) {                                   // 3. 隨機補滿
+      var rng = d25Rng(todayStr() + "|" + LEVEL + "|spell");
+      d25Pick(pool, Math.min(n * 3, pool.length), rng).forEach(push);
+    }
+    return picked;
   }
 
   function dspHideAll() {
@@ -4101,8 +4144,8 @@ if (typeof document !== 'undefined') {
       .forEach(function (id) { var el = $(id); if (el) el.classList.add("hidden"); });
   }
 
-  function dspBegin() {
-    var words = dspWords();
+  function dspBegin(listArg) {
+    var words = Array.isArray(listArg) && listArg.length ? listArg.slice() : dspWords();
     if (!words.length) { dspFinish(null); return; }
     dsp = { words: words, idx: 0, queue: [], first: {}, firstOk: 0, total: words.length };
     dspHideAll();
@@ -4534,6 +4577,21 @@ if (typeof document !== 'undefined') {
         '<div class="alog-detail hidden" data-alogdetail="' + d + '"></div></div>';
     }).join("");
     el.innerHTML = html;
+    el.addEventListener("click", function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest(".alog-respell") : null;
+      if (!b) return;
+      var day = b.getAttribute("data-day"), src = b.getAttribute("data-src");
+      var pool = (typeof VOCAB !== "undefined" && VOCAB) ? VOCAB : [];
+      var byFront = {};
+      pool.forEach(function (c) { byFront[c.front] = c; });
+      var words = ((alogAll() || {})[day] || [])
+        .filter(function (r) { return r.s === src && r.w && byFront[r.w]; })
+        .map(function (r) { return byFront[r.w]; });
+      if (!words.length) { UIDialog.alert("These words are no longer in the word list."); return; }
+      switchTab("tab-daily");
+      dspSummaryHtml = "";
+      dspBegin(words);
+    });
     el.querySelectorAll("[data-alog]").forEach(function (b) {
       b.addEventListener("click", function () {
         var day = b.getAttribute("data-alog");

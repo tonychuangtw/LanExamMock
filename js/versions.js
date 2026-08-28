@@ -2,6 +2,14 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v37", date: "2026-08-29", items: [
+      "📋 A day\u2019s record now opens fully. Tapping a day in Review \u2192 What you did shows a one-line summary of everything done that day (Daily mission 20 \u00b7 Spelling round 10 \u00b7 Vocabulary cards 10 \u2014 40 items in total) and every section is already expanded, so the spelling words are no longer hidden behind a collapsed heading.",
+      "\u270d\ufe0f The spelling round now picks words you are actually learning. It used to be a random pick of the day; it now takes the words you got wrong or guessed on today\u2019s vocabulary cards first, then words due for review, and only fills the rest at random. The set is still fixed for the day.",
+      "\ud83d\udd01 Any list of words in a day\u2019s record has a \u201cPractise these words again\u201d button that starts a spelling round on exactly those words.",
+      "\ud83d\udcaf Mock results show the number of questions again. Part 4 answers are worth 2 marks each in the real exam, so a 6-question Part 4 scored 12 \u2014 the score line now reads \u201c4 / 6 right\u201d with the marks shown underneath and explained."
+    ]
+  },
+  {
     v: "v36", date: "2026-08-28", items: [
       "Everything you answer is now kept, and Review is where you go back to it. The Review tab opens with \u201cWhat you did\u201d \u2014 a list of the days you practised. Tap a day and it opens into what you actually answered that day, grouped by where it came from: daily mission, spelling round, vocabulary cards, Use of English, Reading, Listening, mistake-book review and review tests. Right answers are listed too, not just the wrong ones, so a question you got right but were not sure about can be looked at again.",
       "Each question in that list shows the question, the correct answer and the explanation, and correct ones still carry the \u201cI was guessing\u201d button \u2014 tapping it sends the question to the mistake book so it comes back another day.",

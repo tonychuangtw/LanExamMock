@@ -1078,3 +1078,6 @@ input[type="number"]:focus {
 }
 .alog-detail { margin: 6px 0 14px; }
 .alog-group { margin: 8px 0; }
+
+/* 逐日紀錄的當天總覽（2026-08-28） */
+.alog-daysum { font-size: .9em; opacity: .85; margin: 4px 0 8px; }
