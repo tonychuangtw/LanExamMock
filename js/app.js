@@ -794,6 +794,7 @@ if (typeof document !== 'undefined') {
       max += pts;
       if (isCorrect) score += pts;
       recordResult(item.part, isCorrect);
+      try { alogAdd("uoe", { kind: "uoe", stat: item.part, payload: { part: item.part, q: item.q } }, isCorrect, quiz.guessed[i]); } catch (e) {}
       if (!isCorrect || quiz.guessed[i]) { try { mbAdd("uoe", { part: item.part, q: item.q }); } catch (e) {} }
       if (!byPart[item.part]) byPart[item.part] = { score: 0, max: 0 };
       byPart[item.part].max += pts;
@@ -1194,6 +1195,13 @@ if (typeof document !== 'undefined') {
   function drillAnswered(isCorrect, userText) {
     var p = drill.prefix;
     var item = drill.queue.shift();
+    if (p === "mb") {                     // 錯題本複習：每題第一次作答留一筆紀錄，Review 可回看
+      try {
+        drill.logged = drill.logged || {};
+        var lk = item.key || mbKey(item.kind, item.payload);
+        if (!drill.logged[lk]) { drill.logged[lk] = 1; alogAdd("mistake", item, isCorrect, guessTaken()); }
+      } catch (e) {}
+    }
     if (isCorrect) drill.mastered++;
     else drill.queue.push(item);
     $(p + "-drill-area").querySelectorAll("button, input").forEach(function (el) { el.disabled = true; });
@@ -1635,6 +1643,7 @@ if (typeof document !== 'undefined') {
       if (isCorrect) score++;
       recordResult(statKey, isCorrect);
       var mbe = rdMbEntry(j);
+      try { alogAdd("reading", { kind: mbe.kind, stat: statKey, payload: mbe.payload }, isCorrect, wasGuess); } catch (e) {}
       if (!isCorrect || wasGuess) {   // 猜對的也收進錯題本
         try { mbAdd(mbe.kind, mbe.payload); } catch (e) {}
       }
@@ -2065,6 +2074,10 @@ if (typeof document !== 'undefined') {
       var wasGuess = !!(ls.guessed && ls.guessed[j]);
       if (isCorrect) score++;
       recordResult("lis", isCorrect);
+      try {
+        alogAdd("listening", { kind: "lis", stat: "lis",
+          payload: { title: ls.set.title, kind: ls.set.kind, script: ls.set.script, q: qs[j] } }, isCorrect, wasGuess);
+      } catch (e) {}
       if (!isCorrect || wasGuess) {   // 猜對的也收進錯題本
         try { mbAdd("lis", { title: ls.set.title, kind: ls.set.kind, script: ls.set.script, q: qs[j] }); } catch (e) {}
       }
@@ -2331,6 +2344,175 @@ if (typeof document !== 'undefined') {
     return "";
   }
 
+  /* ================= Activity log — 做過的每一題都留下紀錄 =================
+   * 2026-08-28 Tony：「做完出來就進不去看了」「不只每日練習，其他多做的也要能看到」。
+   * 每答一題寫一筆到 <level>.worklog（依日期分組，隨雲端同步，只留最近 60 天）：
+   *   { s: 來源, ok: 對錯, g: 是否自承用猜的,
+   *     r: 題庫輕量參照 | mb: 錯題本 key | t: 文字快照 | w/d: 單字與解釋 }
+   * Review 頁「What you did」依 日期 → 來源 → 題目 三層展開，對的錯的都能點回去重看。 */
+  var K_ALOG = function () { return LEVEL + ".worklog"; };
+  var ALOG_DAYS = 60, ALOG_PER_DAY = 400;
+  var ALOG_LABELS = {
+    daily: "🎯 Daily mission", spell: "✍️ Spelling round", vocab: "🃏 Vocabulary cards",
+    uoe: "📝 Use of English", reading: "📖 Reading", listening: "🎧 Listening",
+    mistake: "📕 Mistake-book review", review: "🏁 Review test"
+  };
+  var ALOG_ORDER = ["daily", "spell", "vocab", "uoe", "reading", "listening", "mistake", "review"];
+
+  function alogAll() { return loadJSON(K_ALOG(), {}); }
+
+  function alogSnap(e) {
+    return { q: String(wlogQText(e) || "").slice(0, 300),
+             a: String(mbCorrectText(e) || "").slice(0, 200),
+             x: String(mbExplText(e) || "").slice(0, 500) };
+  }
+
+  /* e 可為 null（單字／拼寫類，改用 extra 帶 w/d）；同一題重做只記第一次由呼叫端控制 */
+  function alogAdd(src, e, ok, guessed, extra) {
+    try {
+      var all = alogAll(), d = todayStr();
+      var day = all[d] || (all[d] = []);
+      var rec = { s: src, ok: ok ? 1 : 0 };
+      if (guessed) rec.g = 1;
+      if (extra) { for (var k in extra) { if (extra[k] != null) rec[k] = extra[k]; } }
+      if (e) {
+        if (e.key) rec.mb = e.key;
+        else { var r = d25RefOf(e); if (r) rec.r = r; }
+        if (!rec.r && !rec.mb) rec.t = alogSnap(e);
+      }
+      day.push(rec);
+      if (day.length > ALOG_PER_DAY) all[d] = day.slice(day.length - ALOG_PER_DAY);
+      var days = Object.keys(all).sort();
+      while (days.length > ALOG_DAYS) delete all[days.shift()];
+      saveJSON(K_ALOG(), all);
+    } catch (err) {}
+  }
+
+  /* 單字／拼寫：同一天同一個字只記第一次，事後補標「我是用猜的」才會改寫 */
+  function alogAddWord(src, front, def, ok, guessed) {
+    try {
+      var all = alogAll(), d = todayStr(), day = all[d] || (all[d] = []);
+      for (var i = 0; i < day.length; i++) {
+        if (day[i].s === src && day[i].w === front) return;
+      }
+    } catch (e) {}
+    alogAdd(src, null, ok, guessed, { w: front, d: String(def || "").slice(0, 200) });
+  }
+
+  function alogMarkGuessed(src, front, date) {
+    try {
+      var all = alogAll(), day = all[date || todayStr()] || [];
+      for (var i = 0; i < day.length; i++) {
+        if (day[i].s === src && day[i].w === front) { day[i].g = 1; day[i].ok = 0; }
+      }
+      saveJSON(K_ALOG(), all);
+    } catch (e) {}
+  }
+
+  function alogEntryOf(rec) {
+    if (rec.mb) {
+      var book = mbLoad();
+      for (var i = 0; i < book.length; i++) {
+        if (book[i].key === rec.mb) return { key: book[i].key, kind: book[i].kind, payload: book[i].payload };
+      }
+      return null;
+    }
+    if (rec.r) { try { return rvDecodeRef(rec.r); } catch (e) { return null; } }
+    return null;
+  }
+
+  /* 一筆紀錄 → 一張可重看的卡（題目＋正解＋解析；對的但沒把握可事後補標進錯題本） */
+  function alogRowHtml(rec, n, date) {
+    if (rec.w) {
+      var isVocab = rec.s === "vocab";
+      return '<div class="review-item ' + (rec.ok ? "ok" : "bad") + '">' +
+        '<div class="review-verdict">' + (rec.ok ? "✓" : "✗") + " " + esc(rec.w) +
+        (rec.g ? ' <span class="guess-tag">🤔 guessed</span>' : "") + "</div>" +
+        (rec.d ? '<div class="review-ans">' + esc(rec.d) + "</div>" : "") +
+        (rec.ok && !rec.g && isVocab
+          ? '<button type="button" class="ghost-btn small vb-guess" data-front="' + esc(rec.w) +
+            '" data-day="' + esc(date) + '">🤔 I was guessing</button>'
+          : "") +
+        "</div>";
+    }
+    var e = alogEntryOf(rec), q, a, x;
+    if (e) { q = wlogQText(e); a = mbCorrectText(e); x = mbExplText(e); }
+    else if (rec.t) { q = rec.t.q; a = rec.t.a; x = rec.t.x; }
+    else return "";
+    return '<div class="review-item ' + (rec.ok ? "ok" : "bad") + '">' +
+      '<div class="review-verdict">' + (rec.ok ? "✓" : "✗") + " Question " + n +
+      (rec.g ? ' <span class="guess-tag">🤔 guessed — in the mistake book</span>' : "") + "</div>" +
+      "<p>" + esc(q) + "</p>" +
+      '<div class="review-ans"><strong>Correct answer: </strong>' + esc(a) + "</div>" +
+      '<div class="expl">' + esc(x) + "</div>" +
+      (e ? retroGuessHtml(e.kind, e.payload, !!(rec.g || e.key)) : "") +
+      "</div>";
+  }
+
+  /* 那一天的全部紀錄（含本功能上線前只存在每日任務／單字卡裡的舊資料） */
+  function alogDayEntries(date) {
+    var list = (alogAll()[date] || []).slice();
+    var hasDaily = list.some(function (r) { return r.s === "daily"; });
+    if (!hasDaily) {
+      var rec = loadJSON(K_D25(), {})[date];
+      ((rec && rec.log) || []).forEach(function (it) {
+        var r = { s: "daily", ok: it.ok ? 1 : 0 };
+        if (it.g) r.g = 1;
+        if (it.r && it.r.mb) r.mb = it.r.mb; else if (it.r) r.r = it.r;
+        list.push(r);
+      });
+    }
+    var hasVocab = list.some(function (r) { return r.s === "vocab"; });
+    if (!hasVocab) {
+      (loadJSON(K_VBLOG(), {})[date] || []).forEach(function (v) {
+        list.push({ s: "vocab", ok: v.ok ? 1 : 0, g: v.g ? 1 : 0, w: v.f, d: v.d });
+      });
+    }
+    return list;
+  }
+
+  function alogDayCounts(date) {
+    var by = {};
+    alogDayEntries(date).forEach(function (r) {
+      var b = by[r.s] || (by[r.s] = { n: 0, ok: 0 });
+      b.n++; if (r.ok) b.ok++;
+    });
+    return by;
+  }
+
+  /* 一天份 → 依來源分區塊；每個區塊自己可展開，對的錯的都在裡面 */
+  function alogDayHtml(date) {
+    var list = alogDayEntries(date);
+    if (!list.length) return "";
+    var groups = {};
+    list.forEach(function (r) { (groups[r.s] || (groups[r.s] = [])).push(r); });
+    var keys = ALOG_ORDER.filter(function (k) { return groups[k]; })
+      .concat(Object.keys(groups).filter(function (k) { return ALOG_ORDER.indexOf(k) < 0; }));
+    return keys.map(function (k) {
+      var rows = groups[k], ok = 0, html = "";
+      rows.forEach(function (r, i) {
+        if (r.ok) ok++;
+        html += alogRowHtml(r, i + 1, date);
+      });
+      if (!html) return "";
+      return '<details class="d25-recap alog-group"><summary>' + esc(ALOG_LABELS[k] || k) +
+        " — " + rows.length + " item" + (rows.length === 1 ? "" : "s") +
+        " · ✓ " + ok + " / " + rows.length + "</summary>" +
+        "<p class='hint'>Got one right but you were really guessing? Tap “🤔 I was guessing” — it goes " +
+        "into the mistake book so it comes back another day.</p>" + html + "</details>";
+    }).join("");
+  }
+
+  /* 有紀錄的日期（新舊資料合併），新到舊 */
+  function alogDays(limit) {
+    var set = {};
+    Object.keys(alogAll()).forEach(function (d) { set[d] = 1; });
+    Object.keys(loadJSON(K_D25(), {})).forEach(function (d) { set[d] = 1; });
+    Object.keys(loadJSON(K_VBLOG(), {})).forEach(function (d) { set[d] = 1; });
+    var days = Object.keys(set).sort().reverse();
+    return limit ? days.slice(0, limit) : days;
+  }
+
   function mbStopAudio() {
     audioStopAll();
   }
@@ -2494,12 +2676,13 @@ if (typeof document !== 'undefined') {
     }
   }
 
-  function startMbDrill() {
-    var due = mbDueEntries();
+  function startMbDrill(anyItem) {
+    var due = anyItem ? mbLoad() : mbDueEntries();
     if (!due.length) return;
     mbReviewedThisSession = {};
     startDrillGeneric({
       prefix: "mb",
+      summaryId: "rv-home",
       items: shuffle(due).slice(0, MB_SESSION_CAP),
       render: renderMbDrillItem,
       correctText: mbCorrectText,
@@ -3061,6 +3244,7 @@ if (typeof document !== 'undefined') {
       var day = all[d] || (all[d] = []);
       for (var i = 0; i < day.length; i++) if (day[i].f === card.front) return;
       day.push({ f: card.front, d: card.def || "", ok: ok ? 1 : 0, g: guessed ? 1 : 0 });
+      try { alogAddWord("vocab", card.front, card.def || "", ok, guessed); } catch (e2) {}
       var keys = Object.keys(all).sort();
       while (keys.length > 30) { delete all[keys.shift()]; }
       saveJSON(K_VBLOG(), all);
@@ -3071,6 +3255,7 @@ if (typeof document !== 'undefined') {
       var all = vbLogAll(), day = all[date || todayStr()] || [];
       for (var i = 0; i < day.length; i++) if (day[i].f === front) { day[i].g = 1; day[i].ok = 0; }
       saveJSON(K_VBLOG(), all);
+      try { alogMarkGuessed("vocab", front, date); } catch (e2) {}
     } catch (e) {}
   }
   /* 一天份的卡片清單（對的錯的都列，對的附「我剛才是用猜的」補標鈕） */
@@ -3095,7 +3280,7 @@ if (typeof document !== 'undefined') {
     if (!today || !today.length) { el.classList.add("hidden"); el.innerHTML = ""; return; }
     el.classList.remove("hidden");
     el.innerHTML = vbLogHtml(todayStr(), today) +
-      "<p class='hint'>Earlier days are under Review → Daily records.</p>";
+      "<p class='hint'>Earlier days are under Review → What you did.</p>";
   }
 
   /* 一張卡作答：第一次的結果才進 Leitner／統計；答錯的排回佇列，隔兩張再出現直到答對 */
@@ -3490,7 +3675,7 @@ if (typeof document !== 'undefined') {
   }
 
   function renderMistakeCard() {
-    var el = $("pg-mistakes");
+    var el = $("rv-mistakes");
     if (!el) return;
     var book = mbLoad();
     var due = mbDueEntries();
@@ -3504,10 +3689,14 @@ if (typeof document !== 'undefined') {
       html += '<button id="mb-review-btn" class="primary-btn">Review now (' + Math.min(due.length, MB_SESSION_CAP) + ")</button>";
     } else {
       html += "<p class='hint'>Nothing due right now — answer correctly to graduate items out of the book.</p>";
+      html += '<button id="mb-review-any" class="ghost-btn small">Practise them anyway (' +
+        Math.min(book.length, MB_SESSION_CAP) + ")</button>";
     }
     el.innerHTML = html;
     var rb = $("mb-review-btn");
     if (rb) rb.addEventListener("click", startMbDrill);
+    var ab = $("mb-review-any");
+    if (ab) ab.addEventListener("click", function () { startMbDrill(true); });
   }
 
   /* ---------- §8.2 每日任務 + streak + 週報 + 精熟度 ---------- */
@@ -3833,6 +4022,7 @@ if (typeof document !== 'undefined') {
             /* 逐題紀錄，供完成後的「今天做了哪些題」回顧與事後補標 */
             try {
               d25.log.push({ r: e.key ? { mb: e.key } : d25RefOf(e), ok: ok ? 1 : 0, g: guessTaken() ? 1 : 0 });
+              alogAdd("daily", e, ok, guessTaken());
             } catch (err) {}
           }
           done(ok, txt);
@@ -3983,6 +4173,7 @@ if (typeof document !== 'undefined') {
         wwBump(c.front);
         wlogAdd("spell", "Spell the word: " + c.def, val, c.front);
       }
+      try { alogAddWord("spell", c.front, c.def, ok, false); } catch (e) {}
     }
     $("dsp-feedback").innerHTML = ok
       ? '<p class="verdict-text ok">✓ Correct — <strong>' + esc(c.front) + "</strong></p>"
@@ -4312,7 +4503,54 @@ if (typeof document !== 'undefined') {
     return d25Blocks(items, Math.random);
   }
 
+  /* 「What you did」——做過的每一天，點進去看那天所有做過的題目（依來源分區塊）。
+   * 2026-08-28 Tony：不只每日練習，自己另外做的、每日之後的單字都要能點回去重看。 */
+  function rvRenderLog() {
+    var el = $("rv-log");
+    if (!el) return;
+    var days = alogDays(30);
+    var html = "<h3>📅 What you did</h3>";
+    if (!days.length) {
+      el.innerHTML = html + "<p class='hint'>Nothing recorded yet. Everything you answer — daily mission, " +
+        "practice, mock exams, vocabulary — shows up here so you can look at it again later.</p>";
+      return;
+    }
+    html += "<p class='hint'>Tap a day to see everything you answered that day — right ones too, " +
+      "in case you were not sure.</p>";
+    html += days.map(function (d) {
+      var by = alogDayCounts(d), n = 0, ok = 0, tags = "";
+      ALOG_ORDER.concat(Object.keys(by).filter(function (k) { return ALOG_ORDER.indexOf(k) < 0; }))
+        .forEach(function (k) {
+          if (!by[k]) return;
+          n += by[k].n; ok += by[k].ok;
+          tags += '<span class="alog-tag">' + esc((ALOG_LABELS[k] || k).split(" ")[0]) + " " + by[k].n + "</span>";
+        });
+      if (!n) return "";
+      return '<div class="alog-day">' +
+        '<button type="button" class="alog-day-btn" data-alog="' + d + '">' +
+        '<span class="alog-date">' + esc(d) + "</span>" +
+        '<span class="alog-sub">' + n + " question" + (n === 1 ? "" : "s") + " · ✓ " + ok + "/" + n + "</span>" +
+        '<span class="alog-tags">' + tags + "</span></button>" +
+        '<div class="alog-detail hidden" data-alogdetail="' + d + '"></div></div>';
+    }).join("");
+    el.innerHTML = html;
+    el.querySelectorAll("[data-alog]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var day = b.getAttribute("data-alog");
+        var box = el.querySelector('[data-alogdetail="' + day + '"]');
+        if (!box) return;
+        if (!box.classList.contains("hidden")) { box.classList.add("hidden"); b.classList.remove("open"); return; }
+        box.innerHTML = alogDayHtml(day) ||
+          "<p class='hint'>This day was recorded before question-by-question logging was added, so only the score is kept.</p>";
+        box.classList.remove("hidden");
+        b.classList.add("open");
+      });
+    });
+  }
+
   function rvRenderHome() {
+    renderMistakeCard();
+    rvRenderLog();
     var el = $("rv-days");
     if (!el) return;
     var all = loadJSON(K_D25(), {});
@@ -4494,6 +4732,7 @@ if (typeof document !== 'undefined') {
       if (ok) rv.correct++;
       else if (Date.now() - shownAt < 2500) rv.rushed++;
       if (e.stat) { try { recordResult(e.stat, ok); } catch (err) {} }
+      try { alogAdd("review", e, ok, wasGuess); } catch (err) {}
       if ((!ok || wasGuess) && e.src !== "mb" && (e.kind === "uoe" || e.kind === "rmc" || e.kind === "lis")) {
         try { mbAdd(e.kind, e.payload); } catch (err) {}
       }
@@ -4646,7 +4885,6 @@ if (typeof document !== 'undefined') {
   }
 
   function renderProgress() {
-    renderMistakeCard();
     try { renderWeakness(); } catch (e) {}
     try { renderMastery(); } catch (e) {}
     try { renderWeekReport(); } catch (e) {}
@@ -4724,17 +4962,17 @@ if (typeof document !== 'undefined') {
 
   function initProgress() {
     $("mb-drill-quit").addEventListener("click", function () {
-      UIDialog.confirm("Quit mistake review and go back to Progress?", function () {
+      UIDialog.confirm("Quit mistake review and go back?", function () {
         mbStopAudio();
         $("mb-drill").classList.add("hidden");
-        $("mb-summary").classList.remove("hidden");
-        renderProgress();
+        $("rv-home").classList.remove("hidden");
+        rvRenderHome();
       });
     });
     $("mb-congrats-home").addEventListener("click", function () {
       $("mb-congrats").classList.add("hidden");
-      $("mb-summary").classList.remove("hidden");
-      renderProgress();
+      $("rv-home").classList.remove("hidden");
+      rvRenderHome();
     });
     $("pg-clear").addEventListener("click", function () {
       UIDialog.confirm("Clear all practice records, vocabulary progress and drafts for this level? This cannot be undone.", pgClearNow);

@@ -220,6 +220,25 @@ try {
   check('每日回顧補標 → 進錯題本',
     await js(`JSON.parse(localStorage.getItem('cae.mistake_book') || '[]').length`) === mb2 + 1);
 
+  /* ---- Review →「What you did」：做過的每一天都能點進去重看（2026-08-28 Tony 要求）---- */
+  await js(`document.querySelector('.tab-btn[data-tab="tab-review"]').click()`);
+  await sleep(400);
+  check('Review 有「What you did」逐日紀錄', await js(`/What you did/.test(document.getElementById('rv-log').textContent)`));
+  check('錯題本卡片移到 Review', await js(`/Mistake book/.test(document.getElementById('rv-mistakes').textContent)`));
+  check('Progress 不再放錯題本卡片', await js(`!document.getElementById('pg-mistakes')`));
+  await js(`document.querySelector('.alog-day-btn').click()`);
+  await sleep(300);
+  check('點某一天會展開那天的題目', await js(`document.querySelectorAll('.alog-detail:not(.hidden) .review-item').length > 0`));
+  check('題目依來源分區塊', await js(`document.querySelectorAll('.alog-detail:not(.hidden) details.alog-group').length > 0`));
+  check('每日任務區塊在裡面', await js(`/Daily mission/.test(document.querySelector('.alog-detail:not(.hidden)').textContent)`));
+  check('對的題目也列出來（可以再看）',
+    await js(`document.querySelectorAll('.alog-detail:not(.hidden) .review-item.ok').length > 0`));
+  check('自己做的練習也進得去（不只每日任務）',
+    await js(`/Reading|Use of English|Listening/.test(document.querySelector('.alog-detail:not(.hidden)').textContent)`));
+
+  await js(`document.querySelector('.tab-btn[data-tab="tab-reading"]').click()`);
+  await sleep(300);
+
   // 配對題（字母列版面）每題也要有
   await js(`document.getElementById('rd-back').click()`);
   await sleep(300);

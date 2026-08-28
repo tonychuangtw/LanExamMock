@@ -2,6 +2,14 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v36", date: "2026-08-28", items: [
+      "Everything you answer is now kept, and Review is where you go back to it. The Review tab opens with \u201cWhat you did\u201d \u2014 a list of the days you practised. Tap a day and it opens into what you actually answered that day, grouped by where it came from: daily mission, spelling round, vocabulary cards, Use of English, Reading, Listening, mistake-book review and review tests. Right answers are listed too, not just the wrong ones, so a question you got right but were not sure about can be looked at again.",
+      "Each question in that list shows the question, the correct answer and the explanation, and correct ones still carry the \u201cI was guessing\u201d button \u2014 tapping it sends the question to the mistake book so it comes back another day.",
+      "The mistake book has moved from Progress to Review, along with the mistake-review drill: Review now holds everything to do with looking back, and Progress is only statistics and progress. The mistake book also gained a \u201cPractise them anyway\u201d button for when nothing is due yet.",
+      "The 10-word spelling round after the daily mission is recorded separately from the vocabulary cards, so the two can be looked at on their own."
+    ]
+  },
+  {
     v: "v35", date: "2026-08-28", items: [
       "Vocabulary cards now have an \u201cI was guessing\u201d button while you answer, not just on the summary at the end. Tapping it counts the card as not known, so it drops back to Box 1 and comes round again \u2014 in both the flashcard and the typing mode.",
       "What you did in Vocabulary no longer disappears when you leave the page. Every card you answer is logged for the day, and the Vocabulary page shows \u201cVocabulary on <date>\u201d underneath, with the word, the definition and whether you got it right \u2014 correct ones still carry the \u201cI was guessing\u201d button.",

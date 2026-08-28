@@ -22,7 +22,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="css/style.css?v=20260828a">
+<link rel="stylesheet" href="css/style.css?v=20260828b">
 </head>
 <body>
 
@@ -429,7 +429,6 @@
         <button id="pg-parent-btn" class="primary-btn">👨‍🏫 Parent / Teacher view</button>
         <p class="hint">A one-page snapshot of this learner's daily practice, accuracy and trouble spots.</p>
       </div>
-      <div id="pg-mistakes" class="card center"></div>
       <div id="pg-weakness" class="card"></div>
       <div id="pg-mastery" class="card"></div>
       <div id="pg-week" class="card"></div>
@@ -437,24 +436,6 @@
       <div id="pg-vocab" class="card"></div>
       <div class="card center">
         <button id="pg-clear" class="danger-btn">Clear all data</button>
-      </div>
-    </div>
-
-    <div id="mb-drill" class="hidden">
-      <div class="exam-top">
-        <button id="mb-drill-quit" class="ghost-btn">Quit</button>
-        <span id="mb-drill-progress" class="exam-progress"></span>
-      </div>
-      <div id="mb-drill-area"></div>
-      <div id="mb-drill-feedback"></div>
-    </div>
-
-    <div id="mb-congrats" class="hidden">
-      <div class="card congrats-card">
-        <div class="congrats-emoji">🎉</div>
-        <h2>Review complete!</h2>
-        <p id="mb-congrats-text"></p>
-        <button id="mb-congrats-home" class="primary-btn">Back to Progress</button>
       </div>
     </div>
 
@@ -533,7 +514,10 @@
   <!-- ===== Tab: Review Test（挑日期＋錯題出 100 分考卷）===== -->
   <section id="tab-review" class="tab-panel">
     <div id="rv-home">
-      <h2>Review Test</h2>
+      <h2>Review</h2>
+      <div id="rv-log" class="card"></div>
+      <div id="rv-mistakes" class="card center"></div>
+      <h3 class="rv-sec-title">Review Test</h3>
       <div class="card">
         <p class="hint">A checkpoint test out of <strong>100 points</strong>: questions are drawn at random
           from the daily mission sets of the days you pick, plus mistake-book items — a quick way to see
@@ -557,6 +541,24 @@
         <button id="rv-mastery" class="primary-btn">Start mastery check</button>
       </div>
       <div id="rv-history" class="card"></div>
+    </div>
+
+    <div id="mb-drill" class="hidden">
+      <div class="exam-top">
+        <button id="mb-drill-quit" class="ghost-btn">Quit</button>
+        <span id="mb-drill-progress" class="exam-progress"></span>
+      </div>
+      <div id="mb-drill-area"></div>
+      <div id="mb-drill-feedback"></div>
+    </div>
+
+    <div id="mb-congrats" class="hidden">
+      <div class="card congrats-card">
+        <div class="congrats-emoji">🎉</div>
+        <h2>Review complete!</h2>
+        <p id="mb-congrats-text"></p>
+        <button id="mb-congrats-home" class="primary-btn">Back to Review</button>
+      </div>
     </div>
 
     <div id="rv-quiz" class="hidden">
@@ -669,10 +671,10 @@
 </div>
 
 <script src="js/dialog.js"></script>
-<script src="js/versions.js?v=20260828a"></script>
+<script src="js/versions.js?v=20260828b"></script>
 <script src="js/chart.js"></script>
-<script src="js/app.js?v=20260828a"></script>
+<script src="js/app.js?v=20260828b"></script>
 <script src="js/loader.js?v=20260827a"></script>
-<script src="js/sync.js?v=20260828a"></script>
+<script src="js/sync.js?v=20260828b"></script>
 </body>
 </html>
