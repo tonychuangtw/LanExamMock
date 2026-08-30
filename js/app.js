@@ -4096,7 +4096,10 @@ if (typeof document !== 'undefined') {
     var prevRec = d25TodayRec() || {};
     d25SaveRec({ done: true, total: d25.firstTotal, firstOk: d25.firstOk, ms: ms,
                  rushed: d25.rush || 0, finishedAt: Date.now(), refs: prevRec.refs,
-                 log: d25.log || [], spell: prevRec.spell });
+                 log: d25.log || [], spell: prevRec.spell,
+                 /* 當天選的任務長度（10/15/20）—— 家長頁要標出他哪一天把長度改小了。
+                    Tony 2026-08-30：實際題數雖然已經約等於長度，但轉折點混在數字裡看不出來。 */
+                 size: d25SizeGet() });
     saveJSON(K_DRUN(), null);   // 今日已完成，清掉中途進度
     var s = checkStreak(true);
     var mins = Math.max(1, Math.round(ms / 60000));
@@ -5356,6 +5359,25 @@ if (typeof document !== 'undefined') {
     }
     html += "</div>";
 
+    /* 每日任務長度是小孩自己在首頁選的（10/15/20）。新紀錄直接存了 size；
+       舊紀錄沒有，但實際題數 = 長度 ＋ 最多 1–2 題到期錯題，所以可由題數反推。
+       只在「跟前一天不同」時標出來，例如 20 → 10（Tony 2026-08-30）。 */
+    function dailySize(rec) {
+      if (rec && D25_SIZES.indexOf(rec.size) >= 0) return rec.size;
+      var t = (rec && rec.total) || 0, best = null;
+      D25_SIZES.forEach(function (n) { if (n <= t && (best === null || n > best)) best = n; });
+      return best;
+    }
+    var sizeNote = {}, prevSize = null;
+    Object.keys(hist).sort().forEach(function (k) {      // 由舊到新才看得出轉折
+      var r = hist[k];
+      if (!r || !r.done) return;
+      var sz = dailySize(r);
+      if (sz === null) return;
+      if (prevSize !== null && sz !== prevSize) sizeNote[k] = prevSize + " → " + sz;
+      prevSize = sz;
+    });
+
     var rows = "";
     Object.keys(hist).sort().reverse().slice(0, 14).forEach(function (dk2) {
       var r2 = hist[dk2];
@@ -5372,6 +5394,9 @@ if (typeof document !== 'undefined') {
           ? " · ✍️ " + r2.spell.firstOk + "/" + r2.spell.total +
             (spMs ? " (" + Math.max(1, Math.round(spMs / 60000)) + " min)" : "")
           : "") + "</span>" +
+        (sizeNote[dk2]
+          ? '<span class="mh-size" title="Questions per day was changed on this day">📏 ' + esc(sizeNote[dk2]) + "</span>"
+          : "") +
         '<span class="mh-score ' + (pct >= 75 ? "ok" : pct >= 60 ? "mid" : "bad") + '">' +
         r2.firstOk + "/" + r2.total + " (" + pct + "%)</span></li>";
     });

@@ -2,6 +2,11 @@
  * 站內 UI 全英文（沉浸式），版本說明也用英文。 */
 window.APP_VERSIONS = [
   {
+    v: "v43", date: "2026-08-30", items: [
+      "\ud83d\udccf The parent view now flags the days when the daily length was changed. Questions per day is chosen on the home screen (10 / 15 / 20), and the number in the history row is that setting plus one or two due mistake-book items — so the setting was already visible, but a change from 20 down to 10 was buried in the digits. Any day whose setting differs from the day before now carries a 20 \u2192 10 badge. Older records are inferred from the question count; from now on the chosen length is stored with the record."
+    ]
+  },
+  {
     v: "v42", date: "2026-08-29", items: [
       "\ud83d\udd01 A question you get wrong now says so when it comes back. It already returned at the end of the round — you have to answer it correctly to finish — but nothing told you why it reappeared. It now carries a line: you missed this earlier, the score already has your first answer, this round is for learning.",
       "\ud83d\udcca The end-of-mission summary now shows what the grown-ups were seeing. Alongside the score it says how many questions had to be done again, and how many were answered in under 2.5 seconds and wrong — faster than anyone can read the question."
